@@ -2,6 +2,70 @@
 // Project: [Project Name]
 // Description: [Description]
 
+// Initialize a new Lenis instance for smooth scrolling
+const lenis = new Lenis();
+
+// Synchronize Lenis scrolling with GSAP's ScrollTrigger plugin
+lenis.on('scroll', ScrollTrigger.update);
+
+// Add Lenis's requestAnimationFrame (raf) method to GSAP's ticker
+// This ensures Lenis's smooth scroll animation updates on each GSAP tick
+gsap.ticker.add((time) => {
+  lenis.raf(time * 1000); // Convert time from seconds to milliseconds
+});
+
+// Disable lag smoothing in GSAP to prevent any delay in scroll animations
+gsap.ticker.lagSmoothing(0);
+
+
+// SCROLL SPLIT TEXT + IMG REVEAL //
+gsap.registerPlugin(SplitText, ScrollTrigger);
+
+const splitConfig = {
+  lines: { duration: 0.8, stagger: 0.08 },
+  words: { duration: 0.6, stagger: 0.06 },
+  chars: { duration: 0.4, stagger: 0.01 }
+};
+
+function initMaskTextScrollReveal() {
+  document.querySelectorAll('[data-reveal]').forEach((el) => {
+    const type = (el.dataset.reveal || 'lines').toLowerCase();
+    const safeType = ['lines', 'words', 'chars'].includes(type) ? type : 'lines';
+
+    const typesToSplit =
+      safeType === 'lines' ? ['lines'] :
+      safeType === 'words' ? ['lines', 'words'] :
+      ['lines', 'words', 'chars'];
+
+    SplitText.create(el, {
+      type: typesToSplit.join(','),
+      mask: 'lines',
+      autoSplit: true,
+      linesClass: 'line',
+      wordsClass: 'word',
+      charsClass: 'letter',
+      onSplit: (instance) => {
+        const targets = instance[safeType];
+        const config = splitConfig[safeType];
+
+        gsap.from(targets, {
+          yPercent: 110,
+          duration: config.duration,
+          stagger: config.stagger,
+          ease: 'expo.out',
+          scrollTrigger: {
+            trigger: el,
+            start: 'clamp(top 80%)',
+            once: true
+          }
+        });
+      }
+    });
+  });
+}
+
+document.addEventListener("DOMContentLoaded", initMaskTextScrollReveal);
+
 // CURSOR TEXT HOVER //
 function initDynamicCustomTextCursor() {  
   let cursorItem = document.querySelector(".cursor");
