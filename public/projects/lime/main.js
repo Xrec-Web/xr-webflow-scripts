@@ -8,17 +8,10 @@ gsap.registerPlugin(SplitText, ScrollTrigger, InertiaPlugin, Observer);
 
 // Initialize a new Lenis instance for smooth scrolling
 const lenis = new Lenis();
-
-// Synchronize Lenis scrolling with GSAP's ScrollTrigger plugin
 lenis.on('scroll', ScrollTrigger.update);
-
-// Add Lenis's requestAnimationFrame (raf) method to GSAP's ticker
-// This ensures Lenis's smooth scroll animation updates on each GSAP tick
 gsap.ticker.add((time) => {
-  lenis.raf(time * 1000); // Convert time from seconds to milliseconds
+  lenis.raf(time * 1000);
 });
-
-// Disable lag smoothing in GSAP to prevent any delay in scroll animations
 gsap.ticker.lagSmoothing(0);
 
 
@@ -34,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('.h-process_grid'))             initProcessBlockTopFade();
 });
 
-
 // ─── FUNCTIONS ───────────────────────────────────────────────────────────────
 
 // SCROLL SPLIT TEXT + IMG REVEAL //
@@ -44,6 +36,7 @@ const splitConfig = {
   chars: { duration: 0.4, stagger: 0.01 }
 };
 
+// TEXT REVEAL //
 function initMaskTextScrollReveal() {
   document.querySelectorAll('[data-reveal]').forEach((el) => {
     const type = (el.dataset.reveal || 'lines').toLowerCase();
@@ -80,7 +73,6 @@ function initMaskTextScrollReveal() {
     });
   });
 }
-
 
 // CURSOR TEXT HOVER //
 function initDynamicCustomTextCursor() {
@@ -166,7 +158,6 @@ function initDynamicCustomTextCursor() {
   });
 }
 
-
 // VIDEO AUTOPLAY HOVER //
 function initPlayVideoHover() {
   const wrappers = document.querySelectorAll('[data-video-on-hover]');
@@ -195,7 +186,6 @@ function initPlayVideoHover() {
     });
   });
 }
-
 
 // MOMENTUM BASED HOVER //
 function initMomentumBasedHover() {
@@ -268,7 +258,6 @@ function initMomentumBasedHover() {
     });
   });
 }
-
 
 // DRAGGABLE MARQUEE //
 function initDraggableMarquee() {
@@ -370,7 +359,6 @@ function initDraggableMarquee() {
     wrapper.setAttribute('data-draggable-marquee-init', 'initialized');
   });
 }
-
 
 // PROCESS BLOCK TOP FADE //
 function initProcessBlockTopFade() {
