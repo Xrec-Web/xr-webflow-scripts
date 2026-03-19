@@ -25,7 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-momentum-hover-init]'))  initMomentumBasedHover();
   if (document.querySelector('[data-draggable-marquee-init]')) initDraggableMarquee();
   if (document.querySelector('.h-process_grid'))             initProcessBlockTopFade();
-  if (document.querySelector('[filter-list="categories"]'))  initCategoryFilters();
+  if (document.querySelector('[filter-list="categories"]'))  initFilters('categories', true);
+  if (document.querySelector('[filter-list="contract"]'))    initFilters('contract');
 });
 
 // ─── FUNCTIONS ───────────────────────────────────────────────────────────────
@@ -361,36 +362,38 @@ function initDraggableMarquee() {
   });
 }
 
-// CATEGORY FILTERS //
-function initCategoryFilters() {
-  const list = document.querySelector('[filter-list="categories"]');
+// FILTERS //
+function initFilters(type, stripPrefix = false) {
+  const list = document.querySelector(`[filter-list="${type}"]`);
   if (!list) return;
 
   // Use the first existing filter item as the template
-  const template = list.querySelector('[filter-item="categories"]');
+  const template = list.querySelector(`[filter-item="${type}"]`);
   if (!template) return;
 
-  // Collect unique category names from all data-item elements, stripping "IT - " prefix
-  const categories = [...new Set(
-    [...document.querySelectorAll('[data-item="categories"]')]
-      .map(el => el.textContent.trim().replace(/^IT\s*-\s*/i, ''))
+  // Collect unique names from all matching data-item elements
+  const items = [...new Set(
+    [...document.querySelectorAll(`[data-item="${type}"]`)]
+      .map(el => {
+        let text = el.textContent.trim();
+        if (stripPrefix) text = text.replace(/^IT\s*-\s*/i, '');
+        return text;
+      })
       .filter(text => text.length > 0)
   )];
 
   // Remove all existing filter items
-  list.querySelectorAll('[filter-item="categories"]').forEach(el => el.remove());
+  list.querySelectorAll(`[filter-item="${type}"]`).forEach(el => el.remove());
 
-  // Clone the template for each category, swapping in the correct text
-  categories.forEach(category => {
+  // Clone the template for each item, swapping in the correct text
+  items.forEach(item => {
     const clone = template.cloneNode(true);
 
-    // Update checkbox value if one exists inside
     const checkbox = clone.querySelector('input[type="checkbox"]');
-    if (checkbox) checkbox.value = category;
+    if (checkbox) checkbox.value = item;
 
-    // Replace the span text with the category name
     const span = clone.querySelector('span');
-    if (span) span.textContent = category;
+    if (span) span.textContent = item;
 
     list.appendChild(clone);
   });
