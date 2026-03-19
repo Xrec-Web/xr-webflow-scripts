@@ -370,10 +370,10 @@ function initCategoryFilters() {
   const template = list.querySelector('[filter-item="categories"]');
   if (!template) return;
 
-  // Collect unique category names from all data-item elements
+  // Collect unique category names from all data-item elements, stripping "IT - " prefix
   const categories = [...new Set(
     [...document.querySelectorAll('[data-item="categories"]')]
-      .map(el => el.textContent.trim())
+      .map(el => el.textContent.trim().replace(/^IT\s*-\s*/i, ''))
       .filter(text => text.length > 0)
   )];
 
