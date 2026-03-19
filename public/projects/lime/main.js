@@ -388,12 +388,9 @@ function initCategoryFilters() {
     const checkbox = clone.querySelector('input[type="checkbox"]');
     if (checkbox) checkbox.value = category;
 
-    // Replace the text node with the category name
-    clone.childNodes.forEach(node => {
-      if (node.nodeType === Node.TEXT_NODE && node.textContent.trim().length > 0) {
-        node.textContent = category;
-      }
-    });
+    // Replace the span text with the category name
+    const span = clone.querySelector('span');
+    if (span) span.textContent = category;
 
     list.appendChild(clone);
   });
