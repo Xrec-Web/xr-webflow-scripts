@@ -366,6 +366,10 @@ function initCategoryFilters() {
   const list = document.querySelector('[filter-list="categories"]');
   if (!list) return;
 
+  // Use the first existing filter item as the template
+  const template = list.querySelector('[filter-item="categories"]');
+  if (!template) return;
+
   // Collect unique category names from all data-item elements
   const categories = [...new Set(
     [...document.querySelectorAll('[data-item="categories"]')]
@@ -373,21 +377,25 @@ function initCategoryFilters() {
       .filter(text => text.length > 0)
   )];
 
-  // Clear existing filter items
+  // Remove all existing filter items
   list.querySelectorAll('[filter-item="categories"]').forEach(el => el.remove());
 
-  // Populate one checkbox per unique category
+  // Clone the template for each category, swapping in the correct text
   categories.forEach(category => {
-    const label = document.createElement('label');
-    label.setAttribute('filter-item', 'categories');
+    const clone = template.cloneNode(true);
 
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.value = category;
+    // Update checkbox value if one exists inside
+    const checkbox = clone.querySelector('input[type="checkbox"]');
+    if (checkbox) checkbox.value = category;
 
-    label.appendChild(checkbox);
-    label.appendChild(document.createTextNode(category));
-    list.appendChild(label);
+    // Replace the text node with the category name
+    clone.childNodes.forEach(node => {
+      if (node.nodeType === Node.TEXT_NODE && node.textContent.trim().length > 0) {
+        node.textContent = category;
+      }
+    });
+
+    list.appendChild(clone);
   });
 }
 
