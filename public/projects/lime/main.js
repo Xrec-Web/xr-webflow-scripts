@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-momentum-hover-init]'))  initMomentumBasedHover();
   if (document.querySelector('[data-draggable-marquee-init]')) initDraggableMarquee();
   if (document.querySelector('.h-process_grid'))             initProcessBlockTopFade();
+  if (document.querySelector('[filter-list="categories"]'))  initCategoryFilters();
 });
 
 // ─── FUNCTIONS ───────────────────────────────────────────────────────────────
@@ -359,6 +360,37 @@ function initDraggableMarquee() {
     wrapper.setAttribute('data-draggable-marquee-init', 'initialized');
   });
 }
+
+// CATEGORY FILTERS //
+function initCategoryFilters() {
+  const list = document.querySelector('[filter-list="categories"]');
+  if (!list) return;
+
+  // Collect unique category names from all data-item elements
+  const categories = [...new Set(
+    [...document.querySelectorAll('[data-item="categories"]')]
+      .map(el => el.textContent.trim())
+      .filter(text => text.length > 0)
+  )];
+
+  // Clear existing filter items
+  list.querySelectorAll('[filter-item="categories"]').forEach(el => el.remove());
+
+  // Populate one checkbox per unique category
+  categories.forEach(category => {
+    const label = document.createElement('label');
+    label.setAttribute('filter-item', 'categories');
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = category;
+
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(category));
+    list.appendChild(label);
+  });
+}
+
 
 // PROCESS BLOCK TOP FADE //
 function initProcessBlockTopFade() {
