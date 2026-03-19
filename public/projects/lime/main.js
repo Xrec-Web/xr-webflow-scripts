@@ -2,6 +2,10 @@
 // Project: [Project Name]
 // Description: [Description]
 
+// ─── ALWAYS-ON SETUP ────────────────────────────────────────────────────────
+
+gsap.registerPlugin(SplitText, ScrollTrigger, InertiaPlugin, Observer);
+
 // Initialize a new Lenis instance for smooth scrolling
 const lenis = new Lenis();
 
@@ -18,9 +22,22 @@ gsap.ticker.add((time) => {
 gsap.ticker.lagSmoothing(0);
 
 
-// SCROLL SPLIT TEXT + IMG REVEAL //
-gsap.registerPlugin(SplitText, ScrollTrigger);
+// ─── INIT ────────────────────────────────────────────────────────────────────
+// Each init is guarded — only runs if its trigger element exists on the page.
 
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.querySelector('[data-reveal]'))               initMaskTextScrollReveal();
+  if (document.querySelector('.cursor'))                     initDynamicCustomTextCursor();
+  if (document.querySelector('[data-video-on-hover]'))       initPlayVideoHover();
+  if (document.querySelector('[data-momentum-hover-init]'))  initMomentumBasedHover();
+  if (document.querySelector('[data-draggable-marquee-init]')) initDraggableMarquee();
+  if (document.querySelector('.h-process_grid'))             initProcessBlockTopFade();
+});
+
+
+// ─── FUNCTIONS ───────────────────────────────────────────────────────────────
+
+// SCROLL SPLIT TEXT + IMG REVEAL //
 const splitConfig = {
   lines: { duration: 0.8, stagger: 0.08 },
   words: { duration: 0.6, stagger: 0.06 },
@@ -64,13 +81,12 @@ function initMaskTextScrollReveal() {
   });
 }
 
-document.addEventListener("DOMContentLoaded", initMaskTextScrollReveal);
 
 // CURSOR TEXT HOVER //
-function initDynamicCustomTextCursor() {  
-  let cursorItem = document.querySelector(".cursor");
-  let cursorParagraph = cursorItem.querySelector("p");
-  let targets = document.querySelectorAll("[data-cursor]");
+function initDynamicCustomTextCursor() {
+  let cursorItem = document.querySelector('.cursor');
+  let cursorParagraph = cursorItem.querySelector('p');
+  let targets = document.querySelectorAll('[data-cursor]');
   let xOffset = 6;
   let yOffset = 140;
   let cursorIsOnRight = false;
@@ -81,8 +97,8 @@ function initDynamicCustomTextCursor() {
   gsap.set(cursorItem, { xPercent: xOffset, yPercent: yOffset });
 
   // Use GSAP quick.to for a more performative tween on the cursor
-  let xTo = gsap.quickTo(cursorItem, "x", { ease: "power3" });
-  let yTo = gsap.quickTo(cursorItem, "y", { ease: "power3" });
+  let xTo = gsap.quickTo(cursorItem, 'x', { ease: 'power3' });
+  let yTo = gsap.quickTo(cursorItem, 'y', { ease: 'power3' });
 
   // Function to get the width of the cursor element including a buffer
   const getCursorEdgeThreshold = () => {
@@ -90,7 +106,7 @@ function initDynamicCustomTextCursor() {
   };
 
   // On mousemove, call the quickTo functions to the actual cursor position
-  window.addEventListener("mousemove", e => {
+  window.addEventListener('mousemove', e => {
     let windowWidth = window.innerWidth;
     let windowHeight = window.innerHeight;
     let scrollY = window.scrollY;
@@ -116,7 +132,7 @@ function initDynamicCustomTextCursor() {
     }
 
     if (currentTarget) {
-      let newText = currentTarget.getAttribute("data-cursor");
+      let newText = currentTarget.getAttribute('data-cursor');
       if (newText !== lastText) { // Only update if the text is different
         cursorParagraph.innerHTML = newText;
         lastText = newText;
@@ -126,17 +142,17 @@ function initDynamicCustomTextCursor() {
       }
     }
 
-    gsap.to(cursorItem, { xPercent: xPercent, yPercent: yPercent, duration: 0.9, ease: "power3" });
+    gsap.to(cursorItem, { xPercent: xPercent, yPercent: yPercent, duration: 0.9, ease: 'power3' });
     xTo(cursorX);
     yTo(cursorY - scrollY);
   });
 
   // Add a mouse enter listener for each link that has a data-cursor attribute
   targets.forEach(target => {
-    target.addEventListener("mouseenter", () => {
+    target.addEventListener('mouseenter', () => {
       currentTarget = target; // Set the current target
 
-      let newText = target.getAttribute("data-cursor");
+      let newText = target.getAttribute('data-cursor');
 
       // Update only if the text changes
       if (newText !== lastText) {
@@ -149,11 +165,6 @@ function initDynamicCustomTextCursor() {
     });
   });
 }
-
-// Initialize Dynamic Text Cursor (Edge Aware)
-document.addEventListener('DOMContentLoaded', () => {
-  initDynamicCustomTextCursor();
-});
 
 
 // VIDEO AUTOPLAY HOVER //
@@ -185,18 +196,13 @@ function initPlayVideoHover() {
   });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  initPlayVideoHover();
-});
 
-// PROOF DRAGGABLE CARDS //
-gsap.registerPlugin(InertiaPlugin);
-
+// MOMENTUM BASED HOVER //
 function initMomentumBasedHover() {
 
-  // If this device can’t hover with a fine pointer, stop here
-  if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) {return;}
-  
+  // If this device can't hover with a fine pointer, stop here
+  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) { return; }
+
   // Configuration (tweak these for feel)
   const xyMultiplier       = 30;  // multiplies pointer velocity for x/y movement
   const rotationMultiplier = 20;  // multiplies normalized torque for rotation speed
@@ -263,15 +269,10 @@ function initMomentumBasedHover() {
   });
 }
 
-// Initialize Momentum Based Hover (Inertia)
-document.addEventListener("DOMContentLoaded", () => {
-  initMomentumBasedHover();
-});
 
-
-// TEAM MARQUEE //
+// DRAGGABLE MARQUEE //
 function initDraggableMarquee() {
-  const wrappers = document.querySelectorAll("[data-draggable-marquee-init]");
+  const wrappers = document.querySelectorAll('[data-draggable-marquee-init]');
 
   const getNumberAttr = (el, name, fallback) => {
     const value = parseFloat(el.getAttribute(name));
@@ -279,15 +280,15 @@ function initDraggableMarquee() {
   };
 
   wrappers.forEach((wrapper) => {
-    if (wrapper.getAttribute("data-draggable-marquee-init") === "initialized") return;
+    if (wrapper.getAttribute('data-draggable-marquee-init') === 'initialized') return;
 
-    const collection = wrapper.querySelector("[data-draggable-marquee-collection]");
-    const list = wrapper.querySelector("[data-draggable-marquee-list]");
+    const collection = wrapper.querySelector('[data-draggable-marquee-collection]');
+    const list = wrapper.querySelector('[data-draggable-marquee-list]');
     if (!collection || !list) return;
 
-    const duration = getNumberAttr(wrapper, "data-duration", 20);
-    const multiplier = getNumberAttr(wrapper, "data-multiplier", 40);
-    const sensitivity = getNumberAttr(wrapper, "data-sensitivity", 0.01);
+    const duration = getNumberAttr(wrapper, 'data-duration', 20);
+    const multiplier = getNumberAttr(wrapper, 'data-multiplier', 40);
+    const sensitivity = getNumberAttr(wrapper, 'data-sensitivity', 0.01);
 
     const wrapperWidth = wrapper.getBoundingClientRect().width;
     const listWidth = list.scrollWidth || list.getBoundingClientRect().width;
@@ -297,48 +298,48 @@ function initDraggableMarquee() {
     const minRequiredWidth = wrapperWidth + listWidth + 2;
     while (collection.scrollWidth < minRequiredWidth) {
       const listClone = list.cloneNode(true);
-      listClone.setAttribute("data-draggable-marquee-clone", "");
-      listClone.setAttribute("aria-hidden", "true");
+      listClone.setAttribute('data-draggable-marquee-clone', '');
+      listClone.setAttribute('aria-hidden', 'true');
       collection.appendChild(listClone);
     }
 
     const wrapX = gsap.utils.wrap(-listWidth, 0);
-    
+
     gsap.set(collection, { x: 0 });
-    
+
     const marqueeLoop = gsap.to(collection, {
       x: -listWidth,
       duration,
-      ease: "none",
+      ease: 'none',
       repeat: -1,
       onReverseComplete: () => marqueeLoop.progress(1),
       modifiers: {
-        x: (x) => wrapX(parseFloat(x)) + "px"
+        x: (x) => wrapX(parseFloat(x)) + 'px'
       },
     });
-    
+
     // Direction can be used for css + set initial direction on load
-    const initialDirectionAttr = (wrapper.getAttribute("data-direction") || "left").toLowerCase();
-    const baseDirection = initialDirectionAttr === "right" ? -1 : 1;
-    
+    const initialDirectionAttr = (wrapper.getAttribute('data-direction') || 'left').toLowerCase();
+    const baseDirection = initialDirectionAttr === 'right' ? -1 : 1;
+
     const timeScale = { value: 1 };
-    
+
     timeScale.value = baseDirection;
-    wrapper.setAttribute("data-direction", baseDirection < 0 ? "right" : "left");
-    
+    wrapper.setAttribute('data-direction', baseDirection < 0 ? 'right' : 'left');
+
     if (baseDirection < 0) marqueeLoop.progress(1);
-    
+
     function applyTimeScale() {
       marqueeLoop.timeScale(timeScale.value);
-      wrapper.setAttribute("data-direction", timeScale.value < 0 ? "right" : "left");
+      wrapper.setAttribute('data-direction', timeScale.value < 0 ? 'right' : 'left');
     }
-    
+
     applyTimeScale();
 
     // Drag observer
     const marqueeObserver = Observer.create({
       target: wrapper,
-      type: "pointer,touch",
+      type: 'pointer,touch',
       preventDefault: true,
       debounce: false,
       onChangeX: (observerEvent) => {
@@ -358,58 +359,49 @@ function initDraggableMarquee() {
     // Pause marquee when scrolled out of view
     ScrollTrigger.create({
       trigger: wrapper,
-      start: "top bottom",
-      end: "bottom top",
+      start: 'top bottom',
+      end: 'bottom top',
       onEnter: () => { marqueeLoop.resume(); applyTimeScale(); marqueeObserver.enable(); },
       onEnterBack: () => { marqueeLoop.resume(); applyTimeScale(); marqueeObserver.enable(); },
       onLeave: () => { marqueeLoop.pause(); marqueeObserver.disable(); },
       onLeaveBack: () => { marqueeLoop.pause(); marqueeObserver.disable(); }
     });
-    
-    wrapper.setAttribute("data-draggable-marquee-init", "initialized");
+
+    wrapper.setAttribute('data-draggable-marquee-init', 'initialized');
   });
 }
 
-// Initialize Draggable Marquee (Directional)
-document.addEventListener("DOMContentLoaded", () => {
-  initDraggableMarquee();
-});
 
+// PROCESS BLOCK TOP FADE //
+function initProcessBlockTopFade() {
+  // Exclude the last item
+  const blocks = gsap.utils.toArray(
+    '.h-process_grid .h-process_block:not(.last)'
+  );
 
-// PROCESS ANIMATION //
-  gsap.registerPlugin(ScrollTrigger);
+  if (!blocks.length) return;
 
-  function initProcessBlockTopFade() {
-    // Exclude the last item
-    const blocks = gsap.utils.toArray(
-      '.h-process_grid .h-process_block:not(.last)'
-    );
+  blocks.forEach((block) => {
 
-    if (!blocks.length) return;
-
-    blocks.forEach((block) => {
-
-      gsap.set(block, {
-        scale: 1,
-        opacity: 1,
-        filter: "blur(0px)",
-        transformOrigin: "50% 0%"
-      });
-
-      gsap.to(block, {
-        scale: 0.92,
-        opacity: 0,
-        filter: "blur(10px)",
-        ease: "none",
-        scrollTrigger: {
-          trigger: block,
-          start: "top 10%",
-          end: "top -20%",
-          scrub: true
-        }
-      });
-
+    gsap.set(block, {
+      scale: 1,
+      opacity: 1,
+      filter: 'blur(0px)',
+      transformOrigin: '50% 0%'
     });
-  }
 
-  document.addEventListener("DOMContentLoaded", initProcessBlockTopFade);
+    gsap.to(block, {
+      scale: 0.92,
+      opacity: 0,
+      filter: 'blur(10px)',
+      ease: 'none',
+      scrollTrigger: {
+        trigger: block,
+        start: 'top 10%',
+        end: 'top -20%',
+        scrub: true
+      }
+    });
+
+  });
+}
