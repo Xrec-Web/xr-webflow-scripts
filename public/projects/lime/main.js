@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-momentum-hover-init]'))  initMomentumBasedHover();
   if (document.querySelector('[data-draggable-marquee-init]')) initDraggableMarquee();
   if (document.querySelector('.h-process_grid'))             initProcessBlockTopFade();
-  if (document.querySelector('[filter-list="categories"]'))  initFilters('categories', true);
+  if (document.querySelector('[filter-list="categories"]'))  initFilters('categories');
   if (document.querySelector('[filter-list="contract"]'))    initFilters('contract');
 });
 
@@ -363,7 +363,7 @@ function initDraggableMarquee() {
 }
 
 // FILTERS //
-function initFilters(type, stripPrefix = false) {
+function initFilters(type) {
   const list = document.querySelector(`[filter-list="${type}"]`);
   if (!list) return;
 
@@ -375,9 +375,7 @@ function initFilters(type, stripPrefix = false) {
   const items = [...new Set(
     [...document.querySelectorAll(`[data-item="${type}"]`)]
       .map(el => {
-        let text = el.textContent.trim();
-        if (stripPrefix) text = text.replace(/^IT\s*-\s*/i, '');
-        return text;
+        return el.textContent.trim();
       })
       .filter(text => text.length > 0)
   )];
@@ -398,7 +396,6 @@ function initFilters(type, stripPrefix = false) {
     list.appendChild(clone);
   });
 }
-
 
 // PROCESS BLOCK TOP FADE //
 function initProcessBlockTopFade() {
