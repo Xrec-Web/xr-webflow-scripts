@@ -406,7 +406,7 @@ function initPopupForm() {
     const openers = document.querySelectorAll(`[data-popup-open="${id}"]`);
     const closers = popup.querySelectorAll('[data-popup-close]');
     const jobIdField = popup.querySelector('[data-popup-job-id]');
-    const jobTitleEl = popup.querySelector('[data-popup="job-title"]');
+    const jobTitleEl = popup.querySelector('[data-popup-field="job-title"]');
     let isOpen = false;
 
     // Force display so Webflow's display:none doesn't block GSAP.
