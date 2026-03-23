@@ -374,13 +374,23 @@ function initFilters(type) {
   if (!template) return;
 
   // Collect unique names from all matching data-item elements
-  const items = [...new Set(
-    [...document.querySelectorAll(`[data-item="${type}"]`)]
-      .map(el => {
-        return el.textContent.trim();
-      })
-      .filter(text => text.length > 0)
-  )];
+  const rawEls = [...document.querySelectorAll(`[data-item="${type}"]`)];
+  console.log(`[initFilters:${type}] found ${rawEls.length} [data-item] elements`);
+  rawEls.forEach((el, i) => {
+    const raw = el.textContent;
+    console.log(`  [${i}] raw: ${JSON.stringify(raw)} | trimmed: ${JSON.stringify(raw.trim())} | charCodes: ${[...raw.trim()].map(c => c.charCodeAt(0))}`);
+  });
+
+  const items = [...new Set(rawEls.map(el => el.textContent.trim()).filter(text => text.length > 0))];
+  console.log(`[initFilters:${type}] unique items:`, items);
+
+  // Log what fs-cmsfilter-field values exist in the CMS list for comparison
+  const cmsFieldEls = [...document.querySelectorAll(`[fs-cmsfilter-field="${type}"]`)];
+  console.log(`[initFilters:${type}] found ${cmsFieldEls.length} [fs-cmsfilter-field="${type}"] elements`);
+  cmsFieldEls.forEach((el, i) => {
+    const raw = el.textContent;
+    console.log(`  [${i}] raw: ${JSON.stringify(raw)} | trimmed: ${JSON.stringify(raw.trim())} | charCodes: ${[...raw.trim()].map(c => c.charCodeAt(0))}`);
+  });
 
   // Remove all existing filter items
   list.querySelectorAll(`[filter-item="${type}"]`).forEach(el => el.remove());
@@ -393,6 +403,7 @@ function initFilters(type) {
     if (checkbox) {
       checkbox.value = item;
       checkbox.setAttribute('fs-list-value', item);
+      console.log(`[initFilters:${type}] checkbox fs-list-value set to: ${JSON.stringify(item)}`);
     }
 
     const span = clone.querySelector('span');
