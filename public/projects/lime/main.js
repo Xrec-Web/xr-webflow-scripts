@@ -447,7 +447,7 @@ function initPopupForm() {
     }
 
     openers.forEach(btn => btn.addEventListener('click', openPopup));
-    closers.forEach(btn => btn.addEventListener('click', closePopup));
+    closers.forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); closePopup(); }));
 
     // Click backdrop to close
     popup.addEventListener('click', (e) => {
