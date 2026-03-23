@@ -407,22 +407,23 @@ function initPopupForm() {
     const closers = popup.querySelectorAll('[data-popup-close]');
     let isOpen = false;
 
-    // Set initial hidden state — force display:block so GSAP can animate it,
-    // then hide via opacity/visibility (autoAlpha). Webflow often uses display:none.
-    gsap.set(popup, { display: 'flex', autoAlpha: 0 });
+    // Force display so Webflow's display:none doesn't block GSAP.
+    // Visibility + opacity are controlled manually to avoid autoAlpha state bugs.
+    gsap.set(popup, { display: 'flex', opacity: 0 });
+    popup.style.visibility = 'hidden';
     popup.style.pointerEvents = 'none';
     if (card) gsap.set(card, { y: 24, scale: 0.97 });
 
     function openPopup() {
       if (isOpen) return;
       isOpen = true;
+      popup.style.visibility = 'visible';
       popup.style.pointerEvents = 'all';
       lenis.stop();
 
       gsap.killTweensOf([popup, card]);
-      gsap.timeline()
-        .to(popup, { autoAlpha: 1, duration: 0.35, ease: 'power2.out' })
-        .to(card, { y: 0, scale: 1, duration: 0.45, ease: 'expo.out' }, '<0.05');
+      gsap.to(popup, { opacity: 1, duration: 0.35, ease: 'power2.out' });
+      gsap.to(card, { y: 0, scale: 1, duration: 0.45, ease: 'expo.out', delay: 0.05 });
     }
 
     function closePopup() {
@@ -431,9 +432,18 @@ function initPopupForm() {
       popup.style.pointerEvents = 'none';
 
       gsap.killTweensOf([popup, card]);
-      gsap.timeline({ onComplete: () => lenis.start() })
-        .to(card, { y: 16, scale: 0.97, duration: 0.3, ease: 'power2.in' })
-        .to(popup, { autoAlpha: 0, duration: 0.25, ease: 'power2.in' }, '<0.05');
+      gsap.to(card, { y: 16, scale: 0.97, duration: 0.3, ease: 'power2.in' });
+      gsap.to(popup, {
+        opacity: 0,
+        duration: 0.25,
+        ease: 'power2.in',
+        delay: 0.05,
+        onComplete: () => {
+          popup.style.visibility = 'hidden';
+          gsap.set(card, { y: 24, scale: 0.97 });
+          lenis.start();
+        }
+      });
     }
 
     openers.forEach(btn => btn.addEventListener('click', openPopup));
