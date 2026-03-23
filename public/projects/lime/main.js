@@ -19,6 +19,8 @@ gsap.ticker.lagSmoothing(0);
 // Each init is guarded — only runs if its trigger element exists on the page.
 
 document.addEventListener('DOMContentLoaded', () => {
+  if (document.querySelector('[filter-list="categories"]'))  initFilters('categories');
+  if (document.querySelector('[filter-list="contract"]'))    initFilters('contract');
   if (document.querySelector('[data-reveal]'))               initMaskTextScrollReveal();
   if (document.querySelector('.cursor'))                     initDynamicCustomTextCursor();
   if (document.querySelector('[data-video-on-hover]'))       initPlayVideoHover();
@@ -27,12 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('.h-process_grid'))             initProcessBlockTopFade();
   if (document.querySelector('[data-popup]'))                initPopupForm();
 });
-
-window.fsAttributes = window.fsAttributes || [];
-window.fsAttributes.push(['listfilter', () => {
-  if (document.querySelector('[filter-list="categories"]'))  initFilters('categories');
-  if (document.querySelector('[filter-list="contract"]'))    initFilters('contract');
-}]);
 
 // ─── FUNCTIONS ───────────────────────────────────────────────────────────────
 
