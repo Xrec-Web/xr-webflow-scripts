@@ -25,10 +25,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-momentum-hover-init]'))  initMomentumBasedHover();
   if (document.querySelector('[data-draggable-marquee-init]')) initDraggableMarquee();
   if (document.querySelector('.h-process_grid'))             initProcessBlockTopFade();
-  if (document.querySelector('[filter-list="categories"]'))  initFilters('categories');
-  if (document.querySelector('[filter-list="contract"]'))    initFilters('contract');
   if (document.querySelector('[data-popup]'))                initPopupForm();
 });
+
+window.fsAttributes = window.fsAttributes || [];
+window.fsAttributes.push(['listfilter', () => {
+  if (document.querySelector('[filter-list="categories"]'))  initFilters('categories');
+  if (document.querySelector('[filter-list="contract"]'))    initFilters('contract');
+}]);
 
 // ─── FUNCTIONS ───────────────────────────────────────────────────────────────
 
@@ -388,7 +392,7 @@ function initFilters(type) {
   items.forEach(item => {
     const clone = template.cloneNode(true);
 
-    const slug = item.toLowerCase().replace(/\s+/g, '-');
+    const slug = item.toLowerCase().replace(/[\s-]+/g, '-');
 
     const checkbox = clone.querySelector('input[type="checkbox"]');
     if (checkbox) {
