@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[filter-list="categories"]'))  initFilters('categories');
   if (document.querySelector('[filter-list="contract"]'))    initFilters('contract');
   if (document.querySelector('.w-dyn-item'))                 initFilterAnimations();
-  if (document.querySelector('[data-reveal]'))               initMaskTextScrollReveal();
+  // if (document.querySelector('[data-reveal]'))               initMaskTextScrollReveal();
   if (document.querySelector('.cursor'))                     initDynamicCustomTextCursor();
   if (document.querySelector('[data-video-on-hover]'))       initPlayVideoHover();
   if (document.querySelector('[data-momentum-hover-init]'))  initMomentumBasedHover();
