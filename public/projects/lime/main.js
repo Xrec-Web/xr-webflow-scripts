@@ -407,8 +407,10 @@ function initPopupForm() {
     const closers = popup.querySelectorAll('[data-popup-close]');
     let isOpen = false;
 
-    // Set initial hidden state
-    gsap.set(popup, { autoAlpha: 0, pointerEvents: 'none' });
+    // Set initial hidden state — force display:block so GSAP can animate it,
+    // then hide via opacity/visibility (autoAlpha). Webflow often uses display:none.
+    gsap.set(popup, { display: 'flex', autoAlpha: 0 });
+    popup.style.pointerEvents = 'none';
     if (card) gsap.set(card, { y: 24, scale: 0.97 });
 
     function openPopup() {
@@ -425,11 +427,9 @@ function initPopupForm() {
     function closePopup() {
       if (!isOpen) return;
       isOpen = false;
+      popup.style.pointerEvents = 'none';
 
-      gsap.timeline({ onComplete: () => {
-        popup.style.pointerEvents = 'none';
-        lenis.start();
-      }})
+      gsap.timeline({ onComplete: () => lenis.start() })
         .to(card, { y: 16, scale: 0.97, duration: 0.3, ease: 'power2.in' })
         .to(popup, { autoAlpha: 0, duration: 0.25, ease: 'power2.in' }, '<0.05');
     }
