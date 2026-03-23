@@ -403,38 +403,26 @@ function initFilterAnimations() {
   if (!items.length) return;
 
   const animating = new WeakSet();
-  const wasVisible = new Map();
-  items.forEach(item => wasVisible.set(item, true));
 
   const observer = new MutationObserver((mutations) => {
-    const changed = new Set(mutations.map(m => m.target));
-
-    changed.forEach(target => {
+    mutations.forEach(({ target, oldValue }) => {
       if (animating.has(target)) return;
 
-      const prev = wasVisible.get(target);
-      const now  = getComputedStyle(target).display !== 'none';
+      const wasHidden = (oldValue || '').includes('display: none');
+      const isHidden  = target.style.display === 'none';
 
-      if (prev === now) return;
-      wasVisible.set(target, now);
-
-      if (!now) {
-        // Hiding — animate out then apply display:none
+      if (isHidden && !wasHidden) {
         animating.add(target);
-        gsap.killTweensOf(target);
-        const display = target.style.display;
         target.style.display = '';
         gsap.to(target, {
           opacity: 0, y: 8, duration: 0.2, ease: 'power2.in',
           onComplete: () => {
-            target.style.display = display;
+            target.style.display = 'none';
             animating.delete(target);
           }
         });
-      } else {
-        // Showing — animate in
+      } else if (!isHidden && wasHidden) {
         animating.add(target);
-        gsap.killTweensOf(target);
         gsap.fromTo(target,
           { opacity: 0, y: 8 },
           { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out',
@@ -446,7 +434,7 @@ function initFilterAnimations() {
   });
 
   items.forEach(item => {
-    observer.observe(item, { attributes: true });
+    observer.observe(item, { attributes: true, attributeFilter: ['style'], attributeOldValue: true });
   });
 }
 
