@@ -397,47 +397,6 @@ function initFilters(type) {
   });
 }
 
-// FILTER ANIMATIONS //
-function initFilterAnimations() {
-  const items = [...document.querySelectorAll('.w-dyn-item')];
-  if (!items.length) return;
-
-  const animating = new WeakSet();
-
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach(({ target, oldValue }) => {
-      if (animating.has(target)) return;
-
-      const wasHidden = (oldValue || '').includes('display: none');
-      const isHidden  = target.style.display === 'none';
-
-      if (isHidden && !wasHidden) {
-        animating.add(target);
-        target.style.display = '';
-        gsap.to(target, {
-          opacity: 0, y: 8, duration: 0.2, ease: 'power2.in',
-          onComplete: () => {
-            target.style.display = 'none';
-            animating.delete(target);
-          }
-        });
-      } else if (!isHidden && wasHidden) {
-        animating.add(target);
-        gsap.fromTo(target,
-          { opacity: 0, y: 8 },
-          { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out',
-            onComplete: () => animating.delete(target)
-          }
-        );
-      }
-    });
-  });
-
-  items.forEach(item => {
-    observer.observe(item, { attributes: true, attributeFilter: ['style'], attributeOldValue: true });
-  });
-}
-
 // POPUP FORM //
 function initPopupForm() {
   document.querySelectorAll('[data-popup]').forEach((popup) => {
@@ -507,6 +466,48 @@ function initPopupForm() {
   });
 }
 
+/*
+// FILTER ANIMATIONS //
+function initFilterAnimations() {
+  const items = [...document.querySelectorAll('.w-dyn-item')];
+  if (!items.length) return;
+
+  const animating = new WeakSet();
+
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach(({ target, oldValue }) => {
+      if (animating.has(target)) return;
+
+      const wasHidden = (oldValue || '').includes('display: none');
+      const isHidden  = target.style.display === 'none';
+
+      if (isHidden && !wasHidden) {
+        animating.add(target);
+        target.style.display = '';
+        gsap.to(target, {
+          opacity: 0, y: 8, duration: 0.2, ease: 'power2.in',
+          onComplete: () => {
+            target.style.display = 'none';
+            animating.delete(target);
+          }
+        });
+      } else if (!isHidden && wasHidden) {
+        animating.add(target);
+        gsap.fromTo(target,
+          { opacity: 0, y: 8 },
+          { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out',
+            onComplete: () => animating.delete(target)
+          }
+        );
+      }
+    });
+  });
+
+  items.forEach(item => {
+    observer.observe(item, { attributes: true, attributeFilter: ['style'], attributeOldValue: true });
+  });
+}
+  
 // MULTI FILTER SETUP (MULTI MATCH) //
 function initMutliFilterSetupMultiMatch(){
 
@@ -650,6 +651,7 @@ function initMutliFilterSetupMultiMatch(){
     paint('all');
   });
 }
+*/
 
 // PROCESS BLOCK TOP FADE //
 function initProcessBlockTopFade() {
