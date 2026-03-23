@@ -21,6 +21,7 @@ gsap.ticker.lagSmoothing(0);
 document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[filter-list="categories"]'))  initFilters('categories');
   if (document.querySelector('[filter-list="contract"]'))    initFilters('contract');
+  if (document.querySelector('.w-dyn-item'))                 initFilterAnimations();
   if (document.querySelector('[data-reveal]'))               initMaskTextScrollReveal();
   if (document.querySelector('.cursor'))                     initDynamicCustomTextCursor();
   if (document.querySelector('[data-video-on-hover]'))       initPlayVideoHover();
@@ -369,33 +370,17 @@ function initFilters(type) {
   const list = document.querySelector(`[filter-list="${type}"]`);
   if (!list) return;
 
-  // Use the first existing filter item as the template
   const template = list.querySelector(`[filter-item="${type}"]`);
   if (!template) return;
 
-  // Collect unique names from all matching data-item elements
-  const rawEls = [...document.querySelectorAll(`[data-item="${type}"]`)];
-  console.log(`[initFilters:${type}] found ${rawEls.length} [data-item] elements`);
-  rawEls.forEach((el, i) => {
-    const raw = el.textContent;
-    console.log(`  [${i}] raw: ${JSON.stringify(raw)} | trimmed: ${JSON.stringify(raw.trim())} | charCodes: ${[...raw.trim()].map(c => c.charCodeAt(0))}`);
-  });
+  const items = [...new Set(
+    [...document.querySelectorAll(`[data-item="${type}"]`)]
+      .map(el => el.textContent.trim())
+      .filter(text => text.length > 0)
+  )];
 
-  const items = [...new Set(rawEls.map(el => el.textContent.trim()).filter(text => text.length > 0))];
-  console.log(`[initFilters:${type}] unique items:`, items);
-
-  // Log what fs-cmsfilter-field values exist in the CMS list for comparison
-  const cmsFieldEls = [...document.querySelectorAll(`[fs-cmsfilter-field="${type}"]`)];
-  console.log(`[initFilters:${type}] found ${cmsFieldEls.length} [fs-cmsfilter-field="${type}"] elements`);
-  cmsFieldEls.forEach((el, i) => {
-    const raw = el.textContent;
-    console.log(`  [${i}] raw: ${JSON.stringify(raw)} | trimmed: ${JSON.stringify(raw.trim())} | charCodes: ${[...raw.trim()].map(c => c.charCodeAt(0))}`);
-  });
-
-  // Remove all existing filter items
   list.querySelectorAll(`[filter-item="${type}"]`).forEach(el => el.remove());
 
-  // Clone the template for each item, swapping in the correct text
   items.forEach(item => {
     const clone = template.cloneNode(true);
 
@@ -403,13 +388,53 @@ function initFilters(type) {
     if (checkbox) {
       checkbox.value = item;
       checkbox.setAttribute('fs-list-value', item);
-      console.log(`[initFilters:${type}] checkbox fs-list-value set to: ${JSON.stringify(item)}`);
     }
 
     const span = clone.querySelector('span');
     if (span) span.textContent = item;
 
     list.appendChild(clone);
+  });
+}
+
+// FILTER ANIMATIONS //
+function initFilterAnimations() {
+  const items = [...document.querySelectorAll('.w-dyn-item')];
+  if (!items.length) return;
+
+  const animating = new WeakSet();
+
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach(({ target, oldValue }) => {
+      if (animating.has(target)) return;
+
+      const wasHidden = (oldValue || '').includes('display: none');
+      const isHidden  = target.style.display === 'none';
+
+      if (isHidden && !wasHidden) {
+        animating.add(target);
+        target.style.display = '';
+        gsap.to(target, {
+          opacity: 0, y: 8, duration: 0.2, ease: 'power2.in',
+          onComplete: () => {
+            target.style.display = 'none';
+            animating.delete(target);
+          }
+        });
+      } else if (!isHidden && wasHidden) {
+        animating.add(target);
+        gsap.fromTo(target,
+          { opacity: 0, y: 8 },
+          { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out',
+            onComplete: () => animating.delete(target)
+          }
+        );
+      }
+    });
+  });
+
+  items.forEach(item => {
+    observer.observe(item, { attributes: true, attributeFilter: ['style'], attributeOldValue: true });
   });
 }
 
