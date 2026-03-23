@@ -405,6 +405,8 @@ function initPopupForm() {
     const card = popup.querySelector('[data-popup-card]') || popup.firstElementChild;
     const openers = document.querySelectorAll(`[data-popup-open="${id}"]`);
     const closers = popup.querySelectorAll('[data-popup-close]');
+    const jobIdField = popup.querySelector('[data-popup-job-id]');
+    const jobTitleEl = popup.querySelector('[data-popup="job-title"]');
     let isOpen = false;
 
     // Force display so Webflow's display:none doesn't block GSAP.
@@ -414,9 +416,13 @@ function initPopupForm() {
     popup.style.pointerEvents = 'none';
     if (card) gsap.set(card, { y: 24, scale: 0.97 });
 
-    function openPopup() {
+    function openPopup(btn) {
       if (isOpen) return;
       isOpen = true;
+
+      if (jobIdField)  jobIdField.value       = btn.getAttribute('data-job-id')    || '';
+      if (jobTitleEl)  jobTitleEl.textContent  = btn.getAttribute('data-job-title') || '';
+
       popup.style.visibility = 'visible';
       popup.style.pointerEvents = 'all';
       lenis.stop();
@@ -446,7 +452,7 @@ function initPopupForm() {
       });
     }
 
-    openers.forEach(btn => btn.addEventListener('click', openPopup));
+    openers.forEach(btn => btn.addEventListener('click', () => openPopup(btn)));
     closers.forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); closePopup(); }));
 
     // Click backdrop to close
