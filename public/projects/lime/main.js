@@ -419,6 +419,7 @@ function initPopupForm() {
       popup.style.pointerEvents = 'all';
       lenis.stop();
 
+      gsap.killTweensOf([popup, card]);
       gsap.timeline()
         .to(popup, { autoAlpha: 1, duration: 0.35, ease: 'power2.out' })
         .to(card, { y: 0, scale: 1, duration: 0.45, ease: 'expo.out' }, '<0.05');
@@ -429,6 +430,7 @@ function initPopupForm() {
       isOpen = false;
       popup.style.pointerEvents = 'none';
 
+      gsap.killTweensOf([popup, card]);
       gsap.timeline({ onComplete: () => lenis.start() })
         .to(card, { y: 16, scale: 0.97, duration: 0.3, ease: 'power2.in' })
         .to(popup, { autoAlpha: 0, duration: 0.25, ease: 'power2.in' }, '<0.05');
