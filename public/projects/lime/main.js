@@ -388,8 +388,13 @@ function initFilters(type) {
   items.forEach(item => {
     const clone = template.cloneNode(true);
 
+    const slug = item.toLowerCase().replace(/\s+/g, '-');
+
     const checkbox = clone.querySelector('input[type="checkbox"]');
-    if (checkbox) checkbox.value = item;
+    if (checkbox) {
+      checkbox.value = item;
+      checkbox.setAttribute('fs-list-value', slug);
+    }
 
     const span = clone.querySelector('span');
     if (span) span.textContent = item;
