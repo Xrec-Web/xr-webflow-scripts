@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('.h-process_grid'))             initProcessBlockTopFade();
   if (document.querySelector('[filter-list="categories"]'))  initFilters('categories');
   if (document.querySelector('[filter-list="contract"]'))    initFilters('contract');
+  if (document.querySelector('[data-popup]'))                initPopupForm();
 });
 
 // ─── FUNCTIONS ───────────────────────────────────────────────────────────────
@@ -394,6 +395,57 @@ function initFilters(type) {
     if (span) span.textContent = item;
 
     list.appendChild(clone);
+  });
+}
+
+// POPUP FORM //
+function initPopupForm() {
+  document.querySelectorAll('[data-popup]').forEach((popup) => {
+    const id = popup.getAttribute('data-popup');
+    const card = popup.querySelector('[data-popup-card]') || popup.firstElementChild;
+    const openers = document.querySelectorAll(`[data-popup-open="${id}"]`);
+    const closers = popup.querySelectorAll('[data-popup-close]');
+    let isOpen = false;
+
+    // Set initial hidden state
+    gsap.set(popup, { autoAlpha: 0, pointerEvents: 'none' });
+    if (card) gsap.set(card, { y: 24, scale: 0.97 });
+
+    function openPopup() {
+      if (isOpen) return;
+      isOpen = true;
+      popup.style.pointerEvents = 'all';
+      lenis.stop();
+
+      gsap.timeline()
+        .to(popup, { autoAlpha: 1, duration: 0.35, ease: 'power2.out' })
+        .to(card, { y: 0, scale: 1, duration: 0.45, ease: 'expo.out' }, '<0.05');
+    }
+
+    function closePopup() {
+      if (!isOpen) return;
+      isOpen = false;
+
+      gsap.timeline({ onComplete: () => {
+        popup.style.pointerEvents = 'none';
+        lenis.start();
+      }})
+        .to(card, { y: 16, scale: 0.97, duration: 0.3, ease: 'power2.in' })
+        .to(popup, { autoAlpha: 0, duration: 0.25, ease: 'power2.in' }, '<0.05');
+    }
+
+    openers.forEach(btn => btn.addEventListener('click', openPopup));
+    closers.forEach(btn => btn.addEventListener('click', closePopup));
+
+    // Click backdrop to close
+    popup.addEventListener('click', (e) => {
+      if (e.target === popup) closePopup();
+    });
+
+    // Escape key to close
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isOpen) closePopup();
+    });
   });
 }
 
