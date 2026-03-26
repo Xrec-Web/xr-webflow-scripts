@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[filter-list="categories"]'))  initFilters('categories');
   if (document.querySelector('[filter-list="contract"]'))    initFilters('contract');
   if (document.querySelector('[data-reveal], [data-reveal-clip]')) initMaskTextScrollReveal();
+  if (document.querySelector('[data-reveal-load]'))               initLoadReveal();
   if (document.querySelector('.cursor'))                     initDynamicCustomTextCursor();
   if (document.querySelector('[data-video-on-hover]'))       initPlayVideoHover();
   if (document.querySelector('[data-momentum-hover-init]'))  initMomentumBasedHover();
@@ -54,18 +55,26 @@ function hasRevealAncestor(el) {
 
 // TEXT + CLIP REVEAL //
 function initMaskTextScrollReveal() {
-  ScrollTrigger.batch('[data-reveal-clip]', {
+  ScrollTrigger.batch('[data-reveal-clip]:not([data-reveal-load])', {
     start: 'clamp(top 80%)',
     once: true,
     onEnter: (batch) => {
+      const DURATION = 0.9;
+      const STAGGER  = 0.1;
       const roots    = batch.filter(el => !hasRevealAncestor(el));
       const children = batch.filter(el =>  hasRevealAncestor(el));
-      if (roots.length)    gsap.to(roots,    { clipPath: 'inset(0% 0% 0% 0%)', duration: 0.9, ease: 'reveal', stagger: 0.1 });
-      if (children.length) gsap.to(children, { clipPath: 'inset(0% 0% 0% 0%)', duration: 0.9, ease: 'reveal', stagger: 0.1, delay: 0.2 });
+      const animateClipBatch = (els, baseDelay) => {
+        els.forEach((el, i) => {
+          const offset = i * STAGGER;
+          gsap.to(el, { clipPath: 'inset(0% 0% 0% 0%)', duration: DURATION - offset, ease: 'reveal', delay: baseDelay + offset });
+        });
+      };
+      animateClipBatch(roots, 0);
+      animateClipBatch(children, 0.2);
     }
   });
 
-  document.querySelectorAll('[data-reveal]').forEach((el) => {
+  document.querySelectorAll('[data-reveal]:not([data-reveal-load])').forEach((el) => {
     const isChild = hasRevealAncestor(el);
     const type = (el.dataset.reveal || 'lines').toLowerCase();
     const safeType = ['lines', 'words', 'chars'].includes(type) ? type : 'lines';
@@ -86,17 +95,61 @@ function initMaskTextScrollReveal() {
         const targets = instance[safeType];
         const config = splitConfig[safeType];
 
-        gsap.from(targets, {
-          yPercent: 110,
-          duration: config.duration,
-          stagger: config.stagger,
-          ease: 'reveal',
-          delay: isChild ? 0.2 : 0,
-          scrollTrigger: {
-            trigger: el,
-            start: 'clamp(top 80%)',
-            once: true
-          }
+        const baseDelay = isChild ? 0.2 : 0;
+        targets.forEach((target, i) => {
+          const offset = i * config.stagger;
+          gsap.from(target, {
+            yPercent: 110,
+            duration: config.duration - offset,
+            ease: 'reveal',
+            delay: baseDelay + offset,
+            scrollTrigger: {
+              trigger: el,
+              start: 'clamp(top 80%)',
+              once: true
+            }
+          });
+        });
+      }
+    });
+  });
+}
+
+// LOAD REVEAL (hero elements) //
+function initLoadReveal() {
+  const CLIP_DURATION = 0.9;
+  const CLIP_STAGGER  = 0.1;
+  const BASE_DELAY    = 0.15;
+
+  // Clip-style: [data-reveal-load] without [data-reveal]
+  const clipEls = [...document.querySelectorAll('[data-reveal-load]:not([data-reveal])')];
+  clipEls.forEach((el, i) => {
+    const offset = i * CLIP_STAGGER;
+    const delay  = BASE_DELAY + (hasRevealAncestor(el) ? 0.2 : 0) + offset;
+    gsap.to(el, { clipPath: 'inset(0% 0% 0% 0%)', duration: CLIP_DURATION - offset, ease: 'reveal', delay });
+  });
+
+  // Text: [data-reveal-load][data-reveal]
+  document.querySelectorAll('[data-reveal-load][data-reveal]').forEach((el) => {
+    const isChild  = hasRevealAncestor(el);
+    const type     = (el.dataset.reveal || 'lines').toLowerCase();
+    const safeType = ['lines', 'words', 'chars'].includes(type) ? type : 'lines';
+    const typesToSplit = safeType === 'lines' ? ['lines'] : safeType === 'words' ? ['lines', 'words'] : ['lines', 'words', 'chars'];
+
+    SplitText.create(el, {
+      type: typesToSplit.join(','),
+      mask: 'lines',
+      autoSplit: true,
+      linesClass: 'line',
+      wordsClass: 'word',
+      charsClass: 'letter',
+      onSplit: (instance) => {
+        const targets   = instance[safeType];
+        const config    = splitConfig[safeType];
+        const baseDelay = BASE_DELAY + (isChild ? 0.2 : 0);
+        targets.forEach((target, i) => {
+          const offset = i * config.stagger;
+          gsap.from(target, { yPercent: 110, duration: config.duration - offset, ease: 'reveal', delay: baseDelay + offset });
         });
       }
     });
