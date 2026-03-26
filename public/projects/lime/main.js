@@ -12,13 +12,14 @@ gsap.ticker.add((time) => {
 });
 gsap.ticker.lagSmoothing(0);
 
-// Refresh ScrollTrigger after Finsweet List Filter re-renders
-window.fsAttributes = window.fsAttributes || [];
-window.fsAttributes.push(['list', (instances) => {
-  instances.forEach(instance => {
-    instance.addHook('render', () => ScrollTrigger.refresh());
-  });
-}]);
+// Refresh ScrollTrigger after Finsweet List Filter updates the DOM
+let filterRefreshTimer;
+document.addEventListener('change', (e) => {
+  if (e.target.closest('[fs-list-element="filters"]')) {
+    clearTimeout(filterRefreshTimer);
+    filterRefreshTimer = setTimeout(() => ScrollTrigger.refresh(), 300);
+  }
+});
 
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
