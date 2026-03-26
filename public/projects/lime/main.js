@@ -4,7 +4,9 @@
 
 // ─── ALWAYS-ON SETUP ────────────────────────────────────────────────────────
 
-gsap.registerPlugin(SplitText, ScrollTrigger, InertiaPlugin, Observer);
+gsap.registerPlugin(SplitText, ScrollTrigger, InertiaPlugin, Observer, CustomEase);
+
+CustomEase.create('reveal', 'M0,0 C0.16,1 0.3,1 1,1');
 
 // Initialize a new Lenis instance for smooth scrolling
 const lenis = new Lenis();
@@ -35,9 +37,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // SCROLL SPLIT TEXT + IMG REVEAL //
 const splitConfig = {
-  lines: { duration: 0.8, stagger: 0.08 },
-  words: { duration: 0.6, stagger: 0.06 },
-  chars: { duration: 0.4, stagger: 0.01 }
+  lines: { duration: 1.0, stagger: 0.08 },
+  words: { duration: 0.8, stagger: 0.06 },
+  chars: { duration: 0.6, stagger: 0.01 }
 };
 
 // TEXT + CLIP REVEAL //
@@ -49,7 +51,7 @@ function initMaskTextScrollReveal() {
       gsap.to(batch, {
         clipPath: 'inset(0% 0% 0% 0%)',
         duration: 0.9,
-        ease: 'expo.out',
+        ease: 'reveal',
         stagger: 0.1
       });
     }
@@ -79,7 +81,7 @@ function initMaskTextScrollReveal() {
           yPercent: 110,
           duration: config.duration,
           stagger: config.stagger,
-          ease: 'expo.out',
+          ease: 'reveal',
           scrollTrigger: {
             trigger: el,
             start: 'clamp(top 80%)',
@@ -440,7 +442,7 @@ function initPopupForm() {
 
       gsap.killTweensOf([popup, card]);
       gsap.to(popup, { opacity: 1, duration: 0.35, ease: 'power2.out' });
-      gsap.to(card, { y: 0, scale: 1, duration: 0.45, ease: 'expo.out', delay: 0.05 });
+      gsap.to(card, { y: 0, scale: 1, duration: 0.45, ease: 'reveal', delay: 0.05 });
     }
 
     function closePopup() {
