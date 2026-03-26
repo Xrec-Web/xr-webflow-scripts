@@ -42,22 +42,31 @@ const splitConfig = {
   chars: { duration: 0.6, stagger: 0.01 }
 };
 
+// Returns true if any ancestor also carries a reveal attribute
+function hasRevealAncestor(el) {
+  let parent = el.parentElement;
+  while (parent) {
+    if (parent.matches('[data-reveal], [data-reveal-clip]')) return true;
+    parent = parent.parentElement;
+  }
+  return false;
+}
+
 // TEXT + CLIP REVEAL //
 function initMaskTextScrollReveal() {
   ScrollTrigger.batch('[data-reveal-clip]', {
     start: 'clamp(top 80%)',
     once: true,
     onEnter: (batch) => {
-      gsap.to(batch, {
-        clipPath: 'inset(0% 0% 0% 0%)',
-        duration: 0.9,
-        ease: 'reveal',
-        stagger: 0.1
-      });
+      const roots    = batch.filter(el => !hasRevealAncestor(el));
+      const children = batch.filter(el =>  hasRevealAncestor(el));
+      if (roots.length)    gsap.to(roots,    { clipPath: 'inset(0% 0% 0% 0%)', duration: 0.9, ease: 'reveal', stagger: 0.1 });
+      if (children.length) gsap.to(children, { clipPath: 'inset(0% 0% 0% 0%)', duration: 0.9, ease: 'reveal', stagger: 0.1, delay: 0.2 });
     }
   });
 
   document.querySelectorAll('[data-reveal]').forEach((el) => {
+    const isChild = hasRevealAncestor(el);
     const type = (el.dataset.reveal || 'lines').toLowerCase();
     const safeType = ['lines', 'words', 'chars'].includes(type) ? type : 'lines';
 
@@ -82,6 +91,7 @@ function initMaskTextScrollReveal() {
           duration: config.duration,
           stagger: config.stagger,
           ease: 'reveal',
+          delay: isChild ? 0.2 : 0,
           scrollTrigger: {
             trigger: el,
             start: 'clamp(top 80%)',
