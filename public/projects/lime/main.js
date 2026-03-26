@@ -16,6 +16,14 @@ gsap.ticker.add((time) => {
 });
 gsap.ticker.lagSmoothing(0);
 
+// Refresh ScrollTrigger after Finsweet CMS filter re-renders
+window.fsAttributes = window.fsAttributes || [];
+window.fsAttributes.push(['cmsfilter', (instances) => {
+  instances.forEach(instance => {
+    instance.listInstance.on('renderitems', () => ScrollTrigger.refresh());
+  });
+}]);
+
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
 // Each init is guarded — only runs if its trigger element exists on the page.
