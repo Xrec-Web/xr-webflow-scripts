@@ -42,17 +42,17 @@ const splitConfig = {
 
 // TEXT + CLIP REVEAL //
 function initMaskTextScrollReveal() {
-  document.querySelectorAll('[data-reveal-clip]').forEach((el) => {
-    gsap.from(el, {
-      clipPath: 'inset(0% 0% 100% 0%)',
-      duration: 0.9,
-      ease: 'expo.out',
-      scrollTrigger: {
-        trigger: el,
-        start: 'clamp(top 80%)',
-        once: true
-      }
-    });
+  ScrollTrigger.batch('[data-reveal-clip]', {
+    start: 'clamp(top 80%)',
+    once: true,
+    onEnter: (batch) => {
+      gsap.from(batch, {
+        clipPath: 'inset(0% 0% 100% 0%)',
+        duration: 0.9,
+        ease: 'expo.out',
+        stagger: 0.1
+      });
+    }
   });
 
   document.querySelectorAll('[data-reveal]').forEach((el) => {
