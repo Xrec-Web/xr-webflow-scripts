@@ -1,7 +1,3 @@
-// Client: [Client Name]
-// Project: [Project Name]
-// Description: [Description]
-
 // ─── ALWAYS-ON SETUP ────────────────────────────────────────────────────────
 
 gsap.registerPlugin(SplitText, ScrollTrigger, InertiaPlugin, Observer, CustomEase);
