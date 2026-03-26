@@ -21,7 +21,7 @@ gsap.ticker.lagSmoothing(0);
 document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[filter-list="categories"]'))  initFilters('categories');
   if (document.querySelector('[filter-list="contract"]'))    initFilters('contract');
-  if (document.querySelector('[data-reveal]'))               initMaskTextScrollReveal();
+  if (document.querySelector('[data-reveal], [data-reveal-clip]')) initMaskTextScrollReveal();
   if (document.querySelector('.cursor'))                     initDynamicCustomTextCursor();
   if (document.querySelector('[data-video-on-hover]'))       initPlayVideoHover();
   if (document.querySelector('[data-momentum-hover-init]'))  initMomentumBasedHover();
@@ -40,8 +40,21 @@ const splitConfig = {
   chars: { duration: 0.4, stagger: 0.01 }
 };
 
-// TEXT REVEAL //
+// TEXT + CLIP REVEAL //
 function initMaskTextScrollReveal() {
+  document.querySelectorAll('[data-reveal-clip]').forEach((el) => {
+    gsap.from(el, {
+      clipPath: 'inset(0% 0% 100% 0%)',
+      duration: 0.9,
+      ease: 'expo.out',
+      scrollTrigger: {
+        trigger: el,
+        start: 'clamp(top 80%)',
+        once: true
+      }
+    });
+  });
+
   document.querySelectorAll('[data-reveal]').forEach((el) => {
     const type = (el.dataset.reveal || 'lines').toLowerCase();
     const safeType = ['lines', 'words', 'chars'].includes(type) ? type : 'lines';
