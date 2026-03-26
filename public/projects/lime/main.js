@@ -46,8 +46,8 @@ function initMaskTextScrollReveal() {
     start: 'clamp(top 80%)',
     once: true,
     onEnter: (batch) => {
-      gsap.from(batch, {
-        clipPath: 'inset(0% 0% 100% 0%)',
+      gsap.to(batch, {
+        clipPath: 'inset(0% 0% 0% 0%)',
         duration: 0.9,
         ease: 'expo.out',
         stagger: 0.1
