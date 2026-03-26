@@ -92,6 +92,7 @@ function initMaskTextScrollReveal() {
       wordsClass: 'word',
       charsClass: 'letter',
       onSplit: (instance) => {
+        gsap.set(el, { opacity: 1 });
         const targets = instance[safeType];
         const config = splitConfig[safeType];
 
@@ -144,6 +145,7 @@ function initLoadReveal() {
       wordsClass: 'word',
       charsClass: 'letter',
       onSplit: (instance) => {
+        gsap.set(el, { opacity: 1 });
         const targets   = instance[safeType];
         const config    = splitConfig[safeType];
         const baseDelay = BASE_DELAY + (isChild ? 0.2 : 0);
