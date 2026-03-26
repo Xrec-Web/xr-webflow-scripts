@@ -16,11 +16,11 @@ gsap.ticker.add((time) => {
 });
 gsap.ticker.lagSmoothing(0);
 
-// Refresh ScrollTrigger after Finsweet CMS filter re-renders
+// Refresh ScrollTrigger after Finsweet List Filter re-renders
 window.fsAttributes = window.fsAttributes || [];
-window.fsAttributes.push(['cmsfilter', (instances) => {
+window.fsAttributes.push(['list', (instances) => {
   instances.forEach(instance => {
-    instance.listInstance.on('renderitems', () => ScrollTrigger.refresh());
+    instance.addHook('render', () => ScrollTrigger.refresh());
   });
 }]);
 
