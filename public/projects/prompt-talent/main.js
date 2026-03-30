@@ -38,14 +38,16 @@ document.addEventListener('DOMContentLoaded', () => {
 // SCROLL SPLIT TEXT + IMG REVEAL //
 const splitConfig = {
   lines: { duration: 1.0, stagger: 0.08 },
-  words: { duration: 0.8, stagger: 0.06 },
+  words: { duration: 0
+    
+    .8, stagger: 0.06 },
   chars: { duration: 0.6, stagger: 0.01 }
 };
 
 // Returns true if any ancestor also carries a reveal attribute
 function hasRevealAncestor(el) {
   let parent = el.parentElement;
-  while (parent) {
+  while (parent) { 
     if (parent.matches('[data-reveal], [data-reveal-clip]')) return true;
     parent = parent.parentElement;
   }
