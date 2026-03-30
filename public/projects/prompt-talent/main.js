@@ -27,6 +27,10 @@ document.addEventListener('change', (e) => {
 document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[filter-list="categories"]')) initFilters('categories');
   if (document.querySelector('[data-testimonial-wrap]')) initLineRevealTestimonials();
+  if (document.querySelector('[data-accordion-css-init]')) initAccordionCSS();
+  if (document.querySelector('.faq_toggle_inner')) initFAQToggle();
+  if (document.querySelector('.nav_wrap')) initNav();
+  if (document.querySelector('.img')) initImageScrollEffect();
 });
 
 // ─── FUNCTIONS ───────────────────────────────────────────────────────────────
@@ -426,6 +430,221 @@ function initLineRevealTestimonials() {
         pauseAutoplay();
       },
     });
-    
+
+  });
+}
+
+// ACCORDION CSS //
+function initAccordionCSS() {
+  document.querySelectorAll('[data-accordion-css-init]').forEach((accordion) => {
+    const closeSiblings = accordion.getAttribute('data-accordion-close-siblings') === 'true';
+
+    accordion.addEventListener('click', (event) => {
+      const toggle = event.target.closest('[data-accordion-toggle]');
+      if (!toggle) return;
+
+      const singleAccordion = toggle.closest('[data-accordion-status]');
+      if (!singleAccordion) return;
+
+      const isActive = singleAccordion.getAttribute('data-accordion-status') === 'active';
+      singleAccordion.setAttribute('data-accordion-status', isActive ? 'not-active' : 'active');
+
+      if (closeSiblings && !isActive) {
+        accordion.querySelectorAll('[data-accordion-status="active"]').forEach((sibling) => {
+          if (sibling !== singleAccordion) sibling.setAttribute('data-accordion-status', 'not-active');
+        });
+      }
+    });
+  });
+}
+
+// FAQ TOGGLE //
+function initFAQToggle() {
+  const toggles = {
+    employer: document.querySelector('.faq_toggle_inner.employer'),
+    candidate: document.querySelector('.faq_toggle_inner.candidate'),
+  };
+
+  const panels = {
+    employer: document.querySelector('.accordion-css.employer'),
+    candidate: document.querySelector('.accordion-css.candidate'),
+  };
+
+  if (!toggles.employer || !toggles.candidate || !panels.employer || !panels.candidate) return;
+
+  const getItems = (panel) => Array.from(panel.querySelectorAll(':scope > *'));
+
+  let activeKey =
+    toggles.employer.classList.contains('is-active') ? 'employer' :
+    toggles.candidate.classList.contains('is-active') ? 'candidate' :
+    'employer';
+
+  let isAnimating = false;
+
+  function setInitialState(key) {
+    const showPanel = panels[key];
+    const hidePanel = panels[key === 'employer' ? 'candidate' : 'employer'];
+
+    gsap.set(showPanel, { display: 'block', autoAlpha: 1, height: 'auto' });
+    gsap.set(hidePanel, { display: 'none', autoAlpha: 0 });
+    gsap.set(getItems(showPanel), { autoAlpha: 1, y: 0 });
+    gsap.set(getItems(hidePanel), { autoAlpha: 0, y: 12 });
+
+    toggles.employer.classList.toggle('is-active', key === 'employer');
+    toggles.candidate.classList.toggle('is-active', key === 'candidate');
+  }
+
+  setInitialState(activeKey);
+
+  function switchTo(nextKey) {
+    if (isAnimating || nextKey === activeKey) return;
+    isAnimating = true;
+
+    const prevKey = activeKey;
+    const prevPanel = panels[prevKey];
+    const nextPanel = panels[nextKey];
+    const prevItems = getItems(prevPanel);
+    const nextItems = getItems(nextPanel);
+
+    toggles[prevKey].classList.remove('is-active');
+    toggles[nextKey].classList.add('is-active');
+
+    gsap.timeline({
+      defaults: { ease: 'power2.out' },
+      onComplete: () => { activeKey = nextKey; isAnimating = false; }
+    })
+      .to(prevItems, { autoAlpha: 0, y: -10, duration: 0.25, stagger: 0.03, clearProps: 'transform' })
+      .set(prevPanel, { display: 'none', autoAlpha: 0 })
+      .set(nextPanel, { display: 'block', autoAlpha: 1 })
+      .set(nextItems, { autoAlpha: 0, y: 12 })
+      .to(nextItems, { autoAlpha: 1, y: 0, duration: 0.3, stagger: 0.04 }, '+=0.02');
+  }
+
+  toggles.employer.addEventListener('click', () => switchTo('employer'));
+  toggles.candidate.addEventListener('click', () => switchTo('candidate'));
+}
+
+// NAV //
+function initNav() {
+  const nav = document.querySelector('.nav_wrap');
+  const ham = document.querySelector('.ham_wrap');
+  const navBgMob = document.querySelector('.nav_bg_mob') || document.querySelector('.nav_bg_wrap');
+
+  let menuOpen = false;
+  let themeBeforeMenu = nav.classList.contains('u-theme-light') ? 'u-theme-light' : 'u-theme-dark';
+  let suppressTheme = false;
+
+  function setTheme(theme) {
+    nav.classList.remove('u-theme-dark', 'u-theme-light');
+    nav.classList.add(theme);
+  }
+
+  let scrollY = 0;
+
+  function lockScroll() {
+    scrollY = window.scrollY || window.pageYOffset || 0;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+  }
+
+  function unlockScroll() {
+    const y = Math.abs(parseInt(document.body.style.top || '0', 10)) || scrollY || 0;
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.width = '';
+    window.scrollTo(0, y);
+  }
+
+  function openMenu() {
+    suppressTheme = true;
+    themeBeforeMenu = nav.classList.contains('u-theme-light') ? 'u-theme-light' : 'u-theme-dark';
+    setTheme('u-theme-light');
+    lockScroll();
+    menuOpen = true;
+    requestAnimationFrame(() => (suppressTheme = false));
+  }
+
+  function closeMenu() {
+    suppressTheme = true;
+    unlockScroll();
+    requestAnimationFrame(() => {
+      setTheme(themeBeforeMenu || 'u-theme-dark');
+      menuOpen = false;
+      requestAnimationFrame(() => (suppressTheme = false));
+    });
+  }
+
+  ScrollTrigger.create({
+    start: 'top -10%',
+    end: 99999,
+    onEnter: () => {
+      if (menuOpen || suppressTheme) return;
+      setTheme('u-theme-light');
+    },
+    onLeaveBack: () => {
+      if (menuOpen || suppressTheme) return;
+      setTheme('u-theme-dark');
+    }
+  });
+
+  if (!nav.classList.contains('u-theme-dark') && !nav.classList.contains('u-theme-light')) {
+    nav.classList.add('u-theme-dark');
+  }
+
+  const defer = (fn) => queueMicrotask(fn);
+
+  if (ham) {
+    ham.addEventListener('click', () => {
+      defer(() => {
+        if (!menuOpen) openMenu();
+        else closeMenu();
+      });
+    });
+  }
+
+  if (navBgMob) {
+    navBgMob.addEventListener('click', () => {
+      defer(() => {
+        if (menuOpen) closeMenu();
+      });
+    });
+  }
+}
+
+// IMAGE SCROLL EFFECT //
+function initImageScrollEffect() {
+  gsap.utils.toArray('.img').forEach((img) => {
+    gsap.fromTo(
+      img,
+      { autoAlpha: 0, scale: 1.05 },
+      {
+        autoAlpha: 1,
+        scale: 1,
+        duration: 0.8,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: img,
+          start: 'top 80%',
+          toggleActions: 'play none none none',
+          once: true
+        }
+      }
+    );
+
+    gsap.to(img, {
+      yPercent: 20,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: img,
+        start: 'top bottom',
+        end: 'bottom top',
+        scrub: true
+      }
+    });
   });
 }
