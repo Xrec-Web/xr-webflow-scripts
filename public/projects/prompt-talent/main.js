@@ -38,9 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // SCROLL SPLIT TEXT + IMG REVEAL //
 const splitConfig = {
   lines: { duration: 1.0, stagger: 0.08 },
-  words: { duration: 0
-    
-    .8, stagger: 0.06 },
+  words: { duration: 0.8, stagger: 0.06 },
   chars: { duration: 0.6, stagger: 0.01 }
 };
 
