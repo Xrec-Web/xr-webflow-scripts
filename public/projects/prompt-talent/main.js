@@ -5,14 +5,9 @@ gsap.registerPlugin(SplitText, ScrollTrigger, CustomEase);
 CustomEase.create('reveal', 'M0,0 C0.16,1 0.3,1 1,1');
 
 // Initialize a new Lenis instance for smooth scrolling
-const lenis = new Lenis({
-  lerp: 0.08,
-  smoothWheel: true,
-});
+const lenis = new Lenis();
 lenis.on('scroll', ScrollTrigger.update);
-gsap.ticker.add((time) => {
-  lenis.raf(time * 1000);
-});
+gsap.ticker.add((time) => {lenis.raf(time * 1000);});
 gsap.ticker.lagSmoothing(0);
 
 // Refresh ScrollTrigger after Finsweet List Filter updates the DOM
