@@ -5,7 +5,10 @@ gsap.registerPlugin(SplitText, ScrollTrigger, CustomEase);
 CustomEase.create('reveal', 'M0,0 C0.16,1 0.3,1 1,1');
 
 // Initialize a new Lenis instance for smooth scrolling
-const lenis = new Lenis();
+const lenis = new Lenis({
+  lerp: 0.08,
+  smoothWheel: true,
+});
 lenis.on('scroll', ScrollTrigger.update);
 gsap.ticker.add((time) => {
   lenis.raf(time * 1000);
@@ -644,7 +647,7 @@ function initImageScrollEffect() {
         trigger: img,
         start: 'top bottom',
         end: 'bottom top',
-        scrub: true
+        scrub: 1
       }
     });
   });
@@ -661,7 +664,7 @@ function initParallax() {
         trigger: el,
         start: 'top top',
         end: 'bottom top',
-        scrub: true
+        scrub: 1
       }
     });
 
@@ -678,7 +681,7 @@ function initParallax() {
         trigger: el,
         start: 'clamp(top bottom)',
         end: 'clamp(top top)',
-        scrub: true
+        scrub: 1
       }
     });
 
