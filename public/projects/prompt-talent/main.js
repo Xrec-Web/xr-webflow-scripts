@@ -1,6 +1,6 @@
 // ─── ALWAYS-ON SETUP ────────────────────────────────────────────────────────
 
-gsap.registerPlugin(SplitText, ScrollTrigger, InertiaPlugin, Observer, CustomEase);
+gsap.registerPlugin(SplitText, ScrollTrigger, CustomEase);
 
 CustomEase.create('reveal', 'M0,0 C0.16,1 0.3,1 1,1');
 
