@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('.process_item'))               initProcessItemsScroll();
   if (document.querySelector('[data-logo-wall-cycle-init]')) initLogoWallCycle();
   if (document.querySelector('.swiper'))                     initSwiperTestimonials();
+  if (document.querySelector('[data-form-validate]'))        initBasicFormValidation();
 });
 
 
@@ -723,4 +724,112 @@ function initSwiperTestimonials() {
 
   if (nextBtn) nextBtn.addEventListener('click', () => swiper.slideNext());
   if (prevBtn) prevBtn.addEventListener('click', () => swiper.slidePrev());
+}
+
+function initBasicFormValidation() {
+  if (!document.querySelector('[data-form-validate]')) return;
+
+  const forms = document.querySelectorAll('[data-form-validate]');
+
+  forms.forEach((form) => {
+    const fields = form.querySelectorAll('[data-validate] input, [data-validate] textarea');
+    const submitButtonDiv = form.querySelector('[data-submit]');
+    const submitInput = submitButtonDiv.querySelector('input[type="submit"]');
+
+    const formLoadTime = new Date().getTime();
+
+    const validateField = (field) => {
+      const parent = field.closest('[data-validate]');
+      const minLength = field.getAttribute('min');
+      const maxLength = field.getAttribute('max');
+      const type = field.getAttribute('type');
+      let isValid = true;
+
+      if (field.value.trim() !== '') {
+        parent.classList.add('is--filled');
+      } else {
+        parent.classList.remove('is--filled');
+      }
+
+      if (minLength && field.value.length < minLength) {
+        isValid = false;
+      }
+
+      if (maxLength && field.value.length > maxLength) {
+        isValid = false;
+      }
+
+      if (type === 'email' && !/\S+@\S+\.\S+/.test(field.value)) {
+        isValid = false;
+      }
+
+      if (isValid) {
+        parent.classList.remove('is--error');
+        parent.classList.add('is--success');
+      } else {
+        parent.classList.remove('is--success');
+        parent.classList.add('is--error');
+      }
+
+      return isValid;
+    };
+
+    const startLiveValidation = (field) => {
+      field.addEventListener('input', function () {
+        validateField(field);
+      });
+    };
+
+    const validateAndStartLiveValidationForAll = () => {
+      let allValid = true;
+      let firstInvalidField = null;
+
+      fields.forEach((field) => {
+        const valid = validateField(field);
+        if (!valid && !firstInvalidField) {
+          firstInvalidField = field;
+        }
+        if (!valid) {
+          allValid = false;
+        }
+        startLiveValidation(field);
+      });
+
+      if (firstInvalidField) {
+        firstInvalidField.focus();
+      }
+
+      return allValid;
+    };
+
+    const isSpam = () => {
+      const currentTime = new Date().getTime();
+      const timeDifference = (currentTime - formLoadTime) / 1000;
+      return timeDifference < 5;
+    };
+
+    submitButtonDiv.addEventListener('click', function () {
+      if (validateAndStartLiveValidationForAll()) {
+        if (isSpam()) {
+          alert('Form submitted too quickly. Please try again.');
+          return;
+        }
+        submitInput.click();
+      }
+    });
+
+    form.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter' && event.target.tagName !== 'TEXTAREA') {
+        event.preventDefault();
+
+        if (validateAndStartLiveValidationForAll()) {
+          if (isSpam()) {
+            alert('Form submitted too quickly. Please try again.');
+            return;
+          }
+          submitInput.click();
+        }
+      }
+    });
+  });
 }
