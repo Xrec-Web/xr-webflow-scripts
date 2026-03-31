@@ -132,16 +132,8 @@ function initProgressNavigation() {
 function initProgressNavTheme() {
   if (!document.querySelector('.progress-nav')) return;
 
-  const sections = document.querySelectorAll('.u-theme-dark, .u-theme-light');
   const progressNav = document.querySelector('.progress-nav');
-
-  if (!sections.length) return;
-
   let currentTheme = null;
-
-  function resetTheme() {
-    progressNav.classList.remove('u-theme-dark', 'u-theme-light');
-  }
 
   function animateThemeChange(themeClass) {
     if (themeClass === currentTheme) return;
@@ -151,24 +143,18 @@ function initProgressNavTheme() {
 
     tl.to(progressNav, { autoAlpha: 0, overwrite: 'auto' })
       .add(() => {
-        resetTheme();
+        progressNav.classList.remove('u-theme-dark', 'u-theme-light');
         progressNav.classList.add(themeClass);
       })
       .fromTo(progressNav, { autoAlpha: 0 }, { autoAlpha: 1 });
   }
 
-  sections.forEach((section) => {
-    const themeClass = section.classList.contains('u-theme-dark') ? 'u-theme-dark' : 'u-theme-light';
-
-    ScrollTrigger.create({
-      trigger: section,
-      start: 'top 5%',
-      end: 'bottom 5%',
-      onToggle: (self) => {
-        if (self.isActive) animateThemeChange(themeClass);
-      }
-      // markers: true
-    });
+  // Trigger theme switch at 15% scroll depth
+  ScrollTrigger.create({
+    start: 'top+=15% top',
+    end: 'top+=15% top',
+    onEnter:     () => animateThemeChange('u-theme-light'),
+    onLeaveBack: () => animateThemeChange('u-theme-dark'),
   });
 }
 
