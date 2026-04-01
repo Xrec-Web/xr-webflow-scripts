@@ -10,14 +10,20 @@ lenis.on('scroll', ScrollTrigger.update);
 gsap.ticker.add((time) => {lenis.raf(time * 1000);});
 gsap.ticker.lagSmoothing(0);
 
-// Refresh ScrollTrigger after Finsweet List Filter updates the DOM
-let filterRefreshTimer;
-document.addEventListener('change', (e) => {
-  if (e.target.closest('[fs-list-element="filters"]')) {
-    clearTimeout(filterRefreshTimer);
-    filterRefreshTimer = setTimeout(() => ScrollTrigger.refresh(), 300);
+// Watch for page height changes (e.g. filter showing/hiding items) and refresh ScrollTrigger
+let heightRefreshTimer;
+let lastBodyHeight = document.body.scrollHeight;
+
+const bodyHeightObserver = new ResizeObserver(() => {
+  const newHeight = document.body.scrollHeight;
+  if (newHeight !== lastBodyHeight) {
+    lastBodyHeight = newHeight;
+    clearTimeout(heightRefreshTimer);
+    heightRefreshTimer = setTimeout(() => ScrollTrigger.refresh(), 100);
   }
 });
+
+bodyHeightObserver.observe(document.body);
 
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
