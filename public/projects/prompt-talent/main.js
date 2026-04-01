@@ -10,20 +10,30 @@ lenis.on('scroll', ScrollTrigger.update);
 gsap.ticker.add((time) => {lenis.raf(time * 1000);});
 gsap.ticker.lagSmoothing(0);
 
-// Watch for page height changes (e.g. filter showing/hiding items) and refresh ScrollTrigger
+// Refresh ScrollTrigger whenever page height changes (filters, dynamic content, etc.)
 let heightRefreshTimer;
-let lastBodyHeight = document.body.scrollHeight;
 
-const bodyHeightObserver = new ResizeObserver(() => {
-  const newHeight = document.body.scrollHeight;
-  if (newHeight !== lastBodyHeight) {
-    lastBodyHeight = newHeight;
-    clearTimeout(heightRefreshTimer);
-    heightRefreshTimer = setTimeout(() => ScrollTrigger.refresh(), 100);
-  }
+function scheduleRefresh(delay = 150) {
+  clearTimeout(heightRefreshTimer);
+  heightRefreshTimer = setTimeout(() => ScrollTrigger.refresh(), delay);
+}
+
+// Catches height changes from filters or any layout shift
+const bodyHeightObserver = new ResizeObserver(scheduleRefresh);
+bodyHeightObserver.observe(document.documentElement);
+
+// Catches dummy items being removed/replaced by CMS scripts on load
+const domMutationObserver = new MutationObserver(() => scheduleRefresh(200));
+domMutationObserver.observe(document.body, { childList: true, subtree: true });
+
+// Once everything (including CMS scripts) has finished, do a final refresh
+// and stop watching DOM mutations to avoid ongoing overhead
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    ScrollTrigger.refresh();
+    domMutationObserver.disconnect();
+  }, 500);
 });
-
-bodyHeightObserver.observe(document.body);
 
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
