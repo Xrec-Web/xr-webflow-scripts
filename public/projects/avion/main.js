@@ -159,7 +159,7 @@ function initProgressNavTheme() {
     onLeaveBack: () => animateThemeChange('u-theme-dark'),
   });
 
-  // Ham menu toggle — force dark theme while open, restore on close
+  // Ham menu toggle — force light theme while open, restore on close
   const hamWrap = document.querySelector('.ham_wrap');
   if (hamWrap) {
     let menuOpen = false;
@@ -167,10 +167,12 @@ function initProgressNavTheme() {
       menuOpen = !menuOpen;
       if (menuOpen) {
         progressNav.classList.remove('u-theme-light', 'u-theme-dark');
-        progressNav.classList.add('u-theme-dark');
+        progressNav.classList.add('u-theme-light');
+        lenis.stop();
       } else {
-        progressNav.classList.remove('u-theme-dark');
+        progressNav.classList.remove('u-theme-light', 'u-theme-dark');
         if (currentTheme) progressNav.classList.add(currentTheme);
+        lenis.start();
       }
     });
   }
