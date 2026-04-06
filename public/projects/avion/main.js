@@ -150,13 +150,30 @@ function initProgressNavTheme() {
       .fromTo(progressNav, { autoAlpha: 0 }, { autoAlpha: 1 });
   }
 
-  // Trigger theme switch at 15% scroll depth
+  // Trigger theme switch at 5% on mobile, 15% on desktop
+  const scrollThreshold = window.matchMedia('(max-width: 767px)').matches ? '5%' : '15%';
   ScrollTrigger.create({
-    start: 'top+=15% top',
-    end: 'top+=15% top',
+    start: `top+=${scrollThreshold} top`,
+    end: `top+=${scrollThreshold} top`,
     onEnter:     () => animateThemeChange('u-theme-light'),
     onLeaveBack: () => animateThemeChange('u-theme-dark'),
   });
+
+  // Ham menu toggle — force dark theme while open, restore on close
+  const hamWrap = document.querySelector('.ham_wrap');
+  if (hamWrap) {
+    let menuOpen = false;
+    hamWrap.addEventListener('click', () => {
+      menuOpen = !menuOpen;
+      if (menuOpen) {
+        progressNav.classList.remove('u-theme-light', 'u-theme-dark');
+        progressNav.classList.add('u-theme-dark');
+      } else {
+        progressNav.classList.remove('u-theme-dark');
+        if (currentTheme) progressNav.classList.add(currentTheme);
+      }
+    });
+  }
 }
 
 function initAccordionCSS() {
