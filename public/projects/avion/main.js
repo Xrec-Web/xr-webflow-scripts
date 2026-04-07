@@ -205,6 +205,7 @@ function initAccordionCSS() {
 
 function initFooterParallax() {
   if (!document.querySelector('[data-footer-parallax]')) return;
+  if (window.matchMedia('(max-width: 767px)').matches) return;
 
   document.querySelectorAll('[data-footer-parallax]').forEach(el => {
     const tl = gsap.timeline({
