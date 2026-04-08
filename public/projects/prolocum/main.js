@@ -116,7 +116,7 @@ function initSwiperSlider() {
     let prevSlides = [];
 
     new Swiper(swiperSliderWrap, {
-      slidesPerView: 2,
+      slidesPerView: 'auto',
       slidesPerGroup: 2,
       speed: 500,
       grabCursor: true,
@@ -134,11 +134,11 @@ function initSwiperSlider() {
           animateIn(prevSlides);
         },
         slideChangeTransitionStart() {
-          const outgoing = prevSlides;
-          animateOut(outgoing, () => {
-            prevSlides = getVisibleSlides();
-            animateIn(prevSlides);
-          });
+          animateOut(prevSlides, null);
+        },
+        slideChangeTransitionEnd() {
+          prevSlides = getVisibleSlides();
+          animateIn(prevSlides);
         }
       }
     });
