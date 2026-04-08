@@ -79,7 +79,7 @@ function initSwiperSlider() {
         const img = slide.querySelector('[swipe-img]');
         if (img) {
           gsap.killTweensOf(img);
-          tl.to(img, { autoAlpha: 0, duration: 0.25, ease: 'energy' }, 0);
+          tl.to(img, { autoAlpha: 0, duration: 0.5, ease: 'osmo' }, 0);
         }
         TEXT_ATTRS.forEach((attr, i) => {
           const el = slide.querySelector(attr);
@@ -87,7 +87,7 @@ function initSwiperSlider() {
           const inst = splitInstances.get(el);
           if (!inst?.lines?.length) return;
           gsap.killTweensOf(inst.lines);
-          tl.to(inst.lines, { yPercent: -110, duration: 0.25, ease: 'energy', stagger: 0.02 }, i * 0.03);
+          tl.to(inst.lines, { yPercent: -110, duration: 0.5, ease: 'osmo', stagger: 0.02 }, i * 0.03);
         });
       });
       return tl;
@@ -99,7 +99,7 @@ function initSwiperSlider() {
         if (img) {
           gsap.killTweensOf(img);
           gsap.set(img, { autoAlpha: 0 });
-          gsap.to(img, { autoAlpha: 1, duration: 0.5, ease: 'smooth' });
+          gsap.to(img, { autoAlpha: 1, duration: 0.8, ease: 'osmo' });
         }
         TEXT_ATTRS.forEach((attr, i) => {
           const el = slide.querySelector(attr);
@@ -108,7 +108,7 @@ function initSwiperSlider() {
           if (!inst?.lines?.length) return;
           gsap.killTweensOf(inst.lines);
           gsap.set(inst.lines, { yPercent: 110 });
-          gsap.to(inst.lines, { yPercent: 0, duration: 0.6, ease: 'reveal', stagger: 0.02, delay: i * 0.06 });
+          gsap.to(inst.lines, { yPercent: 0, duration: 0.9, ease: 'osmo', stagger: 0.02, delay: i * 0.06 });
         });
       });
     };
@@ -139,7 +139,7 @@ function initSwiperSlider() {
 
     function scheduleNext() {
       clearTimeout(autoplayTimer);
-      autoplayTimer = setTimeout(() => triggerTransition('next'), 1200);
+      autoplayTimer = setTimeout(() => triggerTransition('next'), 5000);
     }
 
     function triggerTransition(direction) {
