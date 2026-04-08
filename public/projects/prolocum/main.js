@@ -30,15 +30,14 @@ gsap.ticker.lagSmoothing(0);
 document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-example]')) initExample();
   if (document.querySelector('[data-swiper-group]')) initSwiperSlider();
+  if (document.querySelector('[data-reveal], [data-reveal-clip]')) initMaskTextScrollReveal();
+  if (document.querySelector('[data-reveal-load]')) initLoadReveal();
+  if (document.querySelector('.img:not(.no-para)')) initImageScrollEffect();
+  if (document.querySelector('[data-current-year]')) initDynamicCurrentYear();
 });
 
 
 // ─── FUNCTIONS ───────────────────────────────────────────────────────────────
-
-// EXAMPLE //
-function initExample() {
-  // ...
-}
 
 // SWIPER SLIDER //
 function initSwiperSlider() {
@@ -76,3 +75,112 @@ function initSwiperSlider() {
     });
   });
 }
+// TEXT + CLIP REVEAL //
+function initMaskTextScrollReveal() {
+  ScrollTrigger.batch('[data-reveal-clip]:not([data-reveal-load])', {
+    start: 'clamp(top 80%)',
+    once: true,
+    onEnter: (batch) => {
+      const DURATION = 0.9;
+      const STAGGER  = 0.1;
+      const roots    = batch.filter(el => !hasRevealAncestor(el));
+      const children = batch.filter(el =>  hasRevealAncestor(el));
+      const animateClipBatch = (els, baseDelay) => {
+        els.forEach((el, i) => {
+          const offset = i * STAGGER;
+          gsap.to(el, { clipPath: 'inset(0% 0% 0% 0%)', duration: DURATION - offset, ease: 'reveal', delay: baseDelay + offset });
+        });
+      };
+      animateClipBatch(roots, 0);
+      animateClipBatch(children, 0.2);
+    }
+  });
+
+  document.querySelectorAll('[data-reveal]:not([data-reveal-load])').forEach((el) => {
+    const isChild = hasRevealAncestor(el);
+    const type = (el.dataset.reveal || 'lines').toLowerCase();
+    const safeType = ['lines', 'words', 'chars'].includes(type) ? type : 'lines';
+
+    const typesToSplit =
+      safeType === 'lines' ? ['lines'] :
+      safeType === 'words' ? ['lines', 'words'] :
+      ['lines', 'words', 'chars'];
+
+    SplitText.create(el, {
+      type: typesToSplit.join(','),
+      mask: 'lines',
+      autoSplit: true,
+      linesClass: 'line',
+      wordsClass: 'word',
+      charsClass: 'letter',
+      onSplit: (instance) => {
+        gsap.set(el, { opacity: 1 });
+        const targets = instance[safeType];
+        const config = splitConfig[safeType];
+
+        const baseDelay = isChild ? 0.2 : 0;
+        targets.forEach((target, i) => {
+          const offset = i * config.stagger;
+          gsap.from(target, {
+            yPercent: 110,
+            duration: config.duration - offset,
+            ease: 'reveal',
+            delay: baseDelay + offset,
+            scrollTrigger: {
+              trigger: el,
+              start: 'clamp(top 80%)',
+              once: true
+            }
+          });
+        });
+      }
+    });
+  });
+}
+// IMAGE SCROLL EFFECT //
+function initImageScrollEffect() {
+  gsap.utils.toArray('.img:not(.no-para)').forEach((img) => {
+    gsap.fromTo(
+      img,
+      { autoAlpha: 0, scale: 1.05 },
+      {
+        autoAlpha: 1,
+        scale: 1,
+        duration: 0.8,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: img,
+          start: 'top 80%',
+          toggleActions: 'play none none none',
+          once: true
+        }
+      }
+    );
+
+    gsap.to(img, {
+      yPercent: 20,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: img,
+        start: 'top bottom',
+        end: 'bottom top',
+        scrub: true
+      }
+    });
+  });
+}
+
+// COPYRIGHT YEAR //
+function initDynamicCurrentYear() {  
+  const currentYear = new Date().getFullYear();
+  const currentYearElements = document.querySelectorAll('[data-current-year]');
+  currentYearElements.forEach(currentYearElement => {
+    currentYearElement.textContent = currentYear;
+  });
+}
+// SCROLL SPLIT TEXT + IMG REVEAL //
+const splitConfig = {
+  lines: { duration: 1.0, stagger: 0.08 },
+  words: { duration: 0.8, stagger: 0.06 },
+  chars: { duration: 0.6, stagger: 0.01 }
+};
