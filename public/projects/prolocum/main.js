@@ -118,6 +118,7 @@ function initSwiperSlider() {
     new Swiper(swiperSliderWrap, {
       slidesPerView: 'auto',
       slidesPerGroup: 2,
+      loop: true,
       speed: 500,
       grabCursor: true,
       autoplay: {
