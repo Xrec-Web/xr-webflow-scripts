@@ -108,7 +108,10 @@ function initSwiperSlider() {
           if (!inst?.lines?.length) return;
           gsap.killTweensOf(inst.lines);
           gsap.set(inst.lines, { yPercent: 110 });
-          gsap.to(inst.lines, { yPercent: 0, duration: 0.9, ease: 'osmo', stagger: 0.02, delay: i * 0.06 });
+          inst.lines.forEach((line, j) => {
+            const offset = j * 0.08;
+            gsap.to(line, { yPercent: 0, duration: 1.0 - offset, ease: 'reveal', delay: i * 0.1 + offset });
+          });
         });
       });
     };
