@@ -29,8 +29,7 @@ gsap.ticker.lagSmoothing(0);
 
 document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-swiper-group]')) initSwiperSlider();
-  if (document.querySelector('[data-reveal], [data-reveal-clip]')) initMaskTextScrollReveal();
-  if (document.querySelector('[data-reveal-load]')) initLoadReveal();
+  if (document.querySelector('[data-reveal], [data-reveal-clip]')) initReveal();
   if (document.querySelector('.img:not(.no-para)')) initImageScrollEffect();
   if (document.querySelector('[data-current-year]')) initDynamicCurrentYear();
 });
@@ -48,6 +47,7 @@ function initSwiperSlider() {
 
     const prevButton = swiperGroup.querySelector('[data-swiper-prev]');
     const nextButton = swiperGroup.querySelector('[data-swiper-next]');
+    const numberEl = swiperGroup.querySelector('[swiper-number]');
 
     const TEXT_ATTRS = ['[swipe-text]', '[swipe-author-title]', '[swipe-author-company]'];
     const splitInstances = new Map();
@@ -130,15 +130,22 @@ function initSwiperSlider() {
         init() {
           prevSlides = getVisibleSlides();
           animateIn(prevSlides);
+          updateNumber(this);
           scheduleNext();
         },
         slideChangeTransitionEnd() {
           prevSlides = getVisibleSlides();
           animateIn(prevSlides);
+          updateNumber(swiper);
           scheduleNext();
         }
       }
     });
+
+    function updateNumber(sw) {
+      if (!numberEl) return;
+      numberEl.textContent = Math.floor(sw.realIndex / 2) + 1;
+    }
 
     function scheduleNext() {
       clearTimeout(autoplayTimer);
@@ -161,7 +168,7 @@ function initSwiperSlider() {
   });
 }
 
-// SCROLL SPLIT TEXT + IMG REVEAL //
+// REVEAL //
 const splitConfig = {
   lines: { duration: 1.0, stagger: 0.08 },
   words: { duration: 0.8, stagger: 0.06 },
@@ -177,27 +184,44 @@ function hasRevealAncestor(el) {
   return false;
 }
 
-function initMaskTextScrollReveal() {
-  ScrollTrigger.batch('[data-reveal-clip]:not([data-reveal-load])', {
-    start: 'clamp(top 80%)',
-    once: true,
-    onEnter: (batch) => {
-      const DURATION = 0.9;
-      const STAGGER  = 0.1;
-      const roots    = batch.filter(el => !hasRevealAncestor(el));
-      const children = batch.filter(el =>  hasRevealAncestor(el));
-      const animateClipBatch = (els, baseDelay) => {
-        els.forEach((el, i) => {
-          const offset = i * STAGGER;
-          gsap.to(el, { clipPath: 'inset(0% 0% 0% 0%)', duration: DURATION - offset, ease: 'reveal', delay: baseDelay + offset });
-        });
-      };
-      animateClipBatch(roots, 0);
-      animateClipBatch(children, 0.2);
-    }
+function animateClipBatch(els, baseDelay) {
+  const DURATION = 0.9;
+  const STAGGER  = 0.1;
+  els.forEach((el, i) => {
+    const offset = i * STAGGER;
+    gsap.to(el, { clipPath: 'inset(0% 0% 0% 0%)', duration: DURATION - offset, ease: 'reveal', delay: baseDelay + offset });
   });
+}
 
-  document.querySelectorAll('[data-reveal]:not([data-reveal-load])').forEach((el) => {
+function initReveal() {
+  // Clip reveals
+  const allClipEls  = [...document.querySelectorAll('[data-reveal-clip]')];
+  const loadClips   = allClipEls.filter(el => el.hasAttribute('data-load'));
+  const scrollClips = allClipEls.filter(el => !el.hasAttribute('data-load'));
+
+  if (loadClips.length) {
+    const roots    = loadClips.filter(el => !hasRevealAncestor(el));
+    const children = loadClips.filter(el =>  hasRevealAncestor(el));
+    animateClipBatch(roots, 0);
+    animateClipBatch(children, 0.2);
+  }
+
+  if (scrollClips.length) {
+    ScrollTrigger.batch(scrollClips, {
+      start: 'clamp(top 80%)',
+      once: true,
+      onEnter: (batch) => {
+        const roots    = batch.filter(el => !hasRevealAncestor(el));
+        const children = batch.filter(el =>  hasRevealAncestor(el));
+        animateClipBatch(roots, 0);
+        animateClipBatch(children, 0.2);
+      }
+    });
+  }
+
+  // Split text reveals
+  document.querySelectorAll('[data-reveal]').forEach((el) => {
+    const isLoad   = el.hasAttribute('data-load');
     const isChild  = hasRevealAncestor(el);
     const type     = (el.dataset.reveal || 'lines').toLowerCase();
     const safeType = ['lines', 'words', 'chars'].includes(type) ? type : 'lines';
@@ -226,11 +250,7 @@ function initMaskTextScrollReveal() {
             duration: config.duration - offset,
             ease: 'reveal',
             delay: baseDelay + offset,
-            scrollTrigger: {
-              trigger: el,
-              start: 'clamp(top 80%)',
-              once: true
-            }
+            ...(isLoad ? {} : { scrollTrigger: { trigger: el, start: 'clamp(top 80%)', once: true } })
           });
         });
       }
@@ -241,6 +261,8 @@ function initMaskTextScrollReveal() {
 // IMAGE SCROLL EFFECT //
 function initImageScrollEffect() {
   gsap.utils.toArray('.img:not(.no-para)').forEach((img) => {
+    const isLoad = img.hasAttribute('data-load');
+
     gsap.fromTo(
       img,
       { autoAlpha: 0, scale: 1.05 },
@@ -249,12 +271,14 @@ function initImageScrollEffect() {
         scale: 1,
         duration: 0.8,
         ease: 'reveal',
-        scrollTrigger: {
-          trigger: img,
-          start: 'top 80%',
-          toggleActions: 'play none none none',
-          once: true
-        }
+        ...(isLoad ? {} : {
+          scrollTrigger: {
+            trigger: img,
+            start: 'top 80%',
+            toggleActions: 'play none none none',
+            once: true
+          }
+        })
       }
     );
 
