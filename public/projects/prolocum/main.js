@@ -79,7 +79,7 @@ function initSwiperSlider() {
         const img = slide.querySelector('[swipe-img]');
         if (img) {
           gsap.killTweensOf(img);
-          tl.to(img, { autoAlpha: 0, duration: 0.2, ease: 'energy' }, 0);
+          tl.to(img, { autoAlpha: 0, duration: 0.25, ease: 'energy' }, 0);
         }
         TEXT_ATTRS.forEach((attr, i) => {
           const el = slide.querySelector(attr);
@@ -87,7 +87,7 @@ function initSwiperSlider() {
           const inst = splitInstances.get(el);
           if (!inst?.lines?.length) return;
           gsap.killTweensOf(inst.lines);
-          tl.to(inst.lines, { yPercent: -110, duration: 0.2, ease: 'energy', stagger: 0.04 }, i * 0.04);
+          tl.to(inst.lines, { yPercent: -110, duration: 0.25, ease: 'energy', stagger: 0.02 }, i * 0.03);
         });
       });
       return tl;
@@ -108,41 +108,53 @@ function initSwiperSlider() {
           if (!inst?.lines?.length) return;
           gsap.killTweensOf(inst.lines);
           gsap.set(inst.lines, { yPercent: 110 });
-          gsap.to(inst.lines, { yPercent: 0, duration: 0.6, ease: 'reveal', stagger: 0.07, delay: i * 0.1 });
+          gsap.to(inst.lines, { yPercent: 0, duration: 0.6, ease: 'reveal', stagger: 0.02, delay: i * 0.06 });
         });
       });
     };
 
     let prevSlides = [];
+    let isAnimating = false;
+    let autoplayTimer = null;
 
-    new Swiper(swiperSliderWrap, {
+    const swiper = new Swiper(swiperSliderWrap, {
       slidesPerView: 'auto',
       slidesPerGroup: 2,
       loop: true,
-      speed: 500,
+      speed: 0,
       grabCursor: true,
-      autoplay: {
-        delay: 1200,
-        disableOnInteraction: false,
-      },
-      navigation: {
-        nextEl: nextButton,
-        prevEl: prevButton,
-      },
       on: {
         init() {
           prevSlides = getVisibleSlides();
           animateIn(prevSlides);
-        },
-        slideChangeTransitionStart() {
-          animateOut(prevSlides, null);
+          scheduleNext();
         },
         slideChangeTransitionEnd() {
           prevSlides = getVisibleSlides();
           animateIn(prevSlides);
+          scheduleNext();
         }
       }
     });
+
+    function scheduleNext() {
+      clearTimeout(autoplayTimer);
+      autoplayTimer = setTimeout(() => triggerTransition('next'), 1200);
+    }
+
+    function triggerTransition(direction) {
+      if (isAnimating) return;
+      isAnimating = true;
+      clearTimeout(autoplayTimer);
+      animateOut(prevSlides, () => {
+        isAnimating = false;
+        if (direction === 'next') swiper.slideNext();
+        else swiper.slidePrev();
+      });
+    }
+
+    if (nextButton) nextButton.addEventListener('click', () => triggerTransition('next'));
+    if (prevButton) prevButton.addEventListener('click', () => triggerTransition('prev'));
   });
 }
 
