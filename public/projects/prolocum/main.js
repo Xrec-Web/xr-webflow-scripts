@@ -49,33 +49,69 @@ function initSwiperSlider() {
     const prevButton = swiperGroup.querySelector('[data-swiper-prev]');
     const nextButton = swiperGroup.querySelector('[data-swiper-next]');
 
-    const ATTRS = ['[swipe-img]', '[swipe-text]', '[swipe-author-title]', '[swipe-author-company]'];
+    const TEXT_ATTRS = ['[swipe-text]', '[swipe-author-title]', '[swipe-author-company]'];
+    const splitInstances = new Map();
 
-    const getSlideEls = (slide) => ATTRS.map(a => slide.querySelector(a)).filter(Boolean);
+    // Split all text elements once across all slides
+    swiperSliderWrap.querySelectorAll(TEXT_ATTRS.join(',')).forEach((el) => {
+      SplitText.create(el, {
+        type: 'lines',
+        mask: 'lines',
+        linesClass: 'line',
+        autoSplit: true,
+        onSplit: (inst) => {
+          splitInstances.set(el, inst);
+          gsap.set(inst.lines, { yPercent: 110 });
+        }
+      });
+    });
+
+    // Hide all imgs initially
+    swiperSliderWrap.querySelectorAll('[swipe-img]').forEach((el) => gsap.set(el, { autoAlpha: 0 }));
 
     const getVisibleSlides = () => [
       ...swiperSliderWrap.querySelectorAll('.swiper-slide-active, .swiper-slide-next')
     ];
 
+    const animateOut = (slides, onComplete) => {
+      const tl = gsap.timeline({ onComplete });
+      slides.forEach((slide) => {
+        const img = slide.querySelector('[swipe-img]');
+        if (img) {
+          gsap.killTweensOf(img);
+          tl.to(img, { autoAlpha: 0, duration: 0.2, ease: 'energy' }, 0);
+        }
+        TEXT_ATTRS.forEach((attr, i) => {
+          const el = slide.querySelector(attr);
+          if (!el) return;
+          const inst = splitInstances.get(el);
+          if (!inst?.lines?.length) return;
+          gsap.killTweensOf(inst.lines);
+          tl.to(inst.lines, { yPercent: -110, duration: 0.2, ease: 'energy', stagger: 0.04 }, i * 0.04);
+        });
+      });
+      return tl;
+    };
+
     const animateIn = (slides) => {
       slides.forEach((slide) => {
-        gsap.fromTo(getSlideEls(slide),
-          { autoAlpha: 0, y: 16 },
-          { autoAlpha: 1, y: 0, duration: 0.5, ease: 'smooth', stagger: 0.1 }
-        );
+        const img = slide.querySelector('[swipe-img]');
+        if (img) {
+          gsap.killTweensOf(img);
+          gsap.set(img, { autoAlpha: 0 });
+          gsap.to(img, { autoAlpha: 1, duration: 0.5, ease: 'smooth' });
+        }
+        TEXT_ATTRS.forEach((attr, i) => {
+          const el = slide.querySelector(attr);
+          if (!el) return;
+          const inst = splitInstances.get(el);
+          if (!inst?.lines?.length) return;
+          gsap.killTweensOf(inst.lines);
+          gsap.set(inst.lines, { yPercent: 110 });
+          gsap.to(inst.lines, { yPercent: 0, duration: 0.6, ease: 'reveal', stagger: 0.07, delay: i * 0.1 });
+        });
       });
     };
-
-    const animateOut = (slides) => {
-      slides.forEach((slide) => {
-        gsap.to(getSlideEls(slide),
-          { autoAlpha: 0, y: -10, duration: 0.2, ease: 'energy', stagger: 0.04 }
-        );
-      });
-    };
-
-    // Hide all slide elements initially
-    swiperSliderWrap.querySelectorAll(ATTRS.join(',')).forEach(el => gsap.set(el, { autoAlpha: 0 }));
 
     let prevSlides = [];
 
@@ -98,11 +134,11 @@ function initSwiperSlider() {
           animateIn(prevSlides);
         },
         slideChangeTransitionStart() {
-          animateOut(prevSlides);
-        },
-        slideChangeTransitionEnd() {
-          prevSlides = getVisibleSlides();
-          animateIn(prevSlides);
+          const outgoing = prevSlides;
+          animateOut(outgoing, () => {
+            prevSlides = getVisibleSlides();
+            animateIn(prevSlides);
+          });
         }
       }
     });
