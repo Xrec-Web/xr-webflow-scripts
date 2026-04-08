@@ -7,14 +7,14 @@
 gsap.registerPlugin(SplitText, ScrollTrigger, InertiaPlugin, Observer, CustomEase);
 
 CustomEase.create('reveal', 'M0,0 C0.16,1 0.3,1 1,1');
-CustomEase.create("osmo", "M0,0 C0.625,0.05 0,1 1,1");
-CustomEase.create("energy", "M0,0 C0.32,0.72 0,1 1,1");
-CustomEase.create("smooth", "M0,0 C0.38,0.005 0.215,1 1,1");
-CustomEase.create("punch", "M0,0 C0.19,1 0.22,1 1,1");
-CustomEase.create("relaxed", "M0,0 C0.7,0 0.3,1 1,1");
-CustomEase.create("expo.inOut", "M0,0 C0.87,0 0.13,1 1,1");
-CustomEase.create("jump", "M0,0 C0.35,1.5 0.6,1 1,1");
-CustomEase.create("pop", "M0,0 C0.17,0.67 0.3,1.33 1,1");
+CustomEase.create('osmo', 'M0,0 C0.625,0.05 0,1 1,1');
+CustomEase.create('energy', 'M0,0 C0.32,0.72 0,1 1,1');
+CustomEase.create('smooth', 'M0,0 C0.38,0.005 0.215,1 1,1');
+CustomEase.create('punch', 'M0,0 C0.19,1 0.22,1 1,1');
+CustomEase.create('relaxed', 'M0,0 C0.7,0 0.3,1 1,1');
+CustomEase.create('expo.inOut', 'M0,0 C0.87,0 0.13,1 1,1');
+CustomEase.create('jump', 'M0,0 C0.35,1.5 0.6,1 1,1');
+CustomEase.create('pop', 'M0,0 C0.17,0.67 0.3,1.33 1,1');
 
 const lenis = new Lenis();
 lenis.on('scroll', ScrollTrigger.update);
@@ -28,7 +28,6 @@ gsap.ticker.lagSmoothing(0);
 // Each init is guarded — only runs if its trigger element exists on the page.
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (document.querySelector('[data-example]')) initExample();
   if (document.querySelector('[data-swiper-group]')) initSwiperSlider();
   if (document.querySelector('[data-reveal], [data-reveal-clip]')) initMaskTextScrollReveal();
   if (document.querySelector('[data-reveal-load]')) initLoadReveal();
@@ -50,32 +49,82 @@ function initSwiperSlider() {
     const prevButton = swiperGroup.querySelector('[data-swiper-prev]');
     const nextButton = swiperGroup.querySelector('[data-swiper-next]');
 
-    const swiper = new Swiper(swiperSliderWrap, {
-      slidesPerView: 1.25,
-      speed: 600,
-      mousewheel: true,
+    const ATTRS = ['[swipe-img]', '[swipe-text]', '[swipe-author-title]', '[swipe-author-company]'];
+
+    const getSlideEls = (slide) => ATTRS.map(a => slide.querySelector(a)).filter(Boolean);
+
+    const getVisibleSlides = () => [
+      ...swiperSliderWrap.querySelectorAll('.swiper-slide-active, .swiper-slide-next')
+    ];
+
+    const animateIn = (slides) => {
+      slides.forEach((slide) => {
+        gsap.fromTo(getSlideEls(slide),
+          { autoAlpha: 0, y: 16 },
+          { autoAlpha: 1, y: 0, duration: 0.5, ease: 'smooth', stagger: 0.1 }
+        );
+      });
+    };
+
+    const animateOut = (slides) => {
+      slides.forEach((slide) => {
+        gsap.to(getSlideEls(slide),
+          { autoAlpha: 0, y: -10, duration: 0.2, ease: 'energy', stagger: 0.04 }
+        );
+      });
+    };
+
+    // Hide all slide elements initially
+    swiperSliderWrap.querySelectorAll(ATTRS.join(',')).forEach(el => gsap.set(el, { autoAlpha: 0 }));
+
+    let prevSlides = [];
+
+    new Swiper(swiperSliderWrap, {
+      slidesPerView: 2,
+      slidesPerGroup: 2,
+      speed: 500,
       grabCursor: true,
-      breakpoints: {
-        480: { slidesPerView: 1.8 },
-        992: { slidesPerView: 3.5 }
+      autoplay: {
+        delay: 1200,
+        disableOnInteraction: false,
       },
       navigation: {
         nextEl: nextButton,
         prevEl: prevButton,
       },
-      pagination: {
-        el: '.swiper-pagination',
-        type: 'bullets',
-        clickable: true
-      },
-      keyboard: {
-        enabled: true,
-        onlyInViewport: false,
-      },
+      on: {
+        init() {
+          prevSlides = getVisibleSlides();
+          animateIn(prevSlides);
+        },
+        slideChangeTransitionStart() {
+          animateOut(prevSlides);
+        },
+        slideChangeTransitionEnd() {
+          prevSlides = getVisibleSlides();
+          animateIn(prevSlides);
+        }
+      }
     });
   });
 }
-// TEXT + CLIP REVEAL //
+
+// SCROLL SPLIT TEXT + IMG REVEAL //
+const splitConfig = {
+  lines: { duration: 1.0, stagger: 0.08 },
+  words: { duration: 0.8, stagger: 0.06 },
+  chars: { duration: 0.6, stagger: 0.01 }
+};
+
+function hasRevealAncestor(el) {
+  let parent = el.parentElement;
+  while (parent) {
+    if (parent.matches('[data-reveal], [data-reveal-clip]')) return true;
+    parent = parent.parentElement;
+  }
+  return false;
+}
+
 function initMaskTextScrollReveal() {
   ScrollTrigger.batch('[data-reveal-clip]:not([data-reveal-load])', {
     start: 'clamp(top 80%)',
@@ -97,8 +146,8 @@ function initMaskTextScrollReveal() {
   });
 
   document.querySelectorAll('[data-reveal]:not([data-reveal-load])').forEach((el) => {
-    const isChild = hasRevealAncestor(el);
-    const type = (el.dataset.reveal || 'lines').toLowerCase();
+    const isChild  = hasRevealAncestor(el);
+    const type     = (el.dataset.reveal || 'lines').toLowerCase();
     const safeType = ['lines', 'words', 'chars'].includes(type) ? type : 'lines';
 
     const typesToSplit =
@@ -115,9 +164,8 @@ function initMaskTextScrollReveal() {
       charsClass: 'letter',
       onSplit: (instance) => {
         gsap.set(el, { opacity: 1 });
-        const targets = instance[safeType];
-        const config = splitConfig[safeType];
-
+        const targets   = instance[safeType];
+        const config    = splitConfig[safeType];
         const baseDelay = isChild ? 0.2 : 0;
         targets.forEach((target, i) => {
           const offset = i * config.stagger;
@@ -137,6 +185,7 @@ function initMaskTextScrollReveal() {
     });
   });
 }
+
 // IMAGE SCROLL EFFECT //
 function initImageScrollEffect() {
   gsap.utils.toArray('.img:not(.no-para)').forEach((img) => {
@@ -147,7 +196,7 @@ function initImageScrollEffect() {
         autoAlpha: 1,
         scale: 1,
         duration: 0.8,
-        ease: 'power2.out',
+        ease: 'reveal',
         scrollTrigger: {
           trigger: img,
           start: 'top 80%',
@@ -171,16 +220,9 @@ function initImageScrollEffect() {
 }
 
 // COPYRIGHT YEAR //
-function initDynamicCurrentYear() {  
+function initDynamicCurrentYear() {
   const currentYear = new Date().getFullYear();
-  const currentYearElements = document.querySelectorAll('[data-current-year]');
-  currentYearElements.forEach(currentYearElement => {
-    currentYearElement.textContent = currentYear;
+  document.querySelectorAll('[data-current-year]').forEach(el => {
+    el.textContent = currentYear;
   });
 }
-// SCROLL SPLIT TEXT + IMG REVEAL //
-const splitConfig = {
-  lines: { duration: 1.0, stagger: 0.08 },
-  words: { duration: 0.8, stagger: 0.06 },
-  chars: { duration: 0.6, stagger: 0.01 }
-};
