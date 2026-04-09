@@ -20,6 +20,7 @@ gsap.ticker.lagSmoothing(0);
 document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-slideshow="wrap"]'))    initParallaxImageGallery();
   if (document.querySelector('[data-accordion-css-init]')) initAccordionCSS();
+  if (document.querySelector('[data-video-on-hover]')) initPlayVideoHover();
   if (document.querySelector('[data-reveal], [data-reveal-clip]')) initReveal();
   if (document.querySelector('.img:not(.no-para)')) initImageScrollEffect();
 });
@@ -264,6 +265,35 @@ function initReveal() {
           });
         });
       }
+    });
+  });
+}
+
+// VIDEO AUTOPLAY HOVER //
+function initPlayVideoHover() {
+  const wrappers = document.querySelectorAll('[data-video-on-hover]');
+
+  wrappers.forEach(wrapper => {
+    const video = wrapper.querySelector('video');
+    const src = wrapper.getAttribute('data-video-src') || '';
+    if (!video || !src) return;
+
+    wrapper.addEventListener('mouseenter', () => {
+      if (!video.getAttribute('src')) {
+        video.setAttribute('src', src);
+      }
+      wrapper.dataset.videoOnHover = 'active';
+      video.play().catch(err => {
+        console.warn('play on hover is blocked:', err);
+      });
+    });
+
+    wrapper.addEventListener('mouseleave', () => {
+      wrapper.dataset.videoOnHover = 'not-active';
+      setTimeout(() => {
+        video.pause();
+        video.currentTime = 0;
+      }, 200);
     });
   });
 }
