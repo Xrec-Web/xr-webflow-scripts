@@ -7,6 +7,15 @@ gsap.registerPlugin(ScrollTrigger, SplitText, CustomEase);
 
 // Custom Eases
 CustomEase.create("slideshow-wipe", "0.6, 0.08, 0.02, 0.99");
+CustomEase.create('reveal', 'M0,0 C0.16,1 0.3,1 1,1');
+CustomEase.create('osmo', 'M0,0 C0.625,0.05 0,1 1,1');
+CustomEase.create('energy', 'M0,0 C0.32,0.72 0,1 1,1');
+CustomEase.create('smooth', 'M0,0 C0.38,0.005 0.215,1 1,1');
+CustomEase.create('punch', 'M0,0 C0.19,1 0.22,1 1,1');
+CustomEase.create('relaxed', 'M0,0 C0.7,0 0.3,1 1,1');
+CustomEase.create('expo.inOut', 'M0,0 C0.87,0 0.13,1 1,1');
+CustomEase.create('jump', 'M0,0 C0.35,1.5 0.6,1 1,1');
+CustomEase.create('pop', 'M0,0 C0.17,0.67 0.3,1.33 1,1');
 
 // Lenis — Smooth Scrolling
 const lenis = new Lenis();
