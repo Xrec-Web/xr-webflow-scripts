@@ -16,11 +16,6 @@ CustomEase.create("expo.inOut", "M0,0 C0.87,0 0.13,1 1,1");
 CustomEase.create("jump", "M0,0 C0.35,1.5 0.6,1 1,1");
 CustomEase.create("pop", "M0,0 C0.17,0.67 0.3,1.33 1,1");
 
-const lenis = new Lenis();
-lenis.on('scroll', ScrollTrigger.update);
-gsap.ticker.add((time) => {
-  lenis.raf(time * 1000);
-});
 gsap.ticker.lagSmoothing(0);
 
 
@@ -28,6 +23,12 @@ gsap.ticker.lagSmoothing(0);
 // Each init is guarded — only runs if its trigger element exists on the page.
 
 document.addEventListener('DOMContentLoaded', () => {
+  const lenis = new Lenis();
+  lenis.on('scroll', ScrollTrigger.update);
+  gsap.ticker.add((time) => {
+    lenis.raf(time * 1000);
+  });
+
   runPreloader();
   if (document.querySelector('[data-testimonial-wrap]')) initLineRevealTestimonials();
   initHamburger();
