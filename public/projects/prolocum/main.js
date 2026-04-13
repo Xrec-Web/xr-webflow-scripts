@@ -17,7 +17,7 @@ CustomEase.create('jump', 'M0,0 C0.35,1.5 0.6,1 1,1');
 CustomEase.create('pop', 'M0,0 C0.17,0.67 0.3,1.33 1,1');
 
 const lenis = new Lenis({
-  prevent: (node) => node.closest('[data-swiper-wrap]') !== null
+  prevent: (node) => node.classList?.contains('swiper') || node.classList?.contains('swiper-wrapper') || node.classList?.contains('swiper-slide')
 });
 lenis.on('scroll', ScrollTrigger.update);
 gsap.ticker.add((time) => {
