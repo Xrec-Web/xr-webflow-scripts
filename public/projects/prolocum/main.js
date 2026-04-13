@@ -71,9 +71,11 @@ function initSwiperSlider() {
     // Hide all imgs initially
     swiperSliderWrap.querySelectorAll('[swipe-img]').forEach((el) => gsap.set(el, { autoAlpha: 0 }));
 
-    const getVisibleSlides = () => [
-      ...swiperSliderWrap.querySelectorAll('.swiper-slide-active, .swiper-slide-next')
-    ];
+    const isMobile = () => window.innerWidth < 768;
+
+    const getVisibleSlides = () => isMobile()
+      ? [...swiperSliderWrap.querySelectorAll('.swiper-slide-active')]
+      : [...swiperSliderWrap.querySelectorAll('.swiper-slide-active, .swiper-slide-next')];
 
     const animateOut = (slides, onComplete) => {
       const tl = gsap.timeline({ onComplete });
@@ -123,9 +125,15 @@ function initSwiperSlider() {
     let autoplayTimer = null;
 
     const swiper = new Swiper(swiperSliderWrap, {
-      slidesPerView: 'auto',
-      slidesPerGroup: 2,
+      slidesPerView: 1,
+      slidesPerGroup: 1,
       loop: true,
+      breakpoints: {
+        768: {
+          slidesPerView: 'auto',
+          slidesPerGroup: 2,
+        },
+      },
       speed: 0,
       grabCursor: true,
       on: {
@@ -146,7 +154,7 @@ function initSwiperSlider() {
 
     function updateNumber(sw) {
       if (!numberEl) return;
-      numberEl.textContent = Math.floor(sw.realIndex / 2) + 1;
+      numberEl.textContent = isMobile() ? sw.realIndex + 1 : Math.floor(sw.realIndex / 2) + 1;
     }
 
     function scheduleNext() {
