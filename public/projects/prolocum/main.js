@@ -245,7 +245,7 @@ function initReveal() {
 
     SplitText.create(el, {
       type: typesToSplit.join(','),
-      mask: 'lines',
+      mask: safeType,
       autoSplit: true,
       linesClass: 'line',
       wordsClass: 'word',
