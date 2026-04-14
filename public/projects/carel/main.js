@@ -185,19 +185,19 @@ function initDrawSVG() {
       stagger: { amount: 0.2 },
     }, '>-=0.5');
 
-    // Float each path independently after reveal
+    // Float the parent .float-graphic after reveal
     tl.call(() => {
-      paths.forEach((path) => {
-        gsap.to(path, {
-          x: gsap.utils.random(-5, 5),
-          y: gsap.utils.random(-6, 6),
-          rotation: gsap.utils.random(-3, 3),
-          duration: gsap.utils.random(3, 5),
-          ease: 'relaxed',
-          repeat: -1,
-          yoyo: true,
-          delay: gsap.utils.random(0, 1.5),
-        });
+      const floatEl = svg.closest('.float-graphic') || svg.parentElement?.closest('.float-graphic');
+      if (!floatEl) return;
+
+      gsap.to(floatEl, {
+        xPercent: gsap.utils.random(-10, 10),
+        yPercent: gsap.utils.random(-10, 10),
+        rotation: gsap.utils.random(-4, 4),
+        duration: gsap.utils.random(3, 5),
+        ease: 'relaxed',
+        repeat: -1,
+        yoyo: true,
       });
     });
   });
