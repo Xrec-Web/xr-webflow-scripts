@@ -304,7 +304,6 @@ function initLineRevealTestimonials() {
 // PRELOADER //
 function runPreloader() {
   // Reset all elements to their initial state before animating
-  document.body.style.opacity = "0";
   gsap.set(".page_load", { y: "0%" });
   gsap.set(".load_logo", { opacity: 1, filter: "blur(0px)" });
   gsap.set(".l-icon", { rotation: 0, transformOrigin: "50% 50%" });
