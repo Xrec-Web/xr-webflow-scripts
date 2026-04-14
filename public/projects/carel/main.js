@@ -184,6 +184,22 @@ function initDrawSVG() {
       ease: 'osmo',
       stagger: { amount: 0.2 },
     }, '>-=0.5');
+
+    // Float each path independently after reveal
+    tl.call(() => {
+      paths.forEach((path) => {
+        gsap.to(path, {
+          x: gsap.utils.random(-5, 5),
+          y: gsap.utils.random(-6, 6),
+          rotation: gsap.utils.random(-3, 3),
+          duration: gsap.utils.random(3, 5),
+          ease: 'relaxed',
+          repeat: -1,
+          yoyo: true,
+          delay: gsap.utils.random(0, 1.5),
+        });
+      });
+    });
   });
 }
 
