@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
   runPreloader();
   if (document.querySelector('[data-testimonial-wrap]')) initLineRevealTestimonials();
   if (document.querySelector('[data-form-validate]')) initBasicFormValidation();
+  if (document.querySelector('[data-css-marquee]')) initCSSMarquee();
   initDynamicCurrentYear();
   initHamburger();
 });
@@ -746,6 +747,35 @@ function initBasicFormValidation() {
         }
       }
     });
+  });
+}
+
+// CSS MARQUEE //
+function initCSSMarquee() {
+  const pixelsPerSecond = 75;
+  const marquees = document.querySelectorAll('[data-css-marquee]');
+
+  marquees.forEach(marquee => {
+    marquee.querySelectorAll('[data-css-marquee-list]').forEach(list => {
+      const duplicate = list.cloneNode(true);
+      marquee.appendChild(duplicate);
+    });
+  });
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      entry.target.querySelectorAll('[data-css-marquee-list]').forEach(list =>
+        list.style.animationPlayState = entry.isIntersecting ? 'running' : 'paused'
+      );
+    });
+  }, { threshold: 0 });
+
+  marquees.forEach(marquee => {
+    marquee.querySelectorAll('[data-css-marquee-list]').forEach(list => {
+      list.style.animationDuration = (list.offsetWidth / pixelsPerSecond) + 's';
+      list.style.animationPlayState = 'paused';
+    });
+    observer.observe(marquee);
   });
 }
 
