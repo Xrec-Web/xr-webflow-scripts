@@ -685,6 +685,10 @@ function initBasicFormValidation() {
       if (minLength && field.value.length < minLength) isValid = false;
       if (maxLength && field.value.length > maxLength) isValid = false;
       if (type === 'email' && !/\S+@\S+\.\S+/.test(field.value)) isValid = false;
+      if (type === 'tel') {
+        const digits = field.value.replace(/\D/g, '');
+        if (digits.length < 7 || digits.length > 15) isValid = false;
+      }
 
       if (isValid) {
         parent.classList.remove('is--error');
