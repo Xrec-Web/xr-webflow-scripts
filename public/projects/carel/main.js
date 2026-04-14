@@ -185,20 +185,29 @@ function initDrawSVG() {
       stagger: { amount: 0.2 },
     }, '>-=0.5');
 
-    // Float the parent .float-graphic after reveal
+    // Float the parent .float-graphic after reveal, always a new direction
     tl.call(() => {
       const floatEl = svg.closest('.float-graphic') || svg.parentElement?.closest('.float-graphic');
       if (!floatEl) return;
 
-      gsap.to(floatEl, {
-        xPercent: gsap.utils.random(-10, 10),
-        yPercent: gsap.utils.random(-10, 10),
-        rotation: gsap.utils.random(-4, 4),
-        duration: gsap.utils.random(3, 5),
-        ease: 'relaxed',
-        repeat: -1,
-        yoyo: true,
-      });
+      function floatNext(prevAngle) {
+        let angle;
+        do {
+          angle = gsap.utils.random(0, 360);
+        } while (Math.abs(angle - prevAngle) < 60 || Math.abs(angle - prevAngle) > 300);
+
+        const rad = (angle * Math.PI) / 180;
+        gsap.to(floatEl, {
+          xPercent: Math.cos(rad) * 10,
+          yPercent: Math.sin(rad) * 10,
+          rotation: gsap.utils.random(-4, 4),
+          duration: gsap.utils.random(3, 5),
+          ease: 'relaxed',
+          onComplete: () => floatNext(angle),
+        });
+      }
+
+      floatNext(gsap.utils.random(0, 360));
     });
   });
 }
