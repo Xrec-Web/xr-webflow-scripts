@@ -308,7 +308,6 @@ function runPreloader() {
   gsap.set(".load_logo", { opacity: 1, filter: "blur(0px)" });
   gsap.set(".l-icon", { rotation: 0, transformOrigin: "50% 50%" });
   gsap.set([".l-1", ".l-2", ".l-3", ".l-4", ".l-5", ".l-6", ".l-7"], { y: 30, opacity: 0 });
-  gsap.set(".h-logo", { autoAlpha: 0 });
 
   const navWrap = document.querySelector(".nav_wrap");
   if (navWrap) {
@@ -354,11 +353,6 @@ function runPreloader() {
     ease: "expo.inOut",
   });
 
-  tl.to(".h-logo", {
-    autoAlpha: 1,
-    duration: 0.4,
-    ease: "osmo",
-  }, ">-=0.2");
 
   tl.call(() => {
     document.body.style.opacity = "1";
