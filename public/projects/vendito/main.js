@@ -303,7 +303,12 @@ function initLineRevealTestimonials() {
 
 // PRELOADER //
 function runPreloader() {
-  const tl = gsap.timeline();
+  // Reset all elements to their initial state before animating
+  document.body.style.opacity = "0";
+  gsap.set(".page_load", { y: "0%" });
+  gsap.set(".load_logo", { opacity: 1, filter: "blur(0px)" });
+  gsap.set(".l-icon", { rotation: 0, transformOrigin: "50% 50%" });
+  gsap.set([".l-1", ".l-2", ".l-3", ".l-4", ".l-5", ".l-6", ".l-7"], { y: 30, opacity: 0 });
 
   const navWrap = document.querySelector(".nav_wrap");
   if (navWrap) {
@@ -314,22 +319,22 @@ function runPreloader() {
     });
   }
 
-  gsap.set(".l-icon", { transformOrigin: "50% 50%" });
+  const tl = gsap.timeline();
 
   tl.to(".l-icon", {
     rotation: 360,
     duration: 0.75,
-    ease: "power2.inOut",
+    ease: "expo.inOut",
   });
 
-  tl.from(
+  tl.to(
     [".l-1", ".l-2", ".l-3", ".l-4", ".l-5", ".l-6", ".l-7"],
     {
-      y: 30,
-      opacity: 0,
+      y: 0,
+      opacity: 1,
       duration: 0.35,
       stagger: 0.05,
-      ease: "power3.out",
+      ease: "osmo",
     },
     "-=0.4"
   );
@@ -340,13 +345,13 @@ function runPreloader() {
     opacity: 0,
     filter: "blur(12px)",
     duration: 0.35,
-    ease: "power3.out",
+    ease: "osmo",
   });
 
   tl.to(".page_load", {
     y: "100%",
     duration: 0.5,
-    ease: "power2.inOut",
+    ease: "expo.inOut",
   });
 
   tl.call(() => {
