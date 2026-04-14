@@ -33,12 +33,12 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-accordion-css-init]')) initAccordionCSS();
   if (document.querySelector('[data-form-validate]')) initBasicFormValidation();
 
-  // Defer heavy inits past first paint
-  requestAnimationFrame(() => {
+  // Defer heavy inits past first paint (double rAF guarantees post-paint)
+  requestAnimationFrame(() => requestAnimationFrame(() => {
     if (document.querySelector('[data-reveal], [data-reveal-clip]')) initReveal();
     if (document.querySelector('.img:not(.no-para)')) initImageScrollEffect();
     if (document.querySelector('[data-draw-svg]')) initDrawSVG();
-  });
+  }));
 });
 
 
@@ -120,6 +120,8 @@ function initNav() {
 
 // IMAGE SCROLL EFFECT //
 function initImageScrollEffect() {
+  const isMobile = window.matchMedia('(max-width: 767px)').matches;
+
   gsap.utils.toArray(".img").forEach((img) => {
     gsap.fromTo(img,
       { autoAlpha: 0, scale: 1.05 },
@@ -137,16 +139,18 @@ function initImageScrollEffect() {
       }
     );
 
-    gsap.to(img, {
-      yPercent: 20,
-      ease: "none",
-      scrollTrigger: {
-        trigger: img,
-        start: "top bottom",
-        end: "bottom top",
-        scrub: true
-      }
-    });
+    if (!isMobile) {
+      gsap.to(img, {
+        yPercent: 20,
+        ease: "none",
+        scrollTrigger: {
+          trigger: img,
+          start: "top bottom",
+          end: "bottom top",
+          scrub: true
+        }
+      });
+    }
   });
 }
 
