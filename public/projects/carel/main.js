@@ -27,13 +27,18 @@ document.addEventListener('DOMContentLoaded', () => {
   lenis.on('scroll', ScrollTrigger.update);
   gsap.ticker.add((time) => { lenis.raf(time * 1000); });
 
+  // Run immediately — lightweight, needed before first paint
   initNav();
+  initDynamicCurrentYear();
   if (document.querySelector('[data-accordion-css-init]')) initAccordionCSS();
-  if (document.querySelector('[data-reveal], [data-reveal-clip]')) initReveal();
-  if (document.querySelector('.img:not(.no-para)')) initImageScrollEffect();
-  if (document.querySelector('[data-draw-svg]')) initDrawSVG();
   if (document.querySelector('[data-form-validate]')) initBasicFormValidation();
-  if (document.querySelector('[data-current-year]')) initDynamicCurrentYear();
+
+  // Defer heavy inits past first paint
+  requestAnimationFrame(() => {
+    if (document.querySelector('[data-reveal], [data-reveal-clip]')) initReveal();
+    if (document.querySelector('.img:not(.no-para)')) initImageScrollEffect();
+    if (document.querySelector('[data-draw-svg]')) initDrawSVG();
+  });
 });
 
 
