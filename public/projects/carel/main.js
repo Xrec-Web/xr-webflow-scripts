@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-accordion-css-init]')) initAccordionCSS();
   if (document.querySelector('[data-reveal], [data-reveal-clip]')) initReveal();
   if (document.querySelector('.img:not(.no-para)')) initImageScrollEffect();
+  if (document.querySelector('[data-draw-svg]')) initDrawSVG();
   if (document.querySelector('[data-form-validate]')) initBasicFormValidation();
   if (document.querySelector('[data-current-year]')) initDynamicCurrentYear();
 });
@@ -141,6 +142,48 @@ function initImageScrollEffect() {
         scrub: true
       }
     });
+  });
+}
+
+// DRAW SVG //
+function initDrawSVG() {
+  document.querySelectorAll('[data-draw-svg]').forEach((svg) => {
+    const paths = [...svg.querySelectorAll('path, circle, rect, ellipse, polygon, polyline, line')];
+    if (!paths.length) return;
+
+    // Store original fills and set initial state
+    paths.forEach((path) => {
+      const length = path.getTotalLength ? path.getTotalLength() : 0;
+      gsap.set(path, {
+        strokeDasharray: length,
+        strokeDashoffset: length,
+        fillOpacity: 0,
+      });
+    });
+
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: svg,
+        start: 'top 80%',
+        once: true,
+      }
+    });
+
+    // Draw stroke
+    tl.to(paths, {
+      strokeDashoffset: 0,
+      duration: 1.4,
+      ease: 'osmo',
+      stagger: { amount: 0.3 },
+    });
+
+    // Fill in while stroke finishes
+    tl.to(paths, {
+      fillOpacity: 1,
+      duration: 0.8,
+      ease: 'osmo',
+      stagger: { amount: 0.2 },
+    }, '>-=0.5');
   });
 }
 
