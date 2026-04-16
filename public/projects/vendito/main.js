@@ -377,20 +377,22 @@ function initNavScrollAnimation() {
   gsap.set(navWrap, {
     paddingLeft: "0rem",
     paddingRight: "0rem",
-    marginTop: "2rem"
+    marginTop: "2rem",
+    color: "white",
+    backgroundColor: "rgba(255,255,255,0)"
   });
 
   gsap.to(navWrap, {
     paddingLeft: "1.5rem",
     paddingRight: "1.5rem",
     marginTop: "1rem",
+    color: "black",
+    backgroundColor: "rgba(255,255,255,0.9)",
     ease: "power3.out",
     scrollTrigger: {
       start: 1,
       end: window.innerHeight * 0.10,
-      scrub: true,
-      onEnter: () => navWrap.classList.add("u-theme-light"),
-      onLeaveBack: () => navWrap.classList.remove("u-theme-light")
+      scrub: true
     }
   });
 }
