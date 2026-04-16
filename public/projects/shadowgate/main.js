@@ -191,7 +191,7 @@ function initDynamicCurrentYear() {
 // INTERACTIVE GLOBE (MAPBOX) //
 function initInteractiveGlobeMapbox() {
   const cfg = {
-    mapboxToken: /* add token here */,
+    mapboxToken: "/* add token here */",
     mapStyle: "mapbox://styles/osmo-supply/cmmw1zil7003e01s84w3h740n",
     center: [0, 20],
     zoom: 3,
@@ -210,6 +210,15 @@ function initInteractiveGlobeMapbox() {
       globeOffsetX: 0,
       globeOffsetY: 0.5,
     },
+    markers: [
+      { id: "tindal",     lat: -14.5211, lng: 132.3781, name: "Tindal",     city: "Katherine, NT",    image: "", link: "" },
+      { id: "alice",      lat: -23.6980, lng: 133.8807, name: "Alice Springs", city: "Alice Springs, NT", image: "", link: "" },
+      { id: "woomera",    lat: -31.1558, lng: 136.8009, name: "Woomera",    city: "Woomera, SA",      image: "", link: "" },
+      { id: "exmouth",    lat: -21.9344, lng: 114.1272, name: "Exmouth",    city: "Exmouth, WA",      image: "", link: "" },
+      { id: "geraldton",  lat: -28.7774, lng: 114.6145, name: "Geraldton",  city: "Geraldton, WA",    image: "", link: "" },
+      { id: "wagga",      lat: -35.1082, lng: 147.3598, name: "Wagga Wagga", city: "Wagga Wagga, NSW", image: "", link: "" },
+      { id: "broome",     lat: -17.9614, lng: 122.2359, name: "Broome",     city: "Broome, WA",       image: "", link: "" },
+    ],
   };
 
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
