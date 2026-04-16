@@ -388,7 +388,9 @@ function initNavScrollAnimation() {
     scrollTrigger: {
       start: 1,
       end: window.innerHeight * 0.10,
-      scrub: true
+      scrub: true,
+      onEnter: () => navWrap.classList.add("u-theme-light"),
+      onLeaveBack: () => navWrap.classList.remove("u-theme-light")
     }
   });
 }
