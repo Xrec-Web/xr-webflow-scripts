@@ -32,7 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-form-validate]')) initBasicFormValidation();
   if (document.querySelector('.img:not(.no-para)')) initImageScrollEffect();
   if (document.querySelector('[data-current-year]')) initDynamicCurrentYear();
-  if (document.querySelector('[data-globe-init]')) initInteractiveGlobeMapbox();
+  if (document.querySelector('[data-globe-init]')) {
+    fetch('/api/mapbox-token')
+      .then(res => res.json())
+      .then(data => initInteractiveGlobeMapbox(data.token));
+  }
 });
 
 
@@ -189,9 +193,9 @@ function initDynamicCurrentYear() {
 }
 
 // INTERACTIVE GLOBE (MAPBOX) //
-function initInteractiveGlobeMapbox() {
+function initInteractiveGlobeMapbox(mapboxToken) {
   const cfg = {
-    mapboxToken: "/* add token here */",
+    mapboxToken,
     mapStyle: "mapbox://styles/osmo-supply/cmmw1zil7003e01s84w3h740n",
     center: [0, 20],
     zoom: 3,
