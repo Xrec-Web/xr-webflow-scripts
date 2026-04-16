@@ -386,12 +386,21 @@ function initNavScrollAnimation() {
     paddingLeft: "1.5rem",
     paddingRight: "1.5rem",
     marginTop: "1rem",
+    ease: "power3.out",
+    scrollTrigger: {
+      start: 1,
+      end: window.innerHeight * 0.10,
+      scrub: true
+    }
+  });
+
+  gsap.to(navWrap, {
     color: "black",
     backgroundColor: "rgba(255,255,255,0.9)",
     ease: "power3.out",
     scrollTrigger: {
       start: 1,
-      end: window.innerHeight * 0.10,
+      end: window.innerHeight * 0.06,
       scrub: true
     }
   });
