@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('.img:not(.no-para)')) initImageScrollEffect();
   if (document.querySelector('[data-current-year]')) initDynamicCurrentYear();
   if (document.querySelector('[data-globe-init]')) {
-    fetch('/api/mapbox-token')
+    fetch('https://xr-webflow-scripts.vercel.app/api/mapbox-token')
       .then(res => res.json())
       .then(data => initInteractiveGlobeMapbox(data.token));
   }
