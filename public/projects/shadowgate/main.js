@@ -189,7 +189,8 @@ function initImageScrollEffect() {
 function initTeamInteractions() {
   const members        = document.querySelectorAll('.team_member');
   const preview        = document.querySelector('.team_preview');
-  const previewImg     = preview?.querySelector('.preview_img');
+  const previewImgEl   = preview?.querySelector('.preview_img');
+  const previewImg     = previewImgEl?.tagName === 'IMG' ? previewImgEl : previewImgEl?.querySelector('img');
   const previewName    = preview?.querySelector('.preview_name');
   const previewRole    = preview?.querySelector('.preview_role');
 
@@ -215,7 +216,7 @@ function initTeamInteractions() {
         hoverActive = member;
 
         const { name, role, img } = member.dataset;
-        const targets = [previewImg, previewName, previewRole].filter(Boolean);
+        const targets = [previewImgEl, previewName, previewRole].filter(Boolean);
 
         gsap.timeline()
           .to(targets, { scale: 0.92, opacity: 0, duration: 0.22, ease: 'osmo' })
