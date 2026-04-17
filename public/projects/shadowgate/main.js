@@ -221,7 +221,7 @@ function initTeamInteractions() {
         gsap.timeline()
           .to(targets, { scale: 0.92, opacity: 0, duration: 0.22, ease: 'osmo' })
           .call(() => {
-            if (previewImg)  previewImg.src         = img  || '';
+            if (previewImg) { previewImg.srcset = ''; previewImg.src = img || ''; }
             if (previewName) previewName.textContent = name || '';
             if (previewRole) previewRole.textContent = role || '';
           }, [], '-=0.04')
