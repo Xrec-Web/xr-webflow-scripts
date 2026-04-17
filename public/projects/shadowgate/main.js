@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(res => res.json())
       .then(data => initInteractiveGlobeMapbox(data.token));
   }
+  if (document.querySelector('.team_member')) initTeamInteractions();
 });
 
 
@@ -181,6 +182,98 @@ function initImageScrollEffect() {
         scrub: true
       }
     });
+  });
+}
+
+// TEAM INTERACTIONS //
+function initTeamInteractions() {
+  const members        = document.querySelectorAll('.team_member');
+  const preview        = document.querySelector('.team_preview');
+  const previewImg     = preview?.querySelector('.preview_img');
+  const previewName    = preview?.querySelector('.preview_name');
+  const previewRole    = preview?.querySelector('.preview_role');
+
+  const panel          = document.querySelector('.profile_panel');
+  const panelImg       = panel?.querySelector('.panel_img');
+  const panelName      = panel?.querySelector('.panel_name');
+  const panelRole      = panel?.querySelector('.panel_role');
+  const panelBioHead   = panel?.querySelector('.panel_bio_heading');
+  const panelBioBody   = panel?.querySelector('.panel_bio_body');
+  const panelClose     = panel?.querySelector('.panel_close');
+  const pageMain       = document.querySelector('.page_main');
+
+  if (!panel || !pageMain) return;
+
+  let hoverActive  = null;
+  let panelTl      = null;
+  let isOpen       = false;
+
+  // ── HOVER ──────────────────────────────────────────────────────────────────
+
+  members.forEach(member => {
+    member.addEventListener('mouseenter', () => {
+      if (member === hoverActive) return;
+      hoverActive = member;
+
+      const { name, role, img } = member.dataset;
+      const targets = [previewImg, previewName, previewRole].filter(Boolean);
+
+      gsap.to(targets, {
+        opacity: 0,
+        y: 6,
+        duration: 0.18,
+        ease: 'osmo',
+        onComplete() {
+          if (previewImg)   previewImg.src          = img  || '';
+          if (previewName)  previewName.textContent  = name || '';
+          if (previewRole)  previewRole.textContent  = role || '';
+
+          gsap.to(targets, { opacity: 1, y: 0, duration: 0.4, ease: 'osmo' });
+        }
+      });
+    });
+  });
+
+  // ── OPEN ───────────────────────────────────────────────────────────────────
+
+  members.forEach(member => {
+    member.addEventListener('click', () => {
+      const { name, role, img, bioHeading, bio } = member.dataset;
+
+      if (panelImg)     panelImg.src              = img        || '';
+      if (panelName)    panelName.textContent      = name       || '';
+      if (panelRole)    panelRole.textContent      = role       || '';
+      if (panelBioHead) panelBioHead.textContent   = bioHeading || '';
+      if (panelBioBody) panelBioBody.textContent   = bio        || '';
+
+      openPanel();
+    });
+  });
+
+  function openPanel() {
+    if (isOpen) return;
+    isOpen = true;
+    document.body.classList.add('panel-open');
+
+    panelTl = gsap.timeline()
+      .to(pageMain, { scale: 0.96, opacity: 0.3, duration: 0.6, ease: 'osmo' }, 0)
+      .fromTo(panel, { xPercent: 100 }, { xPercent: 0, duration: 0.6, ease: 'osmo' }, 0);
+  }
+
+  // ── CLOSE ──────────────────────────────────────────────────────────────────
+
+  function closePanel() {
+    if (!isOpen) return;
+    isOpen = false;
+    document.body.classList.remove('panel-open');
+
+    if (panelTl) panelTl.reverse();
+  }
+
+  panelClose?.addEventListener('click', closePanel);
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && isOpen) closePanel();
   });
 }
 
