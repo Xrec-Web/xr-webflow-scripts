@@ -217,19 +217,14 @@ function initTeamInteractions() {
         const { name, role, img } = member.dataset;
         const targets = [previewImg, previewName, previewRole].filter(Boolean);
 
-        gsap.to(targets, {
-          opacity: 0,
-          y: 6,
-          duration: 0.18,
-          ease: 'osmo',
-          onComplete() {
+        gsap.timeline()
+          .to(targets, { scale: 0.92, opacity: 0, duration: 0.22, ease: 'osmo' })
+          .call(() => {
             if (previewImg)  previewImg.src         = img  || '';
             if (previewName) previewName.textContent = name || '';
             if (previewRole) previewRole.textContent = role || '';
-
-            gsap.to(targets, { opacity: 1, y: 0, duration: 0.4, ease: 'osmo' });
-          }
-        });
+          }, [], '-=0.04')
+          .to(targets, { scale: 1, opacity: 1, duration: 0.4, ease: 'osmo' });
       });
     });
   }
