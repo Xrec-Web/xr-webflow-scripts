@@ -253,6 +253,7 @@ function initTeamInteractions() {
       if (isOpen) return;
       isOpen = true;
       document.body.classList.add('panel-open');
+      lenis.stop();
 
       const innerEls = [panelImg, panelName, panelRole, panelBioHead, panelBioBody].filter(Boolean);
 
@@ -270,11 +271,13 @@ function initTeamInteractions() {
       if (!isOpen) return;
       isOpen = false;
       document.body.classList.remove('panel-open');
+      lenis.start();
 
       if (panelTl) panelTl.reverse();
     }
 
     panelClose?.addEventListener('click', closePanel);
+    panelBg?.addEventListener('click', closePanel);
 
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && isOpen) closePanel();
