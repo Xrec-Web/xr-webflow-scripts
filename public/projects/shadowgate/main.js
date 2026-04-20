@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(res => res.json())
       .then(data => initInteractiveGlobeMapbox(data.token));
   }
-  if (document.querySelector('.team_member')) initTeamInteractions();
+  if (document.querySelector('[data-team-member]')) initTeamInteractions();
   if (document.querySelector('[data-cursor]')) initScrambleTextCursor();
 });
 
@@ -188,21 +188,22 @@ function initImageScrollEffect() {
 
 // TEAM INTERACTIONS //
 function initTeamInteractions() {
-  const members        = document.querySelectorAll('.team_member');
-  const preview        = document.querySelector('.team_preview');
-  const previewImgEl   = preview?.querySelector('.preview_img');
+  const members        = document.querySelectorAll('[data-team-member]');
+  const preview        = document.querySelector('[data-team-preview]');
+  const previewImgEl   = preview?.querySelector('[data-team-preview-img]');
   const previewImg     = previewImgEl?.tagName === 'IMG' ? previewImgEl : previewImgEl?.querySelector('img');
-  const previewName    = preview?.querySelector('.preview_name');
-  const previewRole    = preview?.querySelector('.preview_role');
+  const previewName    = preview?.querySelector('[data-team-preview-name]');
+  const previewRole    = preview?.querySelector('[data-team-preview-role]');
 
-  const panel          = document.querySelector('.profile_panel');
-  const panelImg       = panel?.querySelector('.panel_img');
-  const panelName      = panel?.querySelector('.panel_name');
-  const panelRole      = panel?.querySelector('.panel_role');
-  const panelBioHead   = panel?.querySelector('.panel_bio_heading');
-  const panelBioBody   = panel?.querySelector('.panel_bio_body');
-  const panelClose     = panel?.querySelector('.panel_close');
-  const pageMain       = document.querySelector('.page_main');
+  const panelBg        = document.querySelector('[data-team-bg]');
+  const panel          = document.querySelector('[data-team-panel]');
+  const panelInner     = panel?.querySelector('[data-team-panel-inner]');
+  const panelImg       = panel?.querySelector('[data-team-panel-img]');
+  const panelName      = panel?.querySelector('[data-team-panel-name]');
+  const panelRole      = panel?.querySelector('[data-team-panel-role]');
+  const panelBioHead   = panel?.querySelector('[data-team-panel-bio-title]');
+  const panelBioBody   = panel?.querySelector('[data-team-panel-bio-body]');
+  const panelClose     = panel?.querySelector('[data-team-panel-close]');
 
   let hoverActive = null;
   let panelTl     = null;
@@ -233,7 +234,7 @@ function initTeamInteractions() {
 
   // ── OPEN ───────────────────────────────────────────────────────────────────
 
-  if (panel && pageMain) {
+  if (panel) {
     members.forEach(member => {
       member.addEventListener('click', () => {
         const { name, role, img, bioHeading, bio } = member.dataset;
@@ -253,9 +254,14 @@ function initTeamInteractions() {
       isOpen = true;
       document.body.classList.add('panel-open');
 
-      panelTl = gsap.timeline()
-        .to(pageMain, { scale: 0.96, opacity: 0.3, duration: 0.6, ease: 'osmo' }, 0)
-        .fromTo(panel, { xPercent: 100 }, { xPercent: 0, duration: 0.6, ease: 'osmo' }, 0);
+      const innerEls = [panelImg, panelName, panelRole, panelBioHead, panelBioBody].filter(Boolean);
+
+      panelTl = gsap.timeline({ onReverseComplete: () => gsap.set(panel, { display: 'none' }) })
+        .set(panel, { display: 'flex' });
+
+      if (panelBg)       panelTl.fromTo(panelBg,    { opacity: 0 },     { opacity: 1, duration: 0.4, ease: 'osmo' }, 0);
+      if (panelInner)    panelTl.fromTo(panelInner,  { xPercent: 100 },  { xPercent: 0, duration: 0.5, ease: 'osmo' }, 0);
+      if (innerEls.length) panelTl.fromTo(innerEls,  { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.4, ease: 'osmo', stagger: 0.07 }, '-=0.25');
     }
 
     // ── CLOSE ────────────────────────────────────────────────────────────────
