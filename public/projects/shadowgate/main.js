@@ -298,8 +298,8 @@ function initScrambleTextCursor() {
 
   const scrambleCharacters = "XYZxy#&@0$€£";
 
-  const xTo = gsap.quickTo(cursor, "x", { duration: 0.4, ease: "osmo" });
-  const yTo = gsap.quickTo(cursor, "y", { duration: 0.4, ease: "osmo" });
+  const xTo = gsap.quickTo(cursor, "x", { duration: 0.4, ease: "power3.out" });
+  const yTo = gsap.quickTo(cursor, "y", { duration: 0.4, ease: "power3.out" });
 
   function updateCursor() {
     const hoverItem = document.elementFromPoint(mouseX, mouseY)?.closest("[data-cursor-hover]");
