@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (document.querySelector('[data-team-member]')) initTeamInteractions();
   if (document.querySelector('[data-cursor]')) initScrambleTextCursor();
+  if (document.querySelector('.faq_toggle_inner')) initFAQToggle();
 });
 
 
@@ -730,4 +731,94 @@ function initInteractiveGlobeMapbox(mapboxToken) {
     return el ? el.getAttribute(key) : "";
   }
 
+}
+
+// ACCORDION CSS //
+function initAccordionCSS() {
+  document.querySelectorAll('[data-accordion-css-init]').forEach((accordion) => {
+    const closeSiblings = accordion.getAttribute('data-accordion-close-siblings') === 'true';
+
+    accordion.addEventListener('click', (event) => {
+      const toggle = event.target.closest('[data-accordion-toggle]');
+      if (!toggle) return;
+
+      const singleAccordion = toggle.closest('[data-accordion-status]');
+      if (!singleAccordion) return;
+
+      const isActive = singleAccordion.getAttribute('data-accordion-status') === 'active';
+      singleAccordion.setAttribute('data-accordion-status', isActive ? 'not-active' : 'active');
+
+      if (closeSiblings && !isActive) {
+        accordion.querySelectorAll('[data-accordion-status="active"]').forEach((sibling) => {
+          if (sibling !== singleAccordion) sibling.setAttribute('data-accordion-status', 'not-active');
+        });
+      }
+    });
+  });
+}
+
+// FAQ TOGGLE //
+function initFAQToggle() {
+  const toggles = {
+    employer: document.querySelector('.faq_toggle_inner.employer'),
+    candidate: document.querySelector('.faq_toggle_inner.candidate'),
+  };
+
+  const panels = {
+    employer: document.querySelector('.accordion-css.employer'),
+    candidate: document.querySelector('.accordion-css.candidate'),
+  };
+
+  if (!toggles.employer || !toggles.candidate || !panels.employer || !panels.candidate) return;
+
+  const getItems = (panel) => Array.from(panel.querySelectorAll(':scope > *'));
+
+  let activeKey =
+    toggles.employer.classList.contains('is-active') ? 'employer' :
+    toggles.candidate.classList.contains('is-active') ? 'candidate' :
+    'employer';
+
+  let isAnimating = false;
+
+  function setInitialState(key) {
+    const showPanel = panels[key];
+    const hidePanel = panels[key === 'employer' ? 'candidate' : 'employer'];
+
+    gsap.set(showPanel, { display: 'block', autoAlpha: 1, height: 'auto' });
+    gsap.set(hidePanel, { display: 'none', autoAlpha: 0 });
+    gsap.set(getItems(showPanel), { autoAlpha: 1, y: 0 });
+    gsap.set(getItems(hidePanel), { autoAlpha: 0, y: 12 });
+
+    toggles.employer.classList.toggle('is-active', key === 'employer');
+    toggles.candidate.classList.toggle('is-active', key === 'candidate');
+  }
+
+  setInitialState(activeKey);
+
+  function switchTo(nextKey) {
+    if (isAnimating || nextKey === activeKey) return;
+    isAnimating = true;
+
+    const prevKey = activeKey;
+    const prevPanel = panels[prevKey];
+    const nextPanel = panels[nextKey];
+    const prevItems = getItems(prevPanel);
+    const nextItems = getItems(nextPanel);
+
+    toggles[prevKey].classList.remove('is-active');
+    toggles[nextKey].classList.add('is-active');
+
+    gsap.timeline({
+      defaults: { ease: 'power2.out' },
+      onComplete: () => { activeKey = nextKey; isAnimating = false; }
+    })
+      .to(prevItems, { autoAlpha: 0, y: -10, duration: 0.25, stagger: 0.03, clearProps: 'transform' })
+      .set(prevPanel, { display: 'none', autoAlpha: 0 })
+      .set(nextPanel, { display: 'block', autoAlpha: 1 })
+      .set(nextItems, { autoAlpha: 0, y: 12 })
+      .to(nextItems, { autoAlpha: 1, y: 0, duration: 0.3, stagger: 0.04 }, '+=0.02');
+  }
+
+  toggles.employer.addEventListener('click', () => switchTo('employer'));
+  toggles.candidate.addEventListener('click', () => switchTo('candidate'));
 }
