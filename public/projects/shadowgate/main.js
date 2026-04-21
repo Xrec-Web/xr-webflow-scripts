@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-cursor]')) initScrambleTextCursor();
   if (document.querySelector('.faq_toggle_inner')) initFAQToggle();
   if (document.querySelector('[data-button-animate-chars]')) initButtonCharacterStagger();
+  if (document.querySelector('[trigger-animation]')) initTriggerAnimationButtons();
 });
 
 
@@ -824,6 +825,33 @@ function initFAQToggle() {
   toggles.candidate.addEventListener('click', () => switchTo('candidate'));
 }
 
+
+// TRIGGER ANIMATION BUTTONS //
+function initTriggerAnimationButtons() {
+  const buttons = document.querySelectorAll('[trigger-animation]');
+  const graphic = document.querySelector('[trigger-graphic]');
+  if (!graphic) return;
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+
+      const anchor = btn.tagName === 'A' ? btn : btn.closest('a');
+      const dest = anchor?.href || btn.getAttribute('href');
+      if (!dest) return;
+
+      gsap.to(graphic, {
+        width: '200%',
+        yPercent: -100,
+        duration: 2,
+        ease: 'expo.inOut',
+        onComplete: () => {
+          window.location.href = dest;
+        }
+      });
+    });
+  });
+}
 
 function initButtonCharacterStagger() {
   const offsetIncrement = 0.01; // Transition offset increment in seconds
