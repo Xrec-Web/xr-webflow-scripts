@@ -828,23 +828,35 @@ function initFAQToggle() {
 
 // TRIGGER ANIMATION BUTTONS //
 function initTriggerAnimationButtons() {
-  const buttons = document.querySelectorAll('[trigger-animation]');
-  const graphic = document.querySelector('[trigger-graphic]');
+  const buttons  = document.querySelectorAll('[trigger-animation]');
+  const graphic  = document.querySelector('[trigger-graphic]');
+  const fadeEl   = document.querySelector('[fade-out]');
   if (!graphic) return;
+
+  // Timeline positions (seconds):
+  //  0.0  → width starts growing
+  //  1.4  → width hits 125% → y-move begins
+  //  2.3  → width hits 150% → fade-out begins
+  //  3.5  → width reaches 200%
 
   buttons.forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
 
       const anchor = btn.tagName === 'A' ? btn : btn.closest('a');
-      const dest = anchor?.href || btn.getAttribute('href');
+      const dest   = anchor?.href || btn.getAttribute('href');
       if (!dest) return;
 
-      gsap.timeline({
-        onComplete: () => { window.location.href = dest; }
-      })
-        .to(graphic, { width: '200%', duration: 2.2, ease: 'expo.inOut' })
-        .to(graphic, { yPercent: -100, duration: 1.8, ease: 'relaxed' }, '-=0.5');
+      const tl = gsap.timeline({ onComplete: () => { window.location.href = dest; } });
+
+      tl.to(graphic, { width: '125%', duration: 1.4, ease: 'osmo' })
+        .to(graphic,  { width: '150%', duration: 0.9, ease: 'osmo' })
+        .to(graphic,  { width: '200%', duration: 1.2, ease: 'relaxed' })
+        .to(graphic,  { yPercent: -100, duration: 2, ease: 'relaxed' }, 1.4);
+
+      if (fadeEl) {
+        tl.to(fadeEl, { opacity: 0, filter: 'blur(6px)', duration: 1, ease: 'osmo' }, 2.3);
+      }
     });
   });
 }
