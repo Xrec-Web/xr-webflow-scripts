@@ -849,13 +849,11 @@ function initTriggerAnimationButtons() {
 
       const tl = gsap.timeline({ onComplete: () => { window.location.href = dest; } });
 
-      tl.to(graphic, { width: '125%', duration: 1.4, ease: 'osmo' })
-        .to(graphic,  { width: '150%', duration: 0.9, ease: 'osmo' })
-        .to(graphic,  { width: '200%', duration: 1.2, ease: 'relaxed' })
-        .to(graphic,  { yPercent: -100, duration: 2, ease: 'relaxed' }, 1.4);
+      tl.to(graphic, { width: '200%', duration: 3, ease: 'relaxed' }, 0)
+        .to(graphic,  { yPercent: -100, duration: 2.4, ease: 'relaxed' }, 1.0);
 
       if (fadeEl) {
-        tl.to(fadeEl, { opacity: 0, filter: 'blur(6px)', duration: 1, ease: 'osmo' }, 2.3);
+        tl.to(fadeEl, { opacity: 0, filter: 'blur(6px)', duration: 1.2, ease: 'osmo' }, 1.6);
       }
     });
   });
