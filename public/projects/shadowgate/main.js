@@ -840,15 +840,11 @@ function initTriggerAnimationButtons() {
       const dest = anchor?.href || btn.getAttribute('href');
       if (!dest) return;
 
-      gsap.to(graphic, {
-        width: '200%',
-        yPercent: -100,
-        duration: 2,
-        ease: 'expo.inOut',
-        onComplete: () => {
-          window.location.href = dest;
-        }
-      });
+      gsap.timeline({
+        onComplete: () => { window.location.href = dest; }
+      })
+        .to(graphic, { width: '200%', duration: 2.2, ease: 'expo.inOut' })
+        .to(graphic, { yPercent: -100, duration: 1.8, ease: 'relaxed' }, '-=0.5');
     });
   });
 }
