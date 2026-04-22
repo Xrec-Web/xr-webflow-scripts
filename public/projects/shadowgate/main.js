@@ -692,7 +692,7 @@ function initHeroTitleReveal() {
         scrollTrigger: {
           trigger: el,
           start: 'top 50%',
-          end: 'top 40%',
+          end: 'top top',
           scrub: true,
         }
       }
