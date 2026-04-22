@@ -698,4 +698,22 @@ function initHeroTitleReveal() {
       }
     );
   });
+
+  const bot = document.querySelector('.h-hero_bot');
+  if (bot) {
+    gsap.fromTo(bot,
+      { opacity: 0, filter: 'blur(12px)' },
+      {
+        opacity: 1,
+        filter: 'blur(0px)',
+        ease: 'relaxed',
+        scrollTrigger: {
+          trigger: bot,
+          start: 'top 80%',
+          end: 'top 30%',
+          scrub: true,
+        }
+      }
+    );
+  }
 }
