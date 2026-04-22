@@ -707,7 +707,7 @@ function initHeroTitleReveal() {
 // SPLIT TEXT REVEAL //
 function initSplitTextReveal() {
   document.querySelectorAll('[data-split]').forEach(el => {
-    const type = el.getAttribute('data-split');
+    const type = el.getAttribute('data-split') || 'lines';
     if (!['chars', 'words', 'lines'].includes(type)) return;
 
     const split = new SplitText(el, { type });
