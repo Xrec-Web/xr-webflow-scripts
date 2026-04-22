@@ -38,6 +38,7 @@ if (document.querySelector('[data-team-member]')) initTeamInteractions();
   if (document.querySelector('[data-button-animate-chars]')) initButtonCharacterStagger();
   if (document.querySelector('[trigger-animation]')) initTriggerAnimationButtons();
   if (document.querySelector('[data-sequence-wrap]')) initImageSequenceScroll();
+  if (document.querySelector('.h-hero_title')) initHeroTitleReveal();
 });
 
 
@@ -677,5 +678,25 @@ function initImageSequenceScroll() {
 
     lastProgress = st.progress || 0;
     render(lastProgress);
+  });
+}
+
+// HERO TITLE REVEAL //
+function initHeroTitleReveal() {
+  document.querySelectorAll('.h-hero_title').forEach((el) => {
+    gsap.fromTo(el,
+      { opacity: 0, filter: 'blur(12px)' },
+      {
+        opacity: 1,
+        filter: 'blur(0px)',
+        ease: 'relaxed',
+        scrollTrigger: {
+          trigger: el,
+          start: 'top 90%',
+          end: 'top 40%',
+          scrub: true,
+        }
+      }
+    );
   });
 }
