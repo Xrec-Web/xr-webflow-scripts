@@ -39,6 +39,8 @@ if (document.querySelector('[data-team-member]')) initTeamInteractions();
   if (document.querySelector('[trigger-animation]')) initTriggerAnimationButtons();
   if (document.querySelector('[data-sequence-wrap]')) initImageSequenceScroll();
   if (document.querySelector('.h-hero_grid')) initHeroTitleReveal();
+  if (document.querySelector('[data-split]')) initSplitTextReveal();
+  if (document.querySelector('[data-reveal]')) initReveal();
 });
 
 
@@ -693,20 +695,81 @@ function initHeroTitleReveal() {
   gsap.timeline({
     scrollTrigger: {
       trigger: grid,
-      start: 'top top',
+      start: 'top 80%',
+      end: 'bottom top',
       toggleActions: 'play none none reverse',
     }
   })
     .to(title, { opacity: 1, filter: 'blur(0px)', duration: 1, ease: 'relaxed' })
     .to(bot,   { opacity: 1, filter: 'blur(0px)', duration: 1, ease: 'relaxed' }, '-=0.3');
+}
 
-  gsap.timeline({
-    scrollTrigger: {
-      trigger: grid,
-      start: 'bottom top',
-      toggleActions: 'play none none reverse',
-    }
-  })
-    .to(bot,   { opacity: 0, filter: 'blur(12px)', duration: 1, ease: 'relaxed' })
-    .to(title, { opacity: 0, filter: 'blur(12px)', duration: 1, ease: 'relaxed' }, '-=0.3');
+// SPLIT TEXT REVEAL //
+function initSplitTextReveal() {
+  document.querySelectorAll('[data-split]').forEach(el => {
+    const type = el.getAttribute('data-split');
+    if (!['chars', 'words', 'lines'].includes(type)) return;
+
+    const split = new SplitText(el, { type });
+    const items = split[type];
+    const isLine = type === 'lines';
+
+    // Wrap each item in an overflow:hidden mask
+    items.forEach(item => {
+      const mask = document.createElement('div');
+      mask.style.cssText = `overflow:hidden;display:${isLine ? 'block' : 'inline-block'};`;
+      item.parentNode.insertBefore(mask, item);
+      mask.appendChild(item);
+    });
+
+    const stagger = type === 'chars' ? 0.025 : type === 'words' ? 0.06 : 0.1;
+
+    gsap.fromTo(items,
+      { yPercent: 100, opacity: 0, filter: 'blur(4px)' },
+      {
+        yPercent: 0,
+        opacity: 1,
+        filter: 'blur(0px)',
+        duration: 0.9,
+        ease: 'osmo',
+        stagger,
+        scrollTrigger: {
+          trigger: el,
+          start: 'top 85%',
+          toggleActions: 'play none none none',
+        }
+      }
+    );
+  });
+}
+
+// ELEMENT REVEAL //
+function initReveal() {
+  document.querySelectorAll('[data-reveal]').forEach(el => {
+    const type = el.getAttribute('data-reveal') || 'up';
+
+    const fromVars = {
+      opacity: 0,
+      filter: 'blur(6px)',
+    };
+
+    if (type === 'up')    { fromVars.yPercent = 30; }
+    if (type === 'down')  { fromVars.yPercent = -30; }
+    if (type === 'left')  { fromVars.xPercent = 15; }
+    if (type === 'right') { fromVars.xPercent = -15; }
+
+    gsap.fromTo(el, fromVars, {
+      yPercent: 0,
+      xPercent: 0,
+      opacity: 1,
+      filter: 'blur(0px)',
+      duration: 0.9,
+      ease: 'osmo',
+      scrollTrigger: {
+        trigger: el,
+        start: 'top 85%',
+        toggleActions: 'play none none none',
+      }
+    });
+  });
 }
