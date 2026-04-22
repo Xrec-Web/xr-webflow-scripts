@@ -478,7 +478,212 @@ function initButtonCharacterStagger() {
 }
 
 // IMAGE SEQUENCE SCROLL //
-function initImageSequenceScroll() {  }
+function initImageSequenceScroll() {
+  const wraps = document.querySelectorAll('[data-sequence-wrap]');
+
+  wraps.forEach((wrap) => {
+    // Prevent double-initializing
+    if (wrap.dataset.sequenceInit === 'true') return;
+    wrap.dataset.sequenceInit = 'true';
+
+    const element = wrap.querySelector('[data-sequence-element]');
+    const canvas = element && element.querySelector('[data-sequence-canvas]');
+    if (!element || !canvas) return;
+
+    // Data attributes and their fallbacks
+    const frames = parseInt(canvas.dataset.frames, 10) || 1;
+    const digits = parseInt(canvas.dataset.digits, 10) || 3;
+    const indexStart = parseInt(canvas.dataset.indexStart, 10) || 0;
+    const desktopSrc = canvas.dataset.desktopSrc || '';
+    const mobileSrc = canvas.dataset.mobileSrc || desktopSrc;
+    const staticSrc = canvas.dataset.staticSrc;
+    const filetype = canvas.dataset.filetype || 'webp';
+    const startTrigger = wrap.dataset.scrollStart || 'top top';
+    const endTrigger = wrap.dataset.scrollEnd || 'bottom top';
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const isMobile = window.matchMedia('(max-width: 767px)').matches;
+    const baseUrl = isMobile ? mobileSrc : desktopSrc;
+    const lastIndex = indexStart + frames - 1;
+
+    // Track last rendered scroll progress so we can redraw on resize
+    let lastProgress = 0;
+
+    // Canvas setup (size to the sticky element)
+    const ctx = canvas.getContext('2d');
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      const width = element.clientWidth;
+      const height = element.clientHeight;
+      if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+      }
+    }
+    resizeCanvas();
+
+    // Image cache and loading queue
+    const loaded = new Map();
+    const queue = [];
+    let processingQueue = false;
+    let resizeTimer;
+
+    // Draw helper (canvas equivalent of object-fit: cover)
+    function drawCover(img) {
+      if (!img) return;
+      resizeCanvas();
+      const canvasWidth = canvas.width;
+      const canvasHeight = canvas.height;
+      const scale = Math.max(canvasWidth / img.width, canvasHeight / img.height);
+      const x = (canvasWidth - img.width * scale) / 2;
+      const y = (canvasHeight - img.height * scale) / 2;
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+    }
+
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        resizeCanvas();
+        if (loaded.size) render(lastProgress);
+        ScrollTrigger.refresh();
+      }, 200);
+    });
+
+    function pad(num) {
+      return String(num).padStart(digits, '0');
+    }
+
+    function getUrl(i) {
+      return `${baseUrl}${pad(i)}.${filetype}`;
+    }
+
+    function loadFrame(i, onDone) {
+      if (loaded.has(i) || i < indexStart || i > lastIndex) return;
+      const img = new Image();
+      img.src = getUrl(i);
+
+      img.onload = () => {
+        loaded.set(i, img);
+        if (typeof onDone === 'function') onDone();
+      };
+
+      img.onerror = () => {
+        console.warn('[ImageSequence] Failed to load frame', {
+          index: i,
+          url: getUrl(i),
+          wrap: wrap
+        });
+      };
+    }
+
+    // Daybreak-style progressive loader (binary midpoint / "wave" fill)
+    function processQueue() {
+      if (processingQueue) return;
+      const next = queue.shift();
+      if (!next) return;
+      processingQueue = true;
+      const [a, b] = next;
+      if (b - a <= 1) {
+        processingQueue = false;
+        processQueue();
+        return;
+      }
+      const m = Math.floor((a + b) / 2);
+      loadFrame(m, () => {
+        queue.push([a, m], [m, b]);
+        processingQueue = false;
+        setTimeout(processQueue, 0);
+      });
+    }
+
+    function startLoading() {
+      loadFrame(indexStart, () => {
+        drawImageAt(indexStart);
+        loadFrame(lastIndex);
+        queue.push([indexStart, lastIndex]);
+        processQueue();
+        ScrollTrigger.refresh();
+      });
+    }
+
+    function findNearestLoaded(i) {
+      for (let r = 1; r <= 10; r++) {
+        if (loaded.has(i - r)) return i - r;
+        if (loaded.has(i + r)) return i + r;
+      }
+
+      const keys = Array.from(loaded.keys());
+      if (keys.length === 0) return null;
+      let nearest = keys[0];
+      let minDiff = Math.abs(i - nearest);
+      for (const k of keys) {
+        const diff = Math.abs(i - k);
+        if (diff < minDiff) {
+          nearest = k;
+          minDiff = diff;
+        }
+      }
+      return nearest;
+    }
+
+    function drawImageAt(i) {
+      const img = loaded.get(i);
+      if (!img) return;
+      drawCover(img);
+    }
+
+    function render(progress) {
+      const relative = progress * (frames - 1);
+      const index = indexStart + Math.round(relative);
+      if (loaded.has(index)) {
+        drawImageAt(index);
+      } else {
+        const nearest = findNearestLoaded(index);
+        if (nearest !== null) drawImageAt(nearest);
+      }
+    }
+
+    // Reduced motion: draw a single static image (or first frame fallback)
+    if (reduceMotion) {
+      if (staticSrc) {
+        const staticImage = new Image();
+        staticImage.src = staticSrc;
+        staticImage.onload = () => {
+          drawCover(staticImage);
+        };
+        staticImage.onerror = () => {};
+        return;
+      }
+      loadFrame(indexStart, () => {
+        drawImageAt(indexStart);
+      });
+      return;
+    }
+
+    // Begin loading frames in the background
+    startLoading();
+
+    // Set up ScrollTrigger
+    const st = ScrollTrigger.create({
+      trigger: wrap,
+      start: startTrigger,
+      end: endTrigger,
+      scrub: true,
+      onUpdate: (self) => {
+        lastProgress = self.progress;
+        render(self.progress);
+      }
+    });
+
+    // Draw once immediately
+    lastProgress = st.progress || 0;
+    render(lastProgress);
+
+  });
+}
 
 // HERO TITLE REVEAL //
 function initHeroTitleReveal() {
