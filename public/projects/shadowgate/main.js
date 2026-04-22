@@ -701,12 +701,11 @@ function initHeroTitleReveal() {
           scrub: true,
           onLeave: () => {
             if (!bot) return;
-            gsap.to(bot, {
-              opacity: 1,
-              filter: 'blur(0px)',
-              duration: 1.2,
-              ease: 'relaxed',
-            });
+            gsap.to(bot, { opacity: 1, filter: 'blur(0px)', duration: 1.2, ease: 'relaxed' });
+          },
+          onEnterBack: () => {
+            if (!bot) return;
+            gsap.to(bot, { opacity: 0, filter: 'blur(12px)', duration: 1.2, ease: 'relaxed' });
           }
         }
       }
