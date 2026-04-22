@@ -682,36 +682,32 @@ function initImageSequenceScroll() {
 
 // HERO TITLE REVEAL //
 function initHeroTitleReveal() {
-  document.querySelectorAll('.h-hero_title').forEach((el) => {
-    gsap.fromTo(el,
+  const title = document.querySelector('.h-hero_title');
+  const bot   = document.querySelector('.h-hero_bot');
+
+  if (bot) gsap.set(bot, { opacity: 0, filter: 'blur(12px)' });
+
+  if (title) {
+    gsap.fromTo(title,
       { opacity: 0, filter: 'blur(12px)' },
       {
         opacity: 1,
         filter: 'blur(0px)',
         ease: 'relaxed',
         scrollTrigger: {
-          trigger: el,
+          trigger: title,
           start: 'top 60%',
           end: 'top top',
           scrub: true,
-        }
-      }
-    );
-  });
-
-  const bot = document.querySelector('.h-hero_bot');
-  if (bot) {
-    gsap.fromTo(bot,
-      { opacity: 0, filter: 'blur(12px)' },
-      {
-        opacity: 1,
-        filter: 'blur(0px)',
-        ease: 'relaxed',
-        scrollTrigger: {
-          trigger: bot,
-          start: 'top 80%',
-          end: 'top 30%',
-          scrub: true,
+          onLeave: () => {
+            if (!bot) return;
+            gsap.to(bot, {
+              opacity: 1,
+              filter: 'blur(0px)',
+              duration: 1.2,
+              ease: 'relaxed',
+            });
+          }
         }
       }
     );
