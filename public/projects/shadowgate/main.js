@@ -508,8 +508,9 @@ function initSplitTextReveal() {
     const type = el.getAttribute('data-split') || 'lines';
     if (!['chars', 'words', 'lines'].includes(type)) return;
 
-    const split = new SplitText(el, { type });
+    const split = new SplitText(el, { types: type });
     const items = split[type];
+    if (!items.length) return;
     const isLine = type === 'lines';
 
     // Wrap each item in an overflow:hidden mask
