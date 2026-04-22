@@ -572,7 +572,8 @@ function initImageSequenceScroll() {
     }
 
     function getUrl(i) {
-      return `${baseUrl}frame-${pad(i)}.${filetype}`;
+      const base = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
+      return `${base}frame-${pad(i)}.${filetype}`;
     }
 
     function loadFrame(i, onDone) {
