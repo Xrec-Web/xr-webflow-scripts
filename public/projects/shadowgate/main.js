@@ -691,7 +691,7 @@ function initHeroTitleReveal() {
         ease: 'relaxed',
         scrollTrigger: {
           trigger: el,
-          start: 'top 50%',
+          start: 'top 60%',
           end: 'top top',
           scrub: true,
         }
