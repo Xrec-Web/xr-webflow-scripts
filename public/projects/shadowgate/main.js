@@ -443,7 +443,6 @@ function initFAQToggle() {
   toggles.candidate.addEventListener('click', () => switchTo('candidate'));
 }
 
-
 // TRIGGER ANIMATION BUTTONS //
 function initTriggerAnimationButtons() {
   const buttons  = document.querySelectorAll('[trigger-animation]');
@@ -692,7 +691,7 @@ function initHeroTitleReveal() {
         ease: 'relaxed',
         scrollTrigger: {
           trigger: el,
-          start: 'top 90%',
+          start: 'top 50%',
           end: 'top 40%',
           scrub: true,
         }
