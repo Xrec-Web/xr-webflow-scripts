@@ -703,7 +703,7 @@ function initHeroTitleReveal() {
   gsap.timeline({
     scrollTrigger: {
       trigger: grid,
-      start: 'top bottom',
+      start: 'bottom top',
       toggleActions: 'play none none reverse',
     }
   })
