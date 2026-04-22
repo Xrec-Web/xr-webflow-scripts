@@ -699,4 +699,14 @@ function initHeroTitleReveal() {
   })
     .to(title, { opacity: 1, filter: 'blur(0px)', duration: 1, ease: 'relaxed' })
     .to(bot,   { opacity: 1, filter: 'blur(0px)', duration: 1, ease: 'relaxed' }, '-=0.3');
+
+  gsap.timeline({
+    scrollTrigger: {
+      trigger: grid,
+      start: 'bottom bottom',
+      toggleActions: 'play none none reverse',
+    }
+  })
+    .to(bot,   { opacity: 0, filter: 'blur(12px)', duration: 1, ease: 'relaxed' })
+    .to(title, { opacity: 0, filter: 'blur(12px)', duration: 1, ease: 'relaxed' }, '-=0.3');
 }
