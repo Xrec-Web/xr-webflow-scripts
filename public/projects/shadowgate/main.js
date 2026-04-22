@@ -41,6 +41,7 @@ if (document.querySelector('[data-team-member]')) initTeamInteractions();
   if (document.querySelector('.h-hero_grid')) initHeroTitleReveal();
   if (document.querySelector('[data-split]')) initSplitTextReveal();
   if (document.querySelector('[data-reveal]')) initReveal();
+  if (document.querySelector('[serv-list]')) initServList();
 });
 
 
@@ -770,6 +771,36 @@ function initReveal() {
         start: 'top 85%',
         toggleActions: 'play none none none',
       }
+    });
+  });
+}
+
+// SERVICES LIST ACTIVE DOT //
+function initServList() {
+  const rows = gsap.utils.toArray('[serv-row]');
+  if (!rows.length) return;
+
+  const dots = rows.map(row => row.querySelector('[serv-dot]'));
+
+  gsap.set(dots, { opacity: 0.2 });
+
+  let current = -1;
+
+  function setActive(index) {
+    if (index === current) return;
+    if (current >= 0) gsap.to(dots[current], { opacity: 0.2, duration: 0.4, ease: 'osmo' });
+    gsap.to(dots[index], { opacity: 1, duration: 0.4, ease: 'osmo' });
+    current = index;
+  }
+
+  const items = gsap.utils.toArray('[serv-item]');
+
+  items.forEach((item, i) => {
+    ScrollTrigger.create({
+      trigger: item,
+      start: 'top top',
+      onEnter: () => setActive(i),
+      onEnterBack: () => setActive(i),
     });
   });
 }
