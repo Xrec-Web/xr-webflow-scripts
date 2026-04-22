@@ -38,7 +38,7 @@ if (document.querySelector('[data-team-member]')) initTeamInteractions();
   if (document.querySelector('[data-button-animate-chars]')) initButtonCharacterStagger();
   if (document.querySelector('[trigger-animation]')) initTriggerAnimationButtons();
   if (document.querySelector('[data-sequence-wrap]')) initImageSequenceScroll();
-  if (document.querySelector('.h-hero_title')) initHeroTitleReveal();
+  if (document.querySelector('.h-hero_grid')) initHeroTitleReveal();
 });
 
 
@@ -682,40 +682,21 @@ function initImageSequenceScroll() {
 
 // HERO TITLE REVEAL //
 function initHeroTitleReveal() {
-  const title = document.querySelector('.h-hero_title');
-  const bot   = document.querySelector('.h-hero_bot');
+  const grid  = document.querySelector('.h-hero_grid');
+  const title = grid?.querySelector('.h-hero_title');
+  const bot   = grid?.querySelector('.h-hero_bot');
 
-  if (bot) gsap.set(bot, { opacity: 0, filter: 'blur(12px)' });
+  if (!grid || !title || !bot) return;
 
-  if (title) {
-    gsap.fromTo(title,
-      { opacity: 0, filter: 'blur(12px)' },
-      {
-        opacity: 1,
-        filter: 'blur(0px)',
-        ease: 'relaxed',
-        scrollTrigger: {
-          trigger: title,
-          start: 'top 90%',
-          end: 'top 10%',
-          scrub: true,
-          onLeave: () => {
-            if (!bot) return;
-            gsap.to(bot, { opacity: 1, filter: 'blur(0px)', duration: 1.2, ease: 'relaxed' });
-          },
-          onEnterBack: () => {
-            if (!bot) return;
-            lenis.stop();
-            gsap.to(bot, {
-              opacity: 0,
-              filter: 'blur(12px)',
-              duration: 0.8,
-              ease: 'relaxed',
-              onComplete: () => lenis.start()
-            });
-          }
-        }
-      }
-    );
-  }
+  gsap.set([title, bot], { opacity: 0, filter: 'blur(12px)' });
+
+  gsap.timeline({
+    scrollTrigger: {
+      trigger: grid,
+      start: 'top top',
+      toggleActions: 'play none none reverse',
+    }
+  })
+    .to(title, { opacity: 1, filter: 'blur(0px)', duration: 1, ease: 'relaxed' })
+    .to(bot,   { opacity: 1, filter: 'blur(0px)', duration: 1, ease: 'relaxed' }, '-=0.3');
 }
