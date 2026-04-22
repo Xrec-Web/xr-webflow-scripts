@@ -696,8 +696,8 @@ function initHeroTitleReveal() {
         ease: 'relaxed',
         scrollTrigger: {
           trigger: title,
-          start: 'top 60%',
-          end: 'top top',
+          start: 'top 90%',
+          end: 'top 10%',
           scrub: true,
           onLeave: () => {
             if (!bot) return;
@@ -705,7 +705,14 @@ function initHeroTitleReveal() {
           },
           onEnterBack: () => {
             if (!bot) return;
-            gsap.to(bot, { opacity: 0, filter: 'blur(12px)', duration: 1.2, ease: 'relaxed' });
+            lenis.stop();
+            gsap.to(bot, {
+              opacity: 0,
+              filter: 'blur(12px)',
+              duration: 0.8,
+              ease: 'relaxed',
+              onComplete: () => lenis.start()
+            });
           }
         }
       }
