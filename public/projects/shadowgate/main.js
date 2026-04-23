@@ -430,11 +430,13 @@ function initTriggerAnimationButtons() {
   const fadeEl   = document.querySelector('[fade-out]');
   if (!graphic) return;
 
-  // Timeline positions (seconds):
-  //  0.0  → width starts growing
-  //  1.4  → width hits 125% → y-move begins
-  //  2.3  → width hits 150% → fade-out begins
-  //  3.5  → width reaches 200%
+  // Reset state when browser restores page from bfcache (back button)
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) {
+      gsap.set(graphic, { clearProps: 'all' });
+      if (fadeEl) gsap.set(fadeEl, { clearProps: 'all' });
+    }
+  });
 
   buttons.forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -446,7 +448,7 @@ function initTriggerAnimationButtons() {
 
       const tl = gsap.timeline({ onComplete: () => { window.location.href = dest; } });
 
-      tl.to(graphic, { width: '100%', height: '120%', duration: 1.8, ease: 'relaxed' }, 0);
+      tl.to(graphic, { width: '225%', height: '120%', duration: 1.8, ease: 'relaxed' }, 0);
 
       if (fadeEl) {
         tl.to(fadeEl, { opacity: 0, filter: 'blur(10px)', duration: 1.4, ease: 'smooth' }, 0.2);
