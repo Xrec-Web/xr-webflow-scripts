@@ -448,11 +448,11 @@ function initTriggerAnimationButtons() {
 
       const tl = gsap.timeline({ onComplete: () => { window.location.href = dest; } });
 
-      if (fadeEl) {
-        tl.to(fadeEl, { opacity: 0, filter: 'blur(10px)', duration: 0.7, ease: 'smooth' }, 0);
-      }
+      tl.to(graphic, { width: '225%', duration: 1, ease: 'osmo' }, 0);
 
-      tl.to(graphic, { width: '225%', height: '120%', duration: 1.6, ease: 'relaxed' }, 0.5);
+      if (fadeEl) {
+        tl.to(fadeEl, { opacity: 0, filter: 'blur(10px)', duration: 1, ease: 'osmo' }, 0);
+      }
     });
   });
 }
