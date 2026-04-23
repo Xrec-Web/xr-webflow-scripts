@@ -48,7 +48,7 @@ function initOnceFunctions() {
 
 function initPageFunctions(container) {
   nextPage = container || document;
-  const q = (s) => !!nextPage.querySelector(s);
+  const q = (s) => !!nextPage.matches?.(s) || !!nextPage.querySelector(s);
 
   if (q('[data-accordion-css-init]'))    initAccordionCSS();
   if (q('[data-form-validate]'))         initBasicFormValidation();
@@ -62,6 +62,11 @@ function initPageFunctions(container) {
   if (q('[data-split]'))                 initSplitTextReveal();
   if (q('[data-reveal]'))                initReveal();
   if (q('[serv-list]'))                  initServList();
+  if (q('[data-globe]'))                 initDefenceGlobe(nextPage);
+}
+
+function destroyPageFunctions(container) {
+  if (window.DefenceGlobe?.destroyAll) window.DefenceGlobe.destroyAll(container);
 }
 
 
@@ -74,7 +79,7 @@ function runPageOnceAnimation(next) {
 }
 
 function runPageLeaveAnimation(current) {
-  const tl = gsap.timeline({ onComplete: () => current.remove() });
+  const tl = gsap.timeline({ onComplete: () => { destroyPageFunctions(current); current.remove(); } });
 
   if (reducedMotion) return tl.set(current, { autoAlpha: 0 });
 
@@ -118,7 +123,7 @@ function runPickLocationLeaveAnimation(current) {
   const graphic = current.querySelector('[trigger-graphic]');
   const fadeEl  = current.querySelector('[fade-out]');
 
-  const tl = gsap.timeline({ onComplete: () => current.remove() });
+  const tl = gsap.timeline({ onComplete: () => { destroyPageFunctions(current); current.remove(); } });
 
   if (reducedMotion) return tl.set(current, { autoAlpha: 0 });
 
@@ -238,6 +243,11 @@ function initBarbaNavUpdate(data) {
     else curr.removeAttribute('aria-current');
     curr.setAttribute('class', next.getAttribute('class') || '');
   });
+}
+
+function initDefenceGlobe(container) {
+  if (!window.DefenceGlobe?.initAll) return;
+  window.DefenceGlobe.initAll(container);
 }
 
 
@@ -977,5 +987,3 @@ function initServList() {
     });
   });
 }
-
-

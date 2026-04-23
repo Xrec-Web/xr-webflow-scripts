@@ -1,7 +1,7 @@
 /**
  * Australian Defence Network Globe
  * ---------------------------------
- * Standalone file — load separately from main.js.
+ * Exposes explicit init/destroy helpers for Barba-driven page lifecycles.
  *
  * WEBFLOW SETUP
  * -------------
@@ -10,6 +10,9 @@
  *
  * 2. Add the container element wherever you need the globe:
  *      <div data-globe="defence-network" style="width:100%; height:600px;"></div>
+ *
+ * 3. From your page/app init, call:
+ *      window.DefenceGlobe.initAll(container);
  *
  * OPTIONS (via data attributes)
  * ------------------------------
@@ -417,29 +420,56 @@ async function initGlobe(container, options = {}) {
   return instance;
 }
 
-// ─── AUTO-INIT ───────────────────────────────────────────────────────────────
+// ─── SCOPE HELPERS ───────────────────────────────────────────────────────────
 
-function autoInit() {
-  const observer = new IntersectionObserver((entries, obs) => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting) return;
-      obs.unobserve(entry.target);
-      initGlobe(entry.target).catch(err => console.error('[DefenceGlobe] init failed:', err));
-    });
-  }, { rootMargin: '200px' });
-
-  document.querySelectorAll('[data-globe]').forEach(el => observer.observe(el));
+function getGlobeElements(scope = document) {
+  const elements = [];
+  if (scope instanceof Element && scope.matches('[data-globe]')) elements.push(scope);
+  if (scope.querySelectorAll) elements.push(...scope.querySelectorAll('[data-globe]'));
+  return elements;
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', autoInit);
-} else {
-  autoInit();
+function destroyGlobe(container) {
+  container._defenceGlobeObserver?.disconnect?.();
+  delete container._defenceGlobeObserver;
+  container._defenceGlobe?.destroy?.();
+}
+
+function initAll(scope = document, options = {}) {
+  const { lazy = true, rootMargin = '200px', ...globeOptions } = options;
+
+  getGlobeElements(scope).forEach((container) => {
+    if (container.hasAttribute('data-globe-initialised')) return;
+
+    if (!lazy || typeof IntersectionObserver === 'undefined') {
+      initGlobe(container, globeOptions).catch(err => console.error('[DefenceGlobe] init failed:', err));
+      return;
+    }
+
+    if (container._defenceGlobeObserver) return;
+
+    const observer = new IntersectionObserver((entries, obs) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        obs.unobserve(entry.target);
+        obs.disconnect();
+        delete container._defenceGlobeObserver;
+        initGlobe(entry.target, globeOptions).catch(err => console.error('[DefenceGlobe] init failed:', err));
+      });
+    }, { rootMargin });
+
+    container._defenceGlobeObserver = observer;
+    observer.observe(container);
+  });
 }
 
 // ─── PUBLIC API ──────────────────────────────────────────────────────────────
 
 window.DefenceGlobe = {
   init: initGlobe,
-  destroy: (el) => el._defenceGlobe?.destroy(),
+  initAll,
+  destroy: destroyGlobe,
+  destroyAll(scope = document) {
+    getGlobeElements(scope).forEach(destroyGlobe);
+  },
 };
