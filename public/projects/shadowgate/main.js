@@ -451,7 +451,7 @@ function initTriggerAnimationButtons() {
       tl.to(graphic, { width: '225%', duration: 1, ease: 'osmo' }, 0);
 
       if (fadeEl) {
-        tl.to(fadeEl, { opacity: 0, filter: 'blur(10px)', duration: 0.89, ease: 'osmo' }, 0);
+        tl.to(fadeEl, { opacity: 0, filter: 'blur(10px)', duration: 0.5, ease: 'osmo' }, 0);
       }
     });
   });
