@@ -66,7 +66,7 @@ function initPageFunctions(container) {
 }
 
 function destroyPageFunctions(container) {
-  if (window.DefenceGlobe?.destroyAll) window.DefenceGlobe.destroyAll(container);
+  destroyDefenceGlobes(container);
 }
 
 
@@ -245,9 +245,448 @@ function initBarbaNavUpdate(data) {
   });
 }
 
+const DEFENCE_GLOBE_WORLD_ATLAS_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
+const DEFENCE_GLOBE_DEFAULT_LOCATIONS = [
+  { name: 'Tindal',        lat: -14.5211, lng: 132.3783 },
+  { name: 'Alice Springs', lat: -23.6980, lng: 133.8807 },
+  { name: 'Woomera',       lat: -31.1999, lng: 136.8250 },
+  { name: 'Exmouth',       lat: -21.9323, lng: 114.1278 },
+  { name: 'Geraldton',     lat: -28.7744, lng: 114.6089 },
+  { name: 'Wagga Wagga',   lat: -35.1082, lng: 147.3598 },
+  { name: 'Broome',        lat: -17.9614, lng: 122.2359 },
+];
+const DEFENCE_GLOBE_DEFAULT_COLOR = '#547EA3';
+const DEFENCE_GLOBE_AUSTRALIA_CENTER = { lat: -25.0, lng: 133.0 };
+
+let defenceGlobeModulesPromise = null;
+
 function initDefenceGlobe(container) {
-  if (!window.DefenceGlobe?.initAll) return;
-  window.DefenceGlobe.initAll(container);
+  initDefenceGlobes(container).catch((err) => {
+    console.error('[DefenceGlobe] init failed:', err);
+  });
+}
+
+function getDefenceGlobeElements(scope = document) {
+  const elements = [];
+  if (scope instanceof Element && scope.matches('[data-globe]')) elements.push(scope);
+  if (scope?.querySelectorAll) elements.push(...scope.querySelectorAll('[data-globe]'));
+  return elements;
+}
+
+function destroyDefenceGlobes(scope = document) {
+  getDefenceGlobeElements(scope).forEach((container) => {
+    container._defenceGlobeObserver?.disconnect?.();
+    delete container._defenceGlobeObserver;
+    container._defenceGlobe?.destroy?.();
+    delete container._defenceGlobe;
+  });
+}
+
+async function loadDefenceGlobeModules() {
+  if (!defenceGlobeModulesPromise) {
+    defenceGlobeModulesPromise = Promise.all([
+      import('https://esm.sh/three@0.160.0'),
+      import('https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls'),
+      import('https://esm.sh/topojson-client@3'),
+    ]).then(([THREE, orbitControlsMod, topojsonMod]) => ({
+      THREE,
+      OrbitControls: orbitControlsMod.OrbitControls,
+      topojsonMod,
+    }));
+  }
+
+  return defenceGlobeModulesPromise;
+}
+
+function hexToRgbNorm(hex) {
+  const clean  = hex.replace('#', '');
+  const bigint = parseInt(clean, 16);
+  return {
+    r: ((bigint >> 16) & 255) / 255,
+    g: ((bigint >> 8)  & 255) / 255,
+    b: ( bigint        & 255) / 255,
+    hex: bigint,
+  };
+}
+
+function lightenHex(hexInt, amount = 0.3) {
+  const r = Math.min(255, ((hexInt >> 16) & 255) + 255 * amount);
+  const g = Math.min(255, ((hexInt >> 8)  & 255) + 255 * amount);
+  const b = Math.min(255, ( hexInt        & 255) + 255 * amount);
+  return (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(b);
+}
+
+function createLngLatToVec3(THREE, lng, lat, radius) {
+  const phi   = (90 - lat) * (Math.PI / 180);
+  const theta = (lng + 180) * (Math.PI / 180);
+  return new THREE.Vector3(
+    -(radius * Math.sin(phi) * Math.cos(theta)),
+      radius * Math.cos(phi),
+      radius * Math.sin(phi) * Math.sin(theta)
+  );
+}
+
+async function initDefenceGlobes(scope = document, options = {}) {
+  const { lazy = true, rootMargin = '200px', ...globeOptions } = options;
+
+  getDefenceGlobeElements(scope).forEach((container) => {
+    if (container.hasAttribute('data-globe-initialised')) return;
+
+    if (!lazy || typeof IntersectionObserver === 'undefined') {
+      initDefenceGlobeInstance(container, globeOptions).catch((err) => {
+        console.error('[DefenceGlobe] init failed:', err);
+      });
+      return;
+    }
+
+    if (container._defenceGlobeObserver) return;
+
+    const observer = new IntersectionObserver((entries, obs) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        obs.unobserve(entry.target);
+        obs.disconnect();
+        delete container._defenceGlobeObserver;
+        initDefenceGlobeInstance(entry.target, globeOptions).catch((err) => {
+          console.error('[DefenceGlobe] init failed:', err);
+        });
+      });
+    }, { rootMargin });
+
+    container._defenceGlobeObserver = observer;
+    observer.observe(container);
+  });
+}
+
+async function initDefenceGlobeInstance(container, options = {}) {
+  if (container.hasAttribute('data-globe-initialised')) return container._defenceGlobe;
+  container.setAttribute('data-globe-initialised', 'true');
+
+  const { THREE, OrbitControls, topojsonMod } = await loadDefenceGlobeModules();
+  const accentHex = options.color || container.dataset.globeColor || DEFENCE_GLOBE_DEFAULT_COLOR;
+  let locations   = options.locations || DEFENCE_GLOBE_DEFAULT_LOCATIONS;
+
+  if (container.dataset.globeLocations) {
+    try { locations = JSON.parse(container.dataset.globeLocations); }
+    catch { console.warn('[DefenceGlobe] Invalid data-globe-locations JSON, using defaults.'); }
+  }
+
+  const zoomAttr = options.zoom || container.dataset.globeZoom || 'auto';
+  const accent   = hexToRgbNorm(accentHex);
+  const ACCENT_HEX   = accent.hex;
+  const ACCENT_LIGHT = lightenHex(ACCENT_HEX, 0.3);
+  const ACCENT_RGB   = { r: accent.r, g: accent.g, b: accent.b };
+
+  container.style.setProperty('--dg-accent', accentHex);
+  const rgbStr = `${Math.round(accent.r * 255)}, ${Math.round(accent.g * 255)}, ${Math.round(accent.b * 255)}`;
+  container.style.setProperty('--dg-rule', `rgba(${rgbStr}, 0.35)`);
+
+  const canvas     = Object.assign(document.createElement('canvas'), { className: 'dg-canvas' });
+  const vignette   = Object.assign(document.createElement('div'), { className: 'dg-vignette' });
+  const labelLayer = Object.assign(document.createElement('div'), { className: 'dg-pin-labels' });
+  container.append(canvas, vignette, labelLayer);
+
+  const topology = await fetch(DEFENCE_GLOBE_WORLD_ATLAS_URL).then((r) => r.json()).catch(() => null);
+  const getSize = () => ({ w: container.clientWidth || 1, h: container.clientHeight || 1 });
+  const size    = getSize();
+  const scene   = new THREE.Scene();
+  const camera  = new THREE.PerspectiveCamera(35, size.w / size.h, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(size.w, size.h, false);
+
+  const GLOBE_RADIUS = 1.6;
+  const globeGroup   = new THREE.Group();
+  scene.add(globeGroup);
+
+  globeGroup.add(new THREE.Mesh(
+    new THREE.SphereGeometry(GLOBE_RADIUS, 96, 96),
+    new THREE.MeshBasicMaterial({ color: 0x081624 })
+  ));
+
+  const gratMat = new THREE.LineBasicMaterial({ color: ACCENT_HEX, transparent: true, opacity: 0.22 });
+  for (let lat = -60; lat <= 60; lat += 15) {
+    const pts = [];
+    for (let lng = -180; lng <= 180; lng += 2) pts.push(createLngLatToVec3(THREE, lng, lat, GLOBE_RADIUS * 1.001));
+    globeGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gratMat));
+  }
+  for (let lng = -180; lng < 180; lng += 15) {
+    const pts = [];
+    for (let lat = -85; lat <= 85; lat += 2) pts.push(createLngLatToVec3(THREE, lng, lat, GLOBE_RADIUS * 1.001));
+    globeGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gratMat));
+  }
+
+  if (topology) {
+    try {
+      const countriesGeo = topojsonMod.feature(topology, topology.objects.countries);
+      const lineMat      = new THREE.LineBasicMaterial({ color: ACCENT_HEX, transparent: true, opacity: 0.95 });
+      const r            = GLOBE_RADIUS * 1.003;
+
+      countriesGeo.features.forEach(({ geometry: geom }) => {
+        if (!geom) return;
+        const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
+        polys.forEach((poly) => poly.forEach((ring) => {
+          const points = [];
+          for (let i = 0; i < ring.length - 1; i++) {
+            const [lng1, lat1] = ring[i];
+            const [lng2, lat2] = ring[i + 1];
+            const steps = Math.max(2, Math.ceil(Math.hypot(lng2 - lng1, lat2 - lat1)));
+            for (let s = 0; s < steps; s++) {
+              const t = s / steps;
+              points.push(createLngLatToVec3(THREE, lng1 + (lng2 - lng1) * t, lat1 + (lat2 - lat1) * t, r));
+            }
+          }
+          const [lngEnd, latEnd] = ring[ring.length - 1];
+          points.push(createLngLatToVec3(THREE, lngEnd, latEnd, r));
+          globeGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMat));
+        }));
+      });
+    } catch (err) {
+      console.warn('[DefenceGlobe] Country boundaries parse failed:', err);
+    }
+  }
+
+  scene.add(new THREE.Mesh(
+    new THREE.SphereGeometry(GLOBE_RADIUS * 1.06, 64, 64),
+    new THREE.ShaderMaterial({
+      uniforms: { uColor: { value: new THREE.Color(ACCENT_RGB.r, ACCENT_RGB.g, ACCENT_RGB.b) } },
+      vertexShader: `
+        varying vec3 vNormal; varying vec3 vPositionNormal;
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vPositionNormal = normalize((modelViewMatrix * vec4(position, 1.0)).xyz);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: `
+        uniform vec3 uColor; varying vec3 vNormal; varying vec3 vPositionNormal;
+        void main() {
+          float intensity = pow(1.0 + dot(vNormal, vPositionNormal), 3.5);
+          gl_FragColor = vec4(uColor, 1.0) * intensity * 0.5;
+        }`,
+      blending: THREE.AdditiveBlending,
+      side: THREE.BackSide,
+      transparent: true,
+      depthWrite: false,
+    })
+  ));
+
+  const starCount = 1500;
+  const starPositions = new Float32Array(starCount * 3);
+  for (let i = 0; i < starCount; i++) {
+    const r     = 80 + Math.random() * 40;
+    const theta = Math.random() * Math.PI * 2;
+    const phi   = Math.acos(2 * Math.random() - 1);
+    starPositions[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+    starPositions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    starPositions[i * 3 + 2] = r * Math.cos(phi);
+  }
+  const starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+  const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+    color: 0xaaccee, size: 0.4, transparent: true, opacity: 0.6, sizeAttenuation: true,
+  }));
+  scene.add(stars);
+
+  const markers = [];
+  locations.forEach((loc) => {
+    const pos    = createLngLatToVec3(THREE, loc.lng, loc.lat, GLOBE_RADIUS * 1.004);
+    const normal = pos.clone().normalize();
+
+    const dot = new THREE.Mesh(
+      new THREE.SphereGeometry(0.012, 16, 16),
+      new THREE.MeshBasicMaterial({ color: ACCENT_LIGHT })
+    );
+    dot.position.copy(pos);
+    globeGroup.add(dot);
+
+    const halo = new THREE.Mesh(
+      new THREE.RingGeometry(0.014, 0.018, 32),
+      new THREE.MeshBasicMaterial({ color: ACCENT_HEX, transparent: true, opacity: 0.7, side: THREE.DoubleSide })
+    );
+    halo.position.copy(pos).add(normal.clone().multiplyScalar(0.001));
+    halo.lookAt(normal.clone().multiplyScalar(2));
+    globeGroup.add(halo);
+
+    const pulse = new THREE.Mesh(
+      new THREE.RingGeometry(0.014, 0.016, 48),
+      new THREE.MeshBasicMaterial({ color: ACCENT_HEX, transparent: true, opacity: 0.7, side: THREE.DoubleSide })
+    );
+    pulse.position.copy(pos).add(normal.clone().multiplyScalar(0.002));
+    pulse.lookAt(normal.clone().multiplyScalar(2));
+    globeGroup.add(pulse);
+
+    markers.push({ data: loc, worldPos: pos.clone(), normal, halo, pulse, dot, phase: Math.random() * Math.PI * 2 });
+  });
+
+  function createArc(start, end, heightFactor = 0.2) {
+    const distance    = start.distanceTo(end);
+    const mid         = start.clone().add(end).multiplyScalar(0.5);
+    const chordMidLen = mid.length();
+    mid.normalize().multiplyScalar(chordMidLen + distance * heightFactor);
+    const curve  = new THREE.QuadraticBezierCurve3(start, mid, end);
+    const points = curve.getPoints(64);
+    const geo    = new THREE.BufferGeometry().setFromPoints(points);
+    const colors = [];
+    for (let i = 0; i <= 64; i++) {
+      const fade = Math.sin((i / 64) * Math.PI);
+      colors.push(ACCENT_RGB.r * fade, ACCENT_RGB.g * fade, ACCENT_RGB.b * fade);
+    }
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    return {
+      line: new THREE.Line(geo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.6 })),
+      points,
+    };
+  }
+
+  const connections = [];
+  const seen = new Set();
+  markers.forEach((m, i) => {
+    markers
+      .map((other, j) => ({ j, d: i === j ? Infinity : m.worldPos.distanceTo(other.worldPos) }))
+      .sort((a, b) => a.d - b.d)
+      .slice(0, 2)
+      .forEach(({ j }) => {
+        const key = i < j ? `${i}-${j}` : `${j}-${i}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          connections.push([i, j]);
+        }
+      });
+  });
+
+  const arcs = connections.map(([a, b]) => {
+    const arc = createArc(markers[a].worldPos, markers[b].worldPos);
+    globeGroup.add(arc.line);
+    return arc;
+  });
+
+  const pulseParticles = arcs.map((arc) => {
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.008, 12, 12),
+      new THREE.MeshBasicMaterial({ color: ACCENT_LIGHT, transparent: true, opacity: 1 })
+    );
+    globeGroup.add(mesh);
+    return { mesh, points: arc.points, progress: Math.random(), speed: 0.003 + Math.random() * 0.003 };
+  });
+
+  const labelEls = markers.map((m) => {
+    const el = Object.assign(document.createElement('div'), { className: 'dg-pin-label', textContent: m.data.name });
+    labelLayer.appendChild(el);
+    return el;
+  });
+
+  let centreLat = DEFENCE_GLOBE_AUSTRALIA_CENTER.lat;
+  let centreLng = DEFENCE_GLOBE_AUSTRALIA_CENTER.lng;
+  if (locations.length > 0) {
+    centreLat = locations.reduce((sum, loc) => sum + loc.lat, 0) / locations.length;
+    centreLng = locations.reduce((sum, loc) => sum + loc.lng, 0) / locations.length;
+  }
+  const centreVec = createLngLatToVec3(THREE, centreLng, centreLat, 1).normalize();
+  const CAM_DISTANCE = zoomAttr === 'auto' ? 4.2 : Math.max(3.2, Math.min(6, parseFloat(zoomAttr)));
+  camera.position.copy(centreVec.clone().multiplyScalar(CAM_DISTANCE));
+  camera.lookAt(0, 0, 0);
+
+  const controls = new OrbitControls(camera, canvas);
+  controls.enableDamping  = true;
+  controls.dampingFactor  = 0.08;
+  controls.rotateSpeed    = 0.4;
+  controls.enablePan      = false;
+  controls.enableZoom     = true;
+  controls.minDistance    = 3.2;
+  controls.maxDistance    = 6;
+  controls.autoRotate     = false;
+
+  const sph = new THREE.Spherical().setFromVector3(camera.position);
+  controls.minAzimuthAngle = sph.theta - Math.PI / 4;
+  controls.maxAzimuthAngle = sph.theta + Math.PI / 4;
+  controls.minPolarAngle   = Math.max(0.1, sph.phi - Math.PI / 6);
+  controls.maxPolarAngle   = Math.min(Math.PI - 0.1, sph.phi + Math.PI / 6);
+  controls.target.set(0, 0, 0);
+  controls.update();
+
+  let currentW = size.w;
+  let currentH = size.h;
+  const resizeObserver = new ResizeObserver(() => {
+    const { w, h } = getSize();
+    if (w === currentW && h === currentH) return;
+    currentW = w;
+    currentH = h;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h, false);
+  });
+  resizeObserver.observe(container);
+
+  const clock = new THREE.Clock();
+  let rafId = null;
+
+  function updatePinLabels() {
+    const tempVec = new THREE.Vector3();
+    const { w, h } = getSize();
+    markers.forEach((marker, i) => {
+      tempVec.copy(marker.worldPos).applyMatrix4(globeGroup.matrixWorld);
+      const facing = -tempVec.clone().sub(camera.position).normalize().dot(tempVec.clone().normalize());
+      tempVec.project(camera);
+      const el = labelEls[i];
+      if (facing > 0.1 && tempVec.z < 1) {
+        el.style.left    = `${(tempVec.x * 0.5 + 0.5) * w}px`;
+        el.style.top     = `${(-tempVec.y * 0.5 + 0.5) * h}px`;
+        el.style.opacity = Math.min(1, (facing - 0.1) * 4);
+      } else {
+        el.style.opacity = 0;
+      }
+    });
+  }
+
+  function animate() {
+    const t = clock.getElapsedTime();
+    controls.update();
+
+    markers.forEach((marker) => {
+      const phase = (t * 0.7 + marker.phase / 4) % 1;
+      marker.pulse.scale.setScalar(1 + phase * 0.8);
+      marker.pulse.material.opacity = 0.7 * (1 - phase);
+    });
+
+    pulseParticles.forEach((particle) => {
+      particle.progress += particle.speed;
+      if (particle.progress > 1) particle.progress = 0;
+      const idx     = Math.floor(particle.progress * (particle.points.length - 1));
+      const nextIdx = Math.min(idx + 1, particle.points.length - 1);
+      const localT  = (particle.progress * (particle.points.length - 1)) - idx;
+      particle.mesh.position.lerpVectors(particle.points[idx], particle.points[nextIdx], localT);
+      const fade = Math.sin(particle.progress * Math.PI);
+      particle.mesh.material.opacity = fade;
+      particle.mesh.scale.setScalar(0.8 + fade * 0.5);
+    });
+
+    stars.material.opacity = 0.55 + Math.sin(t * 0.5) * 0.08;
+    updatePinLabels();
+    renderer.render(scene, camera);
+    rafId = requestAnimationFrame(animate);
+  }
+
+  animate();
+
+  const instance = {
+    destroy() {
+      if (rafId) cancelAnimationFrame(rafId);
+      resizeObserver.disconnect();
+      controls.dispose();
+      renderer.dispose();
+      scene.traverse((obj) => {
+        obj.geometry?.dispose();
+        if (obj.material) {
+          Array.isArray(obj.material) ? obj.material.forEach((material) => material.dispose()) : obj.material.dispose();
+        }
+      });
+      container.innerHTML = '';
+      container.removeAttribute('data-globe-initialised');
+    },
+  };
+
+  container._defenceGlobe = instance;
+  return instance;
 }
 
 
