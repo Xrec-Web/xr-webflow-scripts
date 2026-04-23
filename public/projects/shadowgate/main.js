@@ -219,13 +219,14 @@ function initTeamInteractions() {
         if (member === hoverActive) return;
         hoverActive = member;
 
-        const { name, role, img } = member.dataset;
+        const { name, role } = member.dataset;
+        const imgSrc = member.querySelector('img')?.src || '';
         const targets = [previewImgEl, previewName, previewRole].filter(Boolean);
 
         gsap.timeline()
           .to(targets, { scale: 0.92, opacity: 0, duration: 0.22, ease: 'osmo' })
           .call(() => {
-            if (previewImg) { previewImg.srcset = ''; previewImg.src = img || ''; }
+            if (previewImg) { previewImg.srcset = ''; previewImg.src = imgSrc; }
             if (previewName) previewName.textContent = name || '';
             if (previewRole) previewRole.textContent = role || '';
           }, [], '-=0.04')
@@ -239,9 +240,8 @@ function initTeamInteractions() {
   if (panel) {
     members.forEach(member => {
       member.addEventListener('click', () => {
-        const { name, role, img, bioHeading, bio } = member.dataset;
-
-        if (panelImg)     panelImg.src             = img        || '';
+        const { name, role, bioHeading, bio } = member.dataset;
+        if (panelImg)     panelImg.src             = member.querySelector('img')?.src || '';
         if (panelName)    panelName.textContent     = name       || '';
         if (panelRole)    panelRole.textContent     = role       || '';
         if (panelBioHead) panelBioHead.textContent  = bioHeading || '';
