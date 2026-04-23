@@ -493,7 +493,7 @@ function initImageSequenceScroll() {
     // Data attributes and their fallbacks
     const frames = parseInt(canvas.dataset.frames, 10) || 1;
     const digits = parseInt(canvas.dataset.digits, 10) || 3;
-    const indexStart = parseInt(canvas.dataset.indexStart, 10) || 0;
+    const indexStart = parseInt(canvas.dataset.indexStart, 10) || 1;
     const desktopSrc = canvas.dataset.desktopSrc || '';
     const mobileSrc = canvas.dataset.mobileSrc || desktopSrc;
     const staticSrc = canvas.dataset.staticSrc;
