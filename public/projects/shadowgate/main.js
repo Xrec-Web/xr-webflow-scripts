@@ -1224,7 +1224,8 @@ function initServList() {
     function createArc(start, end, heightFactor = 0.2) {
       const distance = start.distanceTo(end);
       const mid = start.clone().add(end).multiplyScalar(0.5);
-      mid.normalize().multiplyScalar(mid.length() + distance * heightFactor);
+      const chordMidLen = mid.length();
+      mid.normalize().multiplyScalar(chordMidLen + distance * heightFactor);
       const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
       const points = curve.getPoints(64);
       const geo = new THREE.BufferGeometry().setFromPoints(points);
