@@ -1318,6 +1318,7 @@ function initSplitTextReveal() {
     // Wrap each item in an overflow:hidden mask
     items.forEach(item => {
       const mask = document.createElement('div');
+      mask.classList.add('split-mask');
       mask.style.cssText = `overflow:hidden;display:${isLine ? 'block' : 'inline-block'};`;
       item.parentNode.insertBefore(mask, item);
       mask.appendChild(item);
