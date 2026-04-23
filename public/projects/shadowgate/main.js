@@ -2,46 +2,246 @@
 // Project: [Project Name]
 // Description: [Description]
 
-// ─── ALWAYS-ON SETUP ────────────────────────────────────────────────────────
+// ─── PLUGINS ─────────────────────────────────────────────────────────────────
 
 gsap.registerPlugin(SplitText, ScrollTrigger, InertiaPlugin, Observer, CustomEase, ScrambleTextPlugin);
 
-CustomEase.create('reveal', 'M0,0 C0.16,1 0.3,1 1,1');
-CustomEase.create("osmo", "M0,0 C0.625,0.05 0,1 1,1");
-CustomEase.create("energy", "M0,0 C0.32,0.72 0,1 1,1");
-CustomEase.create("smooth", "M0,0 C0.38,0.005 0.215,1 1,1");
-CustomEase.create("punch", "M0,0 C0.19,1 0.22,1 1,1");
-CustomEase.create("relaxed", "M0,0 C0.7,0 0.3,1 1,1");
-CustomEase.create("expo.inOut", "M0,0 C0.87,0 0.13,1 1,1");
-CustomEase.create("jump", "M0,0 C0.35,1.5 0.6,1 1,1");
-CustomEase.create("pop", "M0,0 C0.17,0.67 0.3,1.33 1,1");
+CustomEase.create('reveal',   'M0,0 C0.16,1 0.3,1 1,1');
+CustomEase.create('osmo',     'M0,0 C0.625,0.05 0,1 1,1');
+CustomEase.create('energy',   'M0,0 C0.32,0.72 0,1 1,1');
+CustomEase.create('smooth',   'M0,0 C0.38,0.005 0.215,1 1,1');
+CustomEase.create('punch',    'M0,0 C0.19,1 0.22,1 1,1');
+CustomEase.create('relaxed',  'M0,0 C0.7,0 0.3,1 1,1');
+CustomEase.create('expo.inOut','M0,0 C0.87,0 0.13,1 1,1');
+CustomEase.create('jump',     'M0,0 C0.35,1.5 0.6,1 1,1');
+CustomEase.create('pop',      'M0,0 C0.17,0.67 0.3,1.33 1,1');
 
 
-const lenis = new Lenis();
-lenis.on('scroll', ScrollTrigger.update);
-gsap.ticker.add((time) => {lenis.raf(time * 1000);});
-gsap.ticker.lagSmoothing(0);
+// ─── BARBA SETUP ─────────────────────────────────────────────────────────────
+
+history.scrollRestoration = 'manual';
+
+let lenis = null;
+let nextPage = document;
+let onceFunctionsInitialized = false;
+
+const hasLenis = typeof window.Lenis !== 'undefined';
+const hasScrollTrigger = typeof window.ScrollTrigger !== 'undefined';
+
+const rmMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
+let reducedMotion = rmMQ.matches;
+rmMQ.addEventListener?.('change', e => (reducedMotion = e.matches));
+
+const has = (s) => !!nextPage.querySelector(s);
 
 
-// ─── INIT ────────────────────────────────────────────────────────────────────
-// Each init is guarded — only runs if its trigger element exists on the page.
+// ─── INIT REGISTRIES ─────────────────────────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', () => {
-  if (document.querySelector('[data-accordion-css-init]')) initAccordionCSS();
-  if (document.querySelector('[data-form-validate]')) initBasicFormValidation();
-  if (document.querySelector('.img:not(.no-para)')) initImageScrollEffect();
-  if (document.querySelector('[data-current-year]')) initDynamicCurrentYear();
-  if (document.querySelector('[data-team-member]')) initTeamInteractions();
+function initOnceFunctions() {
+  initLenis();
+  if (onceFunctionsInitialized) return;
+  onceFunctionsInitialized = true;
+
+  // Runs once on first load only
   if (document.querySelector('[data-cursor]')) initScrambleTextCursor();
-  if (document.querySelector('.faq_toggle_inner')) initFAQToggle();
-  if (document.querySelector('[data-button-animate-chars]')) initButtonCharacterStagger();
-  if (document.querySelector('[trigger-animation]')) initTriggerAnimationButtons();
-  if (document.querySelector('[data-sequence-wrap]')) initImageSequenceScroll();
-  if (document.querySelector('.h-hero_grid')) initHeroTitleReveal();
-  if (document.querySelector('[data-split]')) initSplitTextReveal();
-  if (document.querySelector('[data-reveal]')) initReveal();
-  if (document.querySelector('[serv-list]')) initServList();
+}
+
+function initPageFunctions(container) {
+  nextPage = container || document;
+  const q = (s) => !!nextPage.querySelector(s);
+
+  if (q('[data-accordion-css-init]'))    initAccordionCSS();
+  if (q('[data-form-validate]'))         initBasicFormValidation();
+  if (q('.img:not(.no-para)'))           initImageScrollEffect();
+  if (q('[data-current-year]'))          initDynamicCurrentYear();
+  if (q('[data-team-member]'))           initTeamInteractions();
+  if (q('.faq_toggle_inner'))            initFAQToggle();
+  if (q('[data-button-animate-chars]'))  initButtonCharacterStagger();
+  if (q('[data-sequence-wrap]'))         initImageSequenceScroll();
+  if (q('.h-hero_grid'))                 initHeroTitleReveal();
+  if (q('[data-split]'))                 initSplitTextReveal();
+  if (q('[data-reveal]'))                initReveal();
+  if (q('[serv-list]'))                  initServList();
+}
+
+
+// ─── PAGE TRANSITIONS ────────────────────────────────────────────────────────
+
+function runPageOnceAnimation(next) {
+  const tl = gsap.timeline();
+  tl.call(() => resetPage(next), null, 0);
+  return tl;
+}
+
+function runPageLeaveAnimation(current) {
+  const tl = gsap.timeline({ onComplete: () => current.remove() });
+
+  if (reducedMotion) return tl.set(current, { autoAlpha: 0 });
+
+  tl.to(current, { autoAlpha: 0, ease: 'power1.in', duration: 0.5 }, 0);
+  return tl;
+}
+
+function runPageEnterAnimation(next) {
+  const tl = gsap.timeline();
+
+  if (reducedMotion) {
+    tl.set(next, { autoAlpha: 1 });
+    tl.add('pageReady');
+    tl.call(resetPage, [next], 'pageReady');
+    return new Promise(resolve => tl.call(resolve, null, 'pageReady'));
+  }
+
+  tl.add('startEnter', 0);
+
+  tl.fromTo(next, { autoAlpha: 0 }, {
+    autoAlpha: 1,
+    ease: 'power1.inOut',
+    duration: 0.75,
+  }, 'startEnter');
+
+  tl.fromTo(next.querySelector('h1'), { yPercent: 25, autoAlpha: 0 }, {
+    yPercent: 0,
+    autoAlpha: 1,
+    ease: 'expo.out',
+    duration: 1,
+  }, '< 0.3');
+
+  tl.add('pageReady');
+  tl.call(resetPage, [next], 'pageReady');
+
+  return new Promise(resolve => tl.call(resolve, null, 'pageReady'));
+}
+
+// Pick-location leave: graphic expands + page fades, fires once as the leave transition
+function runPickLocationLeaveAnimation(current) {
+  const graphic = current.querySelector('[trigger-graphic]');
+  const fadeEl  = current.querySelector('[fade-out]');
+
+  const tl = gsap.timeline({ onComplete: () => current.remove() });
+
+  if (reducedMotion) return tl.set(current, { autoAlpha: 0 });
+
+  if (graphic) {
+    tl.to(graphic, { width: '225%', duration: 1, ease: 'osmo' }, 0);
+    tl.to(graphic, { opacity: 0,    duration: 0.5, ease: 'osmo' }, 0);
+  }
+  if (fadeEl) {
+    tl.to(fadeEl, { opacity: 0, filter: 'blur(10px)', duration: 0.5, ease: 'osmo' }, 0);
+  }
+
+  return tl;
+}
+
+
+// ─── BARBA HOOKS ─────────────────────────────────────────────────────────────
+
+barba.hooks.beforeEnter(data => {
+  gsap.set(data.next.container, { position: 'fixed', top: 0, left: 0, right: 0 });
+  if (lenis) lenis.stop();
+  applyThemeFrom(data.next.container);
 });
+
+barba.hooks.afterLeave(() => {
+  if (hasScrollTrigger) ScrollTrigger.getAll().forEach(t => t.kill());
+});
+
+barba.hooks.enter(data => {
+  initBarbaNavUpdate(data);
+});
+
+barba.hooks.afterEnter(data => {
+  initPageFunctions(data.next.container);
+  if (lenis) { lenis.resize(); lenis.start(); }
+  if (hasScrollTrigger) ScrollTrigger.refresh();
+});
+
+barba.init({
+  debug: false,
+  timeout: 7000,
+  preventRunning: true,
+  transitions: [
+    {
+      name: 'pick-location',
+      custom: ({ trigger }) => trigger?.hasAttribute?.('trigger-animation'),
+      sync: true,
+      async once(data) {
+        initOnceFunctions();
+        return runPageOnceAnimation(data.next.container);
+      },
+      async leave(data) {
+        return runPickLocationLeaveAnimation(data.current.container);
+      },
+      async enter(data) {
+        return runPageEnterAnimation(data.next.container);
+      },
+    },
+    {
+      name: 'default',
+      sync: true,
+      async once(data) {
+        initOnceFunctions();
+        return runPageOnceAnimation(data.next.container);
+      },
+      async leave(data) {
+        return runPageLeaveAnimation(data.current.container);
+      },
+      async enter(data) {
+        return runPageEnterAnimation(data.next.container);
+      },
+    },
+  ],
+});
+
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+const themeConfig = {
+  light: { nav: 'dark',  transition: 'light' },
+  dark:  { nav: 'light', transition: 'dark'  },
+};
+
+function applyThemeFrom(container) {
+  const pageTheme = container?.dataset?.pageTheme || 'light';
+  const config = themeConfig[pageTheme] || themeConfig.light;
+  document.body.dataset.pageTheme = pageTheme;
+  const transitionEl = document.querySelector('[data-theme-transition]');
+  if (transitionEl) transitionEl.dataset.themeTransition = config.transition;
+  const nav = document.querySelector('[data-theme-nav]');
+  if (nav) nav.dataset.themeNav = config.nav;
+}
+
+function initLenis() {
+  if (lenis || !hasLenis) return;
+  lenis = new Lenis({ lerp: 0.165, wheelMultiplier: 1.25 });
+  if (hasScrollTrigger) lenis.on('scroll', ScrollTrigger.update);
+  gsap.ticker.add((time) => lenis.raf(time * 1000));
+  gsap.ticker.lagSmoothing(0);
+}
+
+function resetPage(container) {
+  window.scrollTo(0, 0);
+  gsap.set(container, { clearProps: 'position,top,left,right' });
+  if (lenis) { lenis.resize(); lenis.start(); }
+}
+
+function initBarbaNavUpdate(data) {
+  const tpl = document.createElement('template');
+  tpl.innerHTML = data.next.html.trim();
+  const nextNodes    = tpl.content.querySelectorAll('[data-barba-update]');
+  const currentNodes = document.querySelectorAll('nav [data-barba-update]');
+  currentNodes.forEach((curr, i) => {
+    const next = nextNodes[i];
+    if (!next) return;
+    const newStatus = next.getAttribute('aria-current');
+    if (newStatus !== null) curr.setAttribute('aria-current', newStatus);
+    else curr.removeAttribute('aria-current');
+    curr.setAttribute('class', next.getAttribute('class') || '');
+  });
+}
+
+
+// ─── FUNCTIONS ───────────────────────────────────────────────────────────────
 
 
 // ─── FUNCTIONS ───────────────────────────────────────────────────────────────
@@ -423,40 +623,6 @@ function initFAQToggle() {
   toggles.candidate.addEventListener('click', () => switchTo('candidate'));
 }
 
-// PICK LOCATION PAGE ANIMATION //
-function initTriggerAnimationButtons() {
-  const buttons  = document.querySelectorAll('[trigger-animation]');
-  const graphic  = document.querySelector('[trigger-graphic]');
-  const fadeEl   = document.querySelector('[fade-out]');
-  if (!graphic) return;
-
-  // Reset state when browser restores page from bfcache (back button)
-  window.addEventListener('pageshow', (e) => {
-    if (e.persisted) {
-      gsap.set(graphic, { clearProps: 'all' });
-      if (fadeEl) gsap.set(fadeEl, { clearProps: 'all' });
-    }
-  });
-
-  buttons.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-
-      const anchor = btn.tagName === 'A' ? btn : btn.closest('a');
-      const dest   = anchor?.href || btn.getAttribute('href');
-      if (!dest) return;
-
-      const tl = gsap.timeline({ onComplete: () => { window.location.href = dest; } });
-
-      tl.to(graphic, { width: '225%', duration: 1, ease: 'osmo' }, 0)
-        .to(graphic, { opacity: 0, duration: 0.5, ease: 'osmo' }, 0);
-
-      if (fadeEl) {
-        tl.to(fadeEl, { opacity: 0, filter: 'blur(10px)', duration: 0.5, ease: 'osmo' }, 0);
-      }
-    });
-  });
-}
 
 function initButtonCharacterStagger() {
   const offsetIncrement = 0.01; // Transition offset increment in seconds
