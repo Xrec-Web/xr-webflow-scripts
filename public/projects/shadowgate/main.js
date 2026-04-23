@@ -286,11 +286,9 @@ async function loadDefenceGlobeModules() {
   if (!defenceGlobeModulesPromise) {
     defenceGlobeModulesPromise = Promise.all([
       import('https://esm.sh/three@0.160.0'),
-      import('https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls'),
       import('https://esm.sh/topojson-client@3'),
-    ]).then(([THREE, orbitControlsMod, topojsonMod]) => ({
+    ]).then(([THREE, topojsonMod]) => ({
       THREE,
-      OrbitControls: orbitControlsMod.OrbitControls,
       topojsonMod,
     }));
   }
@@ -362,7 +360,7 @@ async function initDefenceGlobeInstance(container, options = {}) {
   if (container.hasAttribute('data-globe-initialised')) return container._defenceGlobe;
   container.setAttribute('data-globe-initialised', 'true');
 
-  const { THREE, OrbitControls, topojsonMod } = await loadDefenceGlobeModules();
+  const { THREE, topojsonMod } = await loadDefenceGlobeModules();
   const accentHex = options.color || container.dataset.globeColor || DEFENCE_GLOBE_DEFAULT_COLOR;
   let locations   = options.locations || DEFENCE_GLOBE_DEFAULT_LOCATIONS;
 
@@ -586,24 +584,6 @@ async function initDefenceGlobeInstance(container, options = {}) {
   camera.position.copy(centreVec.clone().multiplyScalar(CAM_DISTANCE));
   camera.lookAt(0, 0, 0);
 
-  const controls = new OrbitControls(camera, canvas);
-  controls.enableDamping  = true;
-  controls.dampingFactor  = 0.08;
-  controls.rotateSpeed    = 0.4;
-  controls.enablePan      = false;
-  controls.enableZoom     = true;
-  controls.minDistance    = 3.2;
-  controls.maxDistance    = 6;
-  controls.autoRotate     = false;
-
-  const sph = new THREE.Spherical().setFromVector3(camera.position);
-  controls.minAzimuthAngle = sph.theta - Math.PI / 4;
-  controls.maxAzimuthAngle = sph.theta + Math.PI / 4;
-  controls.minPolarAngle   = Math.max(0.1, sph.phi - Math.PI / 6);
-  controls.maxPolarAngle   = Math.min(Math.PI - 0.1, sph.phi + Math.PI / 6);
-  controls.target.set(0, 0, 0);
-  controls.update();
-
   let currentW = size.w;
   let currentH = size.h;
   const resizeObserver = new ResizeObserver(() => {
@@ -640,7 +620,6 @@ async function initDefenceGlobeInstance(container, options = {}) {
 
   function animate() {
     const t = clock.getElapsedTime();
-    controls.update();
 
     markers.forEach((marker) => {
       const phase = (t * 0.7 + marker.phase / 4) % 1;
@@ -672,7 +651,6 @@ async function initDefenceGlobeInstance(container, options = {}) {
     destroy() {
       if (rafId) cancelAnimationFrame(rafId);
       resizeObserver.disconnect();
-      controls.dispose();
       renderer.dispose();
       scene.traverse((obj) => {
         obj.geometry?.dispose();
@@ -1397,27 +1375,39 @@ function initReveal() {
   });
 }
 
-// SERVICES LIST ACTIVE DOT //
+// SERVICES LIST ACTIVE STATE //
 function initServList() {
   const rows = gsap.utils.toArray('[serv-row]');
   if (!rows.length) return;
 
-  const dots = rows.map(row => row.querySelector('[serv-dot]'));
+  const items = gsap.utils.toArray('[serv-item]');
+  const count = Math.min(rows.length, items.length);
+  if (!count) return;
 
-  gsap.set(dots, { opacity: 0.2 });
+  gsap.set(rows, { width: '50%' });
 
   let current = -1;
 
   function setActive(index) {
     if (index === current) return;
-    if (current >= 0) gsap.to(dots[current], { opacity: 0.2, duration: 0.4, ease: 'osmo' });
-    gsap.to(dots[index], { opacity: 1, duration: 0.4, ease: 'osmo' });
+    if (current >= 0) gsap.to(rows[current], { width: '50%', duration: 0.4, ease: 'osmo' });
+    gsap.to(rows[index], { width: '100%', duration: 0.4, ease: 'osmo' });
     current = index;
   }
 
-  const items = gsap.utils.toArray('[serv-item]');
+  rows.slice(0, count).forEach((row, i) => {
+    row.style.cursor = 'pointer';
+    row.addEventListener('click', () => {
+      setActive(i);
+      if (lenis) {
+        lenis.scrollTo(items[i], { duration: 1.1 });
+      } else {
+        items[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
 
-  items.forEach((item, i) => {
+  items.slice(0, count).forEach((item, i) => {
     ScrollTrigger.create({
       trigger: item,
       start: 'top top',
