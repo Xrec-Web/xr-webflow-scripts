@@ -1384,14 +1384,14 @@ function initServList() {
   const count = Math.min(rows.length, items.length);
   if (!count) return;
 
-  gsap.set(rows, { width: '50%' });
+  gsap.set(rows, { opacity: 0.5 });
 
   let current = -1;
 
   function setActive(index) {
     if (index === current) return;
-    if (current >= 0) gsap.to(rows[current], { width: '50%', duration: 0.4, ease: 'osmo' });
-    gsap.to(rows[index], { width: '100%', duration: 0.4, ease: 'osmo' });
+    if (current >= 0) gsap.to(rows[current], { opacity: 0.5, duration: 0.4, ease: 'osmo' });
+    gsap.to(rows[index], { opacity: 1, duration: 0.4, ease: 'osmo' });
     current = index;
   }
 
