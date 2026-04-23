@@ -57,6 +57,7 @@ function initPageFunctions(container) {
   if (q('[data-team-member]'))           initTeamInteractions();
   if (q('.faq_toggle_inner'))            initFAQToggle();
   if (q('[data-button-animate-chars]'))  initButtonCharacterStagger();
+  if (q('[data-link-animate-chars]'))    initLinkCharacterStagger();
   if (q('[data-sequence-wrap]'))         initImageSequenceScroll();
   if (q('.h-hero_grid'))                 initHeroTitleReveal();
   if (q('[data-split]'))                 initSplitTextReveal();
@@ -1052,24 +1053,45 @@ function initFAQToggle() {
 
 
 function initButtonCharacterStagger() {
-  const offsetIncrement = 0.01; // Transition offset increment in seconds
+  const offsetIncrement = 0.01;
   const buttons = document.querySelectorAll('[data-button-animate-chars]');
 
   buttons.forEach(button => {
-    const text = button.textContent; // Get the button's text content
-    button.innerHTML = ''; // Clear the original content
+    const text = button.textContent;
+    button.innerHTML = '';
 
     [...text].forEach((char, index) => {
       const span = document.createElement('span');
       span.textContent = char;
       span.style.transitionDelay = `${index * offsetIncrement}s`;
 
-      // Handle spaces explicitly
       if (char === ' ') {
-        span.style.whiteSpace = 'pre'; // Preserve space width
+        span.style.whiteSpace = 'pre';
       }
 
       button.appendChild(span);
+    });
+  });
+}
+
+function initLinkCharacterStagger() {
+  const offsetIncrement = 0.01;
+  const links = document.querySelectorAll('[data-link-animate-chars]');
+
+  links.forEach(link => {
+    const text = link.textContent;
+    link.innerHTML = '';
+
+    [...text].forEach((char, index) => {
+      const span = document.createElement('span');
+      span.textContent = char;
+      span.style.transitionDelay = `${index * offsetIncrement}s`;
+
+      if (char === ' ') {
+        span.style.whiteSpace = 'pre';
+      }
+
+      link.appendChild(span);
     });
   });
 }

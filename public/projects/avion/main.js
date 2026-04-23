@@ -254,6 +254,7 @@ function initButtonCharacterStagger() {
   });
 }
 
+
 function initContentRevealScroll() {
   if (!document.querySelector('[data-reveal-group]')) return;
 
