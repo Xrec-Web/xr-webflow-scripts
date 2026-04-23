@@ -857,9 +857,9 @@ function initServList() {
   const AUSTRALIA_CENTER = { lat: -25.0, lng: 133.0 };
 
   // CDN URLs
-  const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-  const ORBIT_URL = 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
-  const TOPOJSON_URL = 'https://cdn.jsdelivr.net/npm/topojson-client@3/+esm';
+  const THREE_URL = 'https://esm.sh/three@0.160.0';
+  const ORBIT_URL = 'https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls';
+  const TOPOJSON_URL = 'https://esm.sh/topojson-client@3';
   const WORLD_ATLAS_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
 
   // ---------- HELPERS ----------
