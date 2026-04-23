@@ -1424,9 +1424,15 @@ function initServList() {
   // ---------- AUTO-INIT ----------
   function autoInit() {
     const containers = document.querySelectorAll('[data-globe]');
-    containers.forEach((el) => {
-      initGlobe(el).catch(err => console.error('[DefenceGlobe] init failed:', err));
-    });
+    const observer = new IntersectionObserver((entries, obs) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        obs.unobserve(entry.target);
+        initGlobe(entry.target).catch(err => console.error('[DefenceGlobe] init failed:', err));
+      });
+    }, { rootMargin: '200px' });
+
+    containers.forEach((el) => observer.observe(el));
   }
 
   if (document.readyState === 'loading') {
