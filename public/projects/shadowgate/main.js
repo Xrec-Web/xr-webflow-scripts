@@ -262,9 +262,9 @@ function initTeamInteractions() {
       panelTl = gsap.timeline({ onReverseComplete: () => gsap.set(panel, { display: 'none' }) })
         .set(panel, { display: 'flex' });
 
-      if (panelBg)       panelTl.fromTo(panelBg,    { opacity: 0 },     { opacity: 1, duration: 0.4, ease: 'osmo' }, 0);
-      if (panelInner)    panelTl.fromTo(panelInner,  { xPercent: 100 },  { xPercent: 0, duration: 0.5, ease: 'osmo' }, 0);
-      if (innerEls.length) panelTl.fromTo(innerEls,  { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.4, ease: 'osmo', stagger: 0.07 }, '-=0.25');
+      if (panelBg)         panelTl.fromTo(panelBg,    { opacity: 0 },                          { opacity: 1,  duration: 0.7, ease: 'smooth' }, 0);
+      if (panelInner)      panelTl.fromTo(panelInner,  { xPercent: 100 },                       { xPercent: 0, duration: 0.9, ease: 'smooth' }, 0);
+      if (innerEls.length) panelTl.fromTo(innerEls,    { opacity: 0, y: 20, filter: 'blur(4px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.7, ease: 'smooth', stagger: 0.09 }, 0.25);
     }
 
     // ── CLOSE ────────────────────────────────────────────────────────────────
@@ -275,7 +275,7 @@ function initTeamInteractions() {
       document.body.classList.remove('panel-open');
       lenis.start();
 
-      if (panelTl) panelTl.reverse();
+      if (panelTl) panelTl.timeScale(1.2).reverse();
     }
 
     panelClose?.addEventListener('click', closePanel);
