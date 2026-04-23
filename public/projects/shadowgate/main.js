@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-form-validate]')) initBasicFormValidation();
   if (document.querySelector('.img:not(.no-para)')) initImageScrollEffect();
   if (document.querySelector('[data-current-year]')) initDynamicCurrentYear();
-if (document.querySelector('[data-team-member]')) initTeamInteractions();
+  if (document.querySelector('[data-team-member]')) initTeamInteractions();
   if (document.querySelector('[data-cursor]')) initScrambleTextCursor();
   if (document.querySelector('.faq_toggle_inner')) initFAQToggle();
   if (document.querySelector('[data-button-animate-chars]')) initButtonCharacterStagger();
@@ -357,7 +357,6 @@ function initScrambleTextCursor() {
   }, { passive: true });
 }
 
-
 // FAQ TOGGLE //
 function initFAQToggle() {
   const toggles = {
@@ -424,7 +423,7 @@ function initFAQToggle() {
   toggles.candidate.addEventListener('click', () => switchTo('candidate'));
 }
 
-// TRIGGER ANIMATION BUTTONS //
+// PICK LOCATION PAGE ANIMATION //
 function initTriggerAnimationButtons() {
   const buttons  = document.querySelectorAll('[trigger-animation]');
   const graphic  = document.querySelector('[trigger-graphic]');
@@ -447,10 +446,10 @@ function initTriggerAnimationButtons() {
 
       const tl = gsap.timeline({ onComplete: () => { window.location.href = dest; } });
 
-      tl.to(graphic, { width: '200%', yPercent: -100, duration: 2.4, ease: 'relaxed' }, 0);
+      tl.to(graphic, { width: '100%', height: '120%', duration: 1.8, ease: 'relaxed' }, 0);
 
       if (fadeEl) {
-        tl.to(fadeEl, { opacity: 0, filter: 'blur(6px)', duration: 2.4, ease: 'relaxed' }, 0);
+        tl.to(fadeEl, { opacity: 0, filter: 'blur(10px)', duration: 1.4, ease: 'smooth' }, 0.2);
       }
     });
   });
