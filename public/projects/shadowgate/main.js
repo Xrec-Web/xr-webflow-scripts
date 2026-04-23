@@ -254,6 +254,8 @@ function initTeamInteractions() {
     function openPanel() {
       if (isOpen) return;
       isOpen = true;
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
       document.body.classList.add('panel-open');
       lenis.stop();
 
@@ -273,6 +275,7 @@ function initTeamInteractions() {
       if (!isOpen) return;
       isOpen = false;
       document.body.classList.remove('panel-open');
+      document.body.style.paddingRight = '';
       lenis.start();
 
       if (panelTl) panelTl.timeScale(1.2).reverse();
