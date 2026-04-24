@@ -16,6 +16,10 @@ CustomEase.create("expo.inOut", "M0,0 C0.87,0 0.13,1 1,1");
 CustomEase.create("jump", "M0,0 C0.35,1.5 0.6,1 1,1");
 CustomEase.create("pop", "M0,0 C0.17,0.67 0.3,1.33 1,1");
 
+// Lenis (with GSAP Scroltrigger)
+const lenis = new Lenis();
+lenis.on('scroll', ScrollTrigger.update);
+gsap.ticker.add((time) => {lenis.raf(time * 1000);});
 gsap.ticker.lagSmoothing(0);
 
 
@@ -30,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-css-marquee]')) initCSSMarquee();
   if (document.querySelector('.faq_toggle_inner')) initFAQToggle();
   if (document.querySelector('[data-accordion-css-init]')) initAccordionCSS();
+  if (document.querySelector('.img')) initImageScrollEffect();
 });
 
 
@@ -426,6 +431,43 @@ function initAccordionCSS() {
         accordion.querySelectorAll('[data-accordion-status="active"]').forEach((sibling) => {
           if (sibling !== singleAccordion) sibling.setAttribute('data-accordion-status', 'not-active');
         });
+      }
+    });
+  });
+}
+
+// IMAGE SCROLL EFFECT //
+function initImageScrollEffect() {
+  gsap.utils.toArray('.img:not(.no-para)').forEach((img) => {
+    const isLoad = img.hasAttribute('data-load');
+
+    gsap.fromTo(
+      img,
+      { autoAlpha: 0, scale: 1.05 },
+      {
+        autoAlpha: 1,
+        scale: 1,
+        duration: 0.8,
+        ease: 'reveal',
+        ...(isLoad ? {} : {
+          scrollTrigger: {
+            trigger: img,
+            start: 'top 80%',
+            toggleActions: 'play none none none',
+            once: true
+          }
+        })
+      }
+    );
+
+    gsap.to(img, {
+      yPercent: 20,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: img,
+        start: 'top bottom',
+        end: 'bottom top',
+        scrub: true
       }
     });
   });
