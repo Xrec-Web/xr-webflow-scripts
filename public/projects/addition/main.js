@@ -36,16 +36,26 @@ document.addEventListener('DOMContentLoaded', () => {
 // TAB SYSTEM //
 function initTabSystem() {
   const wrappers = document.querySelectorAll('[data-tabs="wrapper"]');
+  console.log('[Tabs] initTabSystem found wrappers:', wrappers.length);
   if (!wrappers.length) return;
 
-  wrappers.forEach((wrapper) => {
+  wrappers.forEach((wrapper, wrapperIndex) => {
     const contentItems = Array.from(wrapper.querySelectorAll('[data-tabs="content-item"]'));
     const visualItems = Array.from(wrapper.querySelectorAll('[data-tabs="visual-item"]'));
+    console.log(`[Tabs] Wrapper ${wrapperIndex}: content items=${contentItems.length}, visual items=${visualItems.length}`, wrapper);
 
-    if (!contentItems.length || !visualItems.length) return;
+    if (!contentItems.length || !visualItems.length) {
+      console.warn(`[Tabs] Wrapper ${wrapperIndex}: missing content or visual items`);
+      return;
+    }
+
+    if (contentItems.length !== visualItems.length) {
+      console.warn(`[Tabs] Wrapper ${wrapperIndex}: content/visual count mismatch`);
+    }
 
     const autoplay = wrapper.dataset.tabsAutoplay === "true";
     const autoplayDuration = parseInt(wrapper.dataset.tabsAutoplayDuration, 10) || 5000;
+    console.log(`[Tabs] Wrapper ${wrapperIndex}: autoplay=${autoplay}, duration=${autoplayDuration}`);
 
     let activeContent = null;
     let activeVisual = null;
@@ -56,7 +66,12 @@ function initTabSystem() {
       if (progressBarTween) progressBarTween.kill();
 
       const bar = contentItems[index]?.querySelector('[data-tabs="item-progress"]');
-      if (!bar) return;
+      if (!bar) {
+        console.warn(`[Tabs] Wrapper ${wrapperIndex}: no progress bar found for item ${index}`);
+        return;
+      }
+
+      console.log(`[Tabs] Wrapper ${wrapperIndex}: starting progress bar for item ${index}`);
 
       gsap.set(bar, { scaleX: 0, transformOrigin: "left center" });
       progressBarTween = gsap.to(bar, {
@@ -66,6 +81,7 @@ function initTabSystem() {
         onComplete: () => {
           if (!isAnimating) {
             const nextIndex = (index + 1) % contentItems.length;
+            console.log(`[Tabs] Wrapper ${wrapperIndex}: autoplay advancing ${index} -> ${nextIndex}`);
             switchTab(nextIndex);
           }
         },
@@ -75,8 +91,27 @@ function initTabSystem() {
     function switchTab(index) {
       const incomingContent = contentItems[index];
       const incomingVisual = visualItems[index];
+      console.log(`[Tabs] Wrapper ${wrapperIndex}: switchTab(${index}) requested`, {
+        hasIncomingContent: Boolean(incomingContent),
+        hasIncomingVisual: Boolean(incomingVisual),
+        isAnimating,
+        activeIndex: activeContent ? contentItems.indexOf(activeContent) : null,
+      });
 
-      if (!incomingContent || !incomingVisual || isAnimating || incomingContent === activeContent) return;
+      if (!incomingContent || !incomingVisual) {
+        console.warn(`[Tabs] Wrapper ${wrapperIndex}: missing incoming tab parts for index ${index}`);
+        return;
+      }
+
+      if (isAnimating) {
+        console.warn(`[Tabs] Wrapper ${wrapperIndex}: ignoring switch while animation is running`);
+        return;
+      }
+
+      if (incomingContent === activeContent) {
+        console.log(`[Tabs] Wrapper ${wrapperIndex}: item ${index} is already active`);
+        return;
+      }
 
       isAnimating = true;
       if (progressBarTween) progressBarTween.kill();
@@ -87,6 +122,14 @@ function initTabSystem() {
       const outgoingDetails = outgoingContent?.querySelector('[data-tabs="item-details"]');
       const incomingBar = incomingContent.querySelector('[data-tabs="item-progress"]');
       const incomingDetails = incomingContent.querySelector('[data-tabs="item-details"]');
+      console.log(`[Tabs] Wrapper ${wrapperIndex}: switching`, {
+        from: outgoingContent ? contentItems.indexOf(outgoingContent) : null,
+        to: index,
+        hasOutgoingBar: Boolean(outgoingBar),
+        hasOutgoingDetails: Boolean(outgoingDetails),
+        hasIncomingBar: Boolean(incomingBar),
+        hasIncomingDetails: Boolean(incomingDetails),
+      });
 
       outgoingContent?.classList.remove("active");
       outgoingVisual?.classList.remove("active");
@@ -99,6 +142,7 @@ function initTabSystem() {
           activeContent = incomingContent;
           activeVisual = incomingVisual;
           isAnimating = false;
+          console.log(`[Tabs] Wrapper ${wrapperIndex}: switch complete, active index=${index}`);
 
           if (autoplay) startProgressBar(index);
         },
@@ -123,10 +167,15 @@ function initTabSystem() {
     }
 
     switchTab(0);
+    console.log(`[Tabs] Wrapper ${wrapperIndex}: initial tab activation requested`);
 
     contentItems.forEach((item, i) => {
       item.addEventListener("click", () => {
-        if (item === activeContent) return;
+        console.log(`[Tabs] Wrapper ${wrapperIndex}: click on item ${i}`);
+        if (item === activeContent) {
+          console.log(`[Tabs] Wrapper ${wrapperIndex}: clicked active item ${i}, ignoring`);
+          return;
+        }
         switchTab(i);
       });
     });
