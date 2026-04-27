@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-video-on-hover]')) initPlayVideoHover();
   if (document.querySelector('[data-momentum-hover-init]')) initMomentumBasedHover();
   if (document.querySelector('[data-draggable-marquee-init]')) initDraggableMarquee();
-  if (document.querySelector('.h-process_grid')) initProcessBlockTopFade();
+  if (document.querySelector('.h-process_grid') && window.matchMedia('(min-width: 768px)').matches) initProcessBlockTopFade();
   if (document.querySelector('[data-popup]')) initPopupForm();
   if (document.querySelector('[data-current-year]')) initDynamicCurrentYear();
   if (document.querySelector('[data-swiper-group]')) initSwiperSlider();
