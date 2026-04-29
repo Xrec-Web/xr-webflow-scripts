@@ -59,9 +59,12 @@ function initSuperform(container) {
       const name = el.getAttribute('sf-form-block') || el.getAttribute('sf');
       console.log('[Superform] Processing form name:', name, '| already inited:', !!getForm(name));
       if (!name || getForm(name)) return;
-      console.log('[Superform] Calling new Superform(', `[sf="${name}"]`, ')');
+      const sfId = `sf-manual-${name}`;
+      el.removeAttribute('sf');
+      el.id = sfId;
+      console.log('[Superform] Calling new Superform(', `#${sfId}`, ')');
       try {
-        const instance = new Superform(`[sf="${name}"]`);
+        const instance = new Superform(`#${sfId}`);
         console.log('[Superform] Instance result:', instance);
       } catch (e) {
         console.error('[Superform] Error during init:', e);
