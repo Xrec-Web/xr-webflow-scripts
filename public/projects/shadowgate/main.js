@@ -1485,9 +1485,9 @@ function initAnimatedMouse() {
   gsap.fromTo(mouse, { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'osmo' });
 
   const tl = gsap.timeline({ repeat: -1 });
-  tl.to(inner, { xPercent: 0,   opacity: 0, duration: 0.3, ease: 'osmo' });
-  tl.to(inner, { xPercent: 350, opacity: 1, duration: 1,   ease: 'osmo' });
-  tl.to(inner, { opacity: 0,               duration: 0.3, ease: 'osmo' });
+  tl.set(inner, { yPercent: 0,   opacity: 0 });
+  tl.to(inner,  { yPercent: 350, opacity: 1, duration: 1,   ease: 'osmo' });
+  tl.to(inner,  { opacity: 0,               duration: 0.3, ease: 'osmo' });
 }
 
 // SWIPER SLIDER //
