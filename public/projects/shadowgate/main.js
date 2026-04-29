@@ -1488,6 +1488,17 @@ function initSwiperSlider() {
     const paginationEl = swiperGroup.querySelector(".swiper-pagination");
 
     if (swiperGroup.hasAttribute('contact-page')) {
+      const syncOpacity = (swiperInstance) => {
+        swiperInstance.slides.forEach((slide, index) => {
+          gsap.to(slide, {
+            opacity: index === swiperInstance.activeIndex ? 1 : 0.5,
+            duration: 0.35,
+            ease: 'power2.out',
+            overwrite: true,
+          });
+        });
+      };
+
       new Swiper(swiperSliderWrap, {
         slidesPerView: 1.75,
         speed: 600,
@@ -1504,6 +1515,10 @@ function initSwiperSlider() {
         keyboard: {
           enabled: true,
           onlyInViewport: false,
+        },
+        on: {
+          init(swiperInstance) { syncOpacity(swiperInstance); },
+          slideChange(swiperInstance) { syncOpacity(swiperInstance); },
         },
       });
       return;
