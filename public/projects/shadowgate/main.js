@@ -47,13 +47,19 @@ function initOnceFunctions() {
 }
 
 function initSuperform(container) {
+  console.log('[Superform] initSuperform called', container);
   const sfEls = container.querySelectorAll('[sf-form-block]');
-  if (!sfEls.length) return;
+  console.log('[Superform] [sf-form-block] elements found:', sfEls.length, sfEls);
+  if (!sfEls.length) { console.warn('[Superform] No [sf-form-block] elements — skipping'); return; }
+  console.log('[Superform] SuperformAPI available:', typeof window.SuperformAPI);
   window.SuperformAPI = window.SuperformAPI || [];
   window.SuperformAPI.push(({ getForm }) => {
+    console.log('[Superform] SuperformAPI callback fired');
     sfEls.forEach(el => {
       const name = el.getAttribute('sf-form-block');
+      console.log('[Superform] Processing form name:', name, '| already inited:', !!getForm(name));
       if (!name || getForm(name)) return;
+      console.log('[Superform] Calling new Superform(', name, ')');
       new Superform(name);
     });
   });
