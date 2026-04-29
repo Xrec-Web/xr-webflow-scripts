@@ -1487,6 +1487,28 @@ function initSwiperSlider() {
     const nextButton = swiperGroup.querySelector("[data-swiper-next]");
     const paginationEl = swiperGroup.querySelector(".swiper-pagination");
 
+    if (swiperGroup.hasAttribute('contact-page')) {
+      new Swiper(swiperSliderWrap, {
+        slidesPerView: 1.75,
+        speed: 600,
+        grabCursor: true,
+        navigation: {
+          nextEl: nextButton,
+          prevEl: prevButton,
+        },
+        pagination: {
+          el: paginationEl,
+          type: 'bullets',
+          clickable: true,
+        },
+        keyboard: {
+          enabled: true,
+          onlyInViewport: false,
+        },
+      });
+      return;
+    }
+
     const syncSlideState = (swiperInstance) => {
       swiperInstance.slides.forEach((slide, index) => {
         const isActive = index === swiperInstance.activeIndex;
