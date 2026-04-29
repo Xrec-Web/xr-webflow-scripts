@@ -56,7 +56,7 @@ function initSuperform(container) {
   window.SuperformAPI.push(({ getForm }) => {
     console.log('[Superform] SuperformAPI callback fired');
     sfEls.forEach(el => {
-      const name = el.getAttribute('sf-form-block');
+      const name = el.getAttribute('sf-form-block') || el.getAttribute('sf');
       console.log('[Superform] Processing form name:', name, '| already inited:', !!getForm(name));
       if (!name || getForm(name)) return;
       console.log('[Superform] Calling new Superform(', name, ')');
