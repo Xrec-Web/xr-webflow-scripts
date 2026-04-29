@@ -47,14 +47,13 @@ function initOnceFunctions() {
 }
 
 function initSuperform(container) {
-  const sfEls = container.querySelectorAll('[sf]');
+  const sfEls = container.querySelectorAll('[sf-form-block]');
   if (!sfEls.length) return;
   window.SuperformAPI = window.SuperformAPI || [];
   window.SuperformAPI.push(({ getForm }) => {
     sfEls.forEach(el => {
-      const name = el.getAttribute('sf');
-      if (getForm(name)) return;
-      el.removeAttribute('sf');
+      const name = el.getAttribute('sf-form-block');
+      if (!name || getForm(name)) return;
       new Superform(name);
     });
   });
@@ -79,7 +78,6 @@ function initPageFunctions(container) {
   if (q('[serv-list]'))                  initServList();
   if (q('[data-globe]'))                 initDefenceGlobe(nextPage);
   if (q('[data-swiper-group]'))          initSwiperSlider();
-  if (q('[sf]'))                         initSuperform(nextPage);
 }
 
 function destroyPageFunctions(container) {
@@ -174,6 +172,7 @@ barba.hooks.enter(data => {
 
 barba.hooks.afterEnter(data => {
   initPageFunctions(data.next.container);
+  initSuperform(data.next.container);
   if (lenis) { lenis.resize(); lenis.start(); }
   if (hasScrollTrigger) ScrollTrigger.refresh();
 });
