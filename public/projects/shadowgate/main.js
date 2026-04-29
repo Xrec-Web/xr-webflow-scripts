@@ -60,7 +60,12 @@ function initSuperform(container) {
       console.log('[Superform] Processing form name:', name, '| already inited:', !!getForm(name));
       if (!name || getForm(name)) return;
       console.log('[Superform] Calling new Superform(', `[sf="${name}"]`, ')');
-      new Superform(`[sf="${name}"]`);
+      try {
+        const instance = new Superform(`[sf="${name}"]`);
+        console.log('[Superform] Instance result:', instance);
+      } catch (e) {
+        console.error('[Superform] Error during init:', e);
+      }
     });
   });
 }
