@@ -157,6 +157,7 @@ barba.hooks.beforeEnter(data => {
   gsap.set(data.next.container, { position: 'fixed', top: 0, left: 0, right: 0 });
   if (lenis) lenis.stop();
   applyThemeFrom(data.next.container);
+  initSuperform(data.next.container);
 });
 
 barba.hooks.afterLeave(() => {
@@ -169,7 +170,6 @@ barba.hooks.enter(data => {
 
 barba.hooks.afterEnter(data => {
   initPageFunctions(data.next.container);
-  initSuperform(data.next.container);
   if (lenis) { lenis.resize(); lenis.start(); }
   if (hasScrollTrigger) ScrollTrigger.refresh();
 });
