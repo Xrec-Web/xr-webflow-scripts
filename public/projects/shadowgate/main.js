@@ -59,9 +59,8 @@ function initSuperform(container) {
       const name = el.getAttribute('sf-form-block') || el.getAttribute('sf');
       console.log('[Superform] Processing form name:', name, '| already inited:', !!getForm(name));
       if (!name || getForm(name)) return;
-      console.log('[Superform] Calling new Superform(', name, ')');
-      el.removeAttribute('sf');
-      new Superform(name);
+      console.log('[Superform] Calling new Superform(', `[sf="${name}"]`, ')');
+      new Superform(`[sf="${name}"]`);
     });
   });
 }
