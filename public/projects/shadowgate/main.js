@@ -59,7 +59,7 @@ function initPageFunctions(container) {
   if (q('[data-button-animate-chars]'))  initButtonCharacterStagger();
   if (q('[data-link-animate-chars]'))    initLinkCharacterStagger();
   if (q('[data-sequence-wrap]'))         initImageSequenceScroll();
-  if (q('.h-hero_grid'))                 initHeroTitleReveal();
+  if (q('[hero-wrap]'))                   initHeroWrapReveal();
   if (q('[data-split]'))                 initSplitTextReveal();
   if (q('[data-reveal]'))                initReveal();
   if (q('[serv-list]'))                  initServList();
@@ -1304,26 +1304,47 @@ function initImageSequenceScroll() {
   });
 }
 
-// HERO TITLE REVEAL //
-function initHeroTitleReveal() {
-  const grid  = document.querySelector('.h-hero_grid');
-  const title = grid?.querySelector('.h-hero_title');
-  const bot   = grid?.querySelector('.h-hero_bot');
+// HERO WRAP REVEAL //
+function initHeroWrapReveal() {
+  const wrap = document.querySelector('[hero-wrap]');
+  if (!wrap) return;
 
-  if (!grid || !title || !bot) return;
+  const allEls = [...wrap.querySelectorAll('[hero-fade], [hero-heading], [hero-body]')];
+  if (!allEls.length) return;
 
-  gsap.set([title, bot], { opacity: 0, filter: 'blur(12px)' });
+  const rem          = parseFloat(getComputedStyle(document.documentElement).fontSize);
+  const ease         = 'osmo';
+  const DURATION     = 0.85;
+  const BASE_STAGGER = 0.14;
 
-  gsap.timeline({
+  const tl = gsap.timeline({
     scrollTrigger: {
-      trigger: grid,
-      start: 'top 80%',
-      end: 'bottom top',
-      toggleActions: 'play none none reverse',
+      trigger: wrap,
+      start: 'top top',
+      once: true,
     }
-  })
-    .to(title, { opacity: 1, filter: 'blur(0px)', duration: 1, ease: 'relaxed' })
-    .to(bot,   { opacity: 1, filter: 'blur(0px)', duration: 1, ease: 'relaxed' }, '-=0.3');
+  });
+
+  let offset = 0;
+
+  allEls.forEach((el) => {
+    if (el.hasAttribute('hero-fade')) {
+      gsap.set(el, { opacity: 0, filter: 'blur(10px)', y: rem });
+      tl.to(el, { opacity: 1, filter: 'blur(0px)', y: 0, duration: DURATION, ease }, offset);
+
+    } else if (el.hasAttribute('hero-heading')) {
+      const split = new SplitText(el, { type: 'words' });
+      gsap.set(split.words, { opacity: 0, filter: 'blur(8px)', y: rem });
+      tl.to(split.words, { opacity: 1, filter: 'blur(0px)', y: 0, duration: DURATION, ease, stagger: 0.06 }, offset);
+
+    } else if (el.hasAttribute('hero-body')) {
+      const split = new SplitText(el, { type: 'lines' });
+      gsap.set(split.lines, { opacity: 0, filter: 'blur(8px)', y: rem });
+      tl.to(split.lines, { opacity: 1, filter: 'blur(0px)', y: 0, duration: DURATION, ease, stagger: 0.08 }, offset);
+    }
+
+    offset += BASE_STAGGER;
+  });
 }
 
 // SPLIT TEXT REVEAL //
