@@ -64,6 +64,7 @@ function initPageFunctions(container) {
   if (q('[data-reveal]'))                initReveal();
   if (q('[serv-list]'))                  initServList();
   if (q('[data-globe]'))                 initDefenceGlobe(nextPage);
+  if (q('[data-swiper-group]'))          initSwiperSlider();
 }
 
 function destroyPageFunctions(container) {
@@ -248,6 +249,7 @@ function initBarbaNavUpdate(data) {
 
 const DEFENCE_GLOBE_WORLD_ATLAS_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
 const DEFENCE_GLOBE_DEFAULT_LOCATIONS = [
+  { name: 'Darwin',        lat: -12.4634, lng: 130.8456 },
   { name: 'Tindal',        lat: -14.5211, lng: 132.3783 },
   { name: 'Alice Springs', lat: -23.6980, lng: 133.8807 },
   { name: 'Woomera',       lat: -31.1999, lng: 136.8250 },
@@ -1457,6 +1459,63 @@ function initServList() {
       start: 'top top',
       onEnter: () => setActive(i),
       onEnterBack: () => setActive(i),
+    });
+  });
+}
+
+// SWIPER SLIDER //
+function initSwiperSlider() {
+  const swiperSliderGroups = document.querySelectorAll("[data-swiper-group]");
+  if (!swiperSliderGroups.length) return;
+
+  swiperSliderGroups.forEach((swiperGroup) => {
+    const swiperSliderWrap = swiperGroup.querySelector("[data-swiper-wrap]");
+    if (!swiperSliderWrap) return;
+
+    const prevButton = swiperGroup.querySelector("[data-swiper-prev]");
+    const nextButton = swiperGroup.querySelector("[data-swiper-next]");
+    const paginationEl = swiperGroup.querySelector(".swiper-pagination");
+
+    const syncSlideState = (swiperInstance) => {
+      swiperInstance.slides.forEach((slide, index) => {
+        const isActive = index === swiperInstance.activeIndex;
+
+        gsap.to(slide, {
+          opacity: isActive ? 1 : 0.5,
+          scale: isActive ? 1 : 0.95,
+          duration: 0.35,
+          ease: "power2.out",
+          overwrite: true,
+        });
+      });
+    };
+
+    new Swiper(swiperSliderWrap, {
+      slidesPerView: 1,
+      speed: 600,
+      mousewheel: true,
+      grabCursor: true,
+      navigation: {
+        nextEl: nextButton,
+        prevEl: prevButton,
+      },
+      pagination: {
+        el: paginationEl,
+        type: 'bullets',
+        clickable: true,
+      },
+      keyboard: {
+        enabled: true,
+        onlyInViewport: false,
+      },
+      on: {
+        init(swiperInstance) {
+          syncSlideState(swiperInstance);
+        },
+        slideChange(swiperInstance) {
+          syncSlideState(swiperInstance);
+        },
+      },
     });
   });
 }
