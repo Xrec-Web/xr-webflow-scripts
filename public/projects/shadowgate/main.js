@@ -47,30 +47,10 @@ function initOnceFunctions() {
 }
 
 function initSuperform(container) {
-  console.log('[Superform] initSuperform called', container);
-  const sfEls = container.querySelectorAll('[sf-form-block]');
-  console.log('[Superform] [sf-form-block] elements found:', sfEls.length, sfEls);
-  if (!sfEls.length) { console.warn('[Superform] No [sf-form-block] elements — skipping'); return; }
-  console.log('[Superform] SuperformAPI available:', typeof window.SuperformAPI);
-  window.SuperformAPI = window.SuperformAPI || [];
-  window.SuperformAPI.push(({ getForm }) => {
-    console.log('[Superform] SuperformAPI callback fired');
-    sfEls.forEach(el => {
-      const name = el.getAttribute('sf-form-block') || el.getAttribute('sf');
-      console.log('[Superform] Processing form name:', name, '| already inited:', !!getForm(name));
-      if (!name || getForm(name)) return;
-      const sfId = `sf-manual-${name}`;
-      el.removeAttribute('sf');
-      el.id = sfId;
-      console.log('[Superform] Calling new Superform(', `#${sfId}`, ')');
-      try {
-        const instance = new Superform(`#${sfId}`);
-        console.log('[Superform] Instance result:', instance);
-      } catch (e) {
-        console.error('[Superform] Error during init:', e);
-      }
-    });
-  });
+  if (!container.querySelector('[sf-form-block]')) return;
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/@deltaclan/superform@2/dist/superform.js';
+  document.head.appendChild(script);
 }
 
 function initPageFunctions(container) {
