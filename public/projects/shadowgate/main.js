@@ -60,6 +60,7 @@ function initSuperform(container) {
       console.log('[Superform] Processing form name:', name, '| already inited:', !!getForm(name));
       if (!name || getForm(name)) return;
       console.log('[Superform] Calling new Superform(', name, ')');
+      el.removeAttribute('sf');
       new Superform(name);
     });
   });
