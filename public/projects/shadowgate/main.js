@@ -46,6 +46,20 @@ function initOnceFunctions() {
   if (document.querySelector('[data-cursor]')) initScrambleTextCursor();
 }
 
+function initSuperform(container) {
+  const sfEls = container.querySelectorAll('[sf]');
+  if (!sfEls.length) return;
+  window.SuperformAPI = window.SuperformAPI || [];
+  window.SuperformAPI.push(({ getForm }) => {
+    sfEls.forEach(el => {
+      const name = el.getAttribute('sf');
+      if (getForm(name)) return;
+      el.removeAttribute('sf');
+      new Superform(name);
+    });
+  });
+}
+
 function initPageFunctions(container) {
   nextPage = container || document;
   const q = (s) => !!nextPage.matches?.(s) || !!nextPage.querySelector(s);
@@ -65,6 +79,7 @@ function initPageFunctions(container) {
   if (q('[serv-list]'))                  initServList();
   if (q('[data-globe]'))                 initDefenceGlobe(nextPage);
   if (q('[data-swiper-group]'))          initSwiperSlider();
+  if (q('[sf]'))                         initSuperform(nextPage);
 }
 
 function destroyPageFunctions(container) {
