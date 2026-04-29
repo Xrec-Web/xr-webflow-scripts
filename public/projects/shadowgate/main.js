@@ -48,6 +48,7 @@ function initOnceFunctions() {
 
 function initSuperform(container) {
   if (!container.querySelector('[sf-form-block]')) return;
+  document.querySelectorAll('script[src*="superform"]').forEach(s => s.remove());
   const script = document.createElement('script');
   script.src = 'https://cdn.jsdelivr.net/npm/@deltaclan/superform@2/dist/superform.js';
   document.head.appendChild(script);
