@@ -1404,14 +1404,15 @@ function initHeroWrapReveal() {
     offset += BASE_STAGGER;
   });
 
-  // On tablet/below play immediately; on desktop wait for the video (short fallback)
-  const video = !isTablet && wrap.querySelector('video');
-  if (video) {
-    let played = false;
-    const play = () => { if (played) return; played = true; tl.play(); };
-    video.readyState >= 3 ? play() : (video.addEventListener('canplay', play, { once: true }), setTimeout(play, 1000));
-  } else {
+  if (isTablet) {
     tl.play();
+  } else {
+    ScrollTrigger.create({
+      trigger: wrap,
+      start: 'top top',
+      once: true,
+      onEnter: () => tl.play(),
+    });
   }
 }
 
