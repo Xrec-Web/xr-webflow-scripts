@@ -187,9 +187,14 @@ barba.hooks.enter(data => {
 });
 
 barba.hooks.afterEnter(data => {
-  if (hasLenis) { lenis.resize(); lenis.start(); }
+  if (hasLenis) lenis.start();
   requestAnimationFrame(() => {
     initAfterEnterFunctions(data.next.container);
+    // Second RAF: content has rendered, re-sync lenis limits and ScrollTrigger
+    requestAnimationFrame(() => {
+      if (hasLenis) lenis.resize();
+      if (hasScrollTrigger) ScrollTrigger.refresh();
+    });
   });
 });
 
@@ -263,6 +268,10 @@ function resetPage(container) {
     window.scrollTo(0, 0);
   }
   gsap.set(container, { clearProps: 'position,top,left,right' });
+  // Force synchronous reflow so lenis reads the correct scrollHeight immediately,
+  // preventing it from locking touch scroll with a limit of 0
+  void document.documentElement.scrollHeight;
+  if (lenis) lenis.resize();
 }
 
 function initBarbaNavUpdate(data) {
