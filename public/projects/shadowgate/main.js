@@ -57,7 +57,6 @@ function initAfterEnterFunctions(next) {
   nextPage = next || document;
   const q = (s) => !!nextPage.matches?.(s) || !!nextPage.querySelector(s);
 
-  // Phase 1 — critical, above-fold, runs immediately
   if (q('[data-accordion-css-init]'))    initAccordionCSS();
   if (q('[data-form-validate]'))         initBasicFormValidation();
   if (q('[data-current-year]'))          initDynamicCurrentYear();
@@ -66,14 +65,14 @@ function initAfterEnterFunctions(next) {
   if (q('[hero-wrap]'))                  initHeroWrapReveal();
   if (q('.animated_mouse'))             initAnimatedMouse();
   if (q('[data-sequence-wrap]'))         initImageSequenceScroll();
-    if (q('.img:not(.no-para)'))         initImageScrollEffect();
-    if (q('[data-team-member]'))         initTeamInteractions();
-    if (q('.faq_toggle_inner'))          initFAQToggle();
-    if (q('[data-split]'))               initSplitTextReveal();
-    if (q('[data-reveal]'))              initReveal();
-    if (q('[serv-list]'))                initServList();
-    if (q('[data-swiper-group]'))        initSwiperSlider();
-    if (q('[data-globe]'))               initDefenceGlobe(nextPage);
+  if (q('.img:not(.no-para)'))           initImageScrollEffect();
+  if (q('[data-team-member]'))           initTeamInteractions();
+  if (q('.faq_toggle_inner'))            initFAQToggle();
+  if (q('[data-split]'))                 initSplitTextReveal();
+  if (q('[data-reveal]'))                initReveal();
+  if (q('[serv-list]'))                  initServList();
+  if (q('[data-swiper-group]'))          initSwiperSlider();
+  if (q('[data-globe]'))                 initDefenceGlobe(nextPage);
 }
 
 function destroyPageFunctions(container) {
@@ -261,8 +260,6 @@ function initLenis() {
   const resync = () => { lenis?.resize(); if (hasScrollTrigger) ScrollTrigger.refresh(); };
   if (document.fonts?.ready) document.fonts.ready.then(resync);
   window.addEventListener('load', resync);
-  setTimeout(resync, 500);
-  setTimeout(resync, 1500);
 }
 
 function resetPage(container) {
