@@ -66,9 +66,6 @@ function initAfterEnterFunctions(next) {
   if (q('[hero-wrap]'))                  initHeroWrapReveal();
   if (q('.animated_mouse'))             initAnimatedMouse();
   if (q('[data-sequence-wrap]'))         initImageSequenceScroll();
-
-  // Phase 2 — scroll-based and heavy, deferred so page is interactive first
-  setTimeout(() => {
     if (q('.img:not(.no-para)'))         initImageScrollEffect();
     if (q('[data-team-member]'))         initTeamInteractions();
     if (q('.faq_toggle_inner'))          initFAQToggle();
@@ -77,7 +74,6 @@ function initAfterEnterFunctions(next) {
     if (q('[serv-list]'))                initServList();
     if (q('[data-swiper-group]'))        initSwiperSlider();
     if (q('[data-globe]'))               initDefenceGlobe(nextPage);
-  }, 300);
 }
 
 function destroyPageFunctions(container) {
@@ -180,7 +176,7 @@ barba.hooks.beforeEnter(data => {
   initBeforeEnterFunctions(data.next.container);
 });
 
-barba.hooks.afterLeave(() => {
+barba.hooks.beforeLeave(() => {
   if (hasScrollTrigger) ScrollTrigger.getAll().forEach(t => t.kill());
 });
 
@@ -256,7 +252,6 @@ function applyThemeFrom(container) {
 }
 
 function initLenis() {
-  return; // TEMP: disabled for scroll-lock debugging
   if (lenis || !hasLenis) return;
   lenis = new Lenis({ lerp: 0.165, wheelMultiplier: 1.25 });
   if (hasScrollTrigger) lenis.on('scroll', ScrollTrigger.update);
