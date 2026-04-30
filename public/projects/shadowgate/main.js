@@ -2,762 +2,54 @@
 // Project: [Project Name]
 // Description: [Description]
 
-// ─── PLUGINS ─────────────────────────────────────────────────────────────────
+// ─── ALWAYS-ON SETUP ────────────────────────────────────────────────────────
 
 gsap.registerPlugin(SplitText, ScrollTrigger, InertiaPlugin, Observer, CustomEase, ScrambleTextPlugin);
 
-CustomEase.create('reveal',   'M0,0 C0.16,1 0.3,1 1,1');
-CustomEase.create('osmo',     'M0,0 C0.625,0.05 0,1 1,1');
-CustomEase.create('energy',   'M0,0 C0.32,0.72 0,1 1,1');
-CustomEase.create('smooth',   'M0,0 C0.38,0.005 0.215,1 1,1');
-CustomEase.create('punch',    'M0,0 C0.19,1 0.22,1 1,1');
-CustomEase.create('relaxed',  'M0,0 C0.7,0 0.3,1 1,1');
+CustomEase.create('reveal',    'M0,0 C0.16,1 0.3,1 1,1');
+CustomEase.create('osmo',      'M0,0 C0.625,0.05 0,1 1,1');
+CustomEase.create('energy',    'M0,0 C0.32,0.72 0,1 1,1');
+CustomEase.create('smooth',    'M0,0 C0.38,0.005 0.215,1 1,1');
+CustomEase.create('punch',     'M0,0 C0.19,1 0.22,1 1,1');
+CustomEase.create('relaxed',   'M0,0 C0.7,0 0.3,1 1,1');
 CustomEase.create('expo.inOut','M0,0 C0.87,0 0.13,1 1,1');
-CustomEase.create('jump',     'M0,0 C0.35,1.5 0.6,1 1,1');
-CustomEase.create('pop',      'M0,0 C0.17,0.67 0.3,1.33 1,1');
+CustomEase.create('jump',      'M0,0 C0.35,1.5 0.6,1 1,1');
+CustomEase.create('pop',       'M0,0 C0.17,0.67 0.3,1.33 1,1');
 
-
-// ─── BARBA SETUP ─────────────────────────────────────────────────────────────
-
-history.scrollRestoration = 'manual';
-
-let lenis = null;
-let nextPage = document;
-let onceFunctionsInitialized = false;
-
-const hasLenis = typeof window.Lenis !== 'undefined';
-const hasScrollTrigger = typeof window.ScrollTrigger !== 'undefined';
-
-const rmMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
-let reducedMotion = rmMQ.matches;
-rmMQ.addEventListener?.('change', e => (reducedMotion = e.matches));
-
-const has = (s) => !!nextPage.querySelector(s);
-
-
-// ─── INIT REGISTRIES ─────────────────────────────────────────────────────────
-
-function initOnceFunctions() {
-  initLenis();
-  if (onceFunctionsInitialized) return;
-  onceFunctionsInitialized = true;
-
-  // Runs once on first load only
-  if (document.querySelector('[data-cursor]')) initScrambleTextCursor();
-}
-
-function initBeforeEnterFunctions(next) {
-  nextPage = next || document;
-
-  // Runs before the enter animation
-  initSuperform(next);
-}
-
-function initAfterEnterFunctions(next) {
-  nextPage = next || document;
-  const q = (s) => !!nextPage.matches?.(s) || !!nextPage.querySelector(s);
-
-  if (q('[data-accordion-css-init]'))    initAccordionCSS();
-  if (q('[data-form-validate]'))         initBasicFormValidation();
-  if (q('[data-current-year]'))          initDynamicCurrentYear();
-  if (q('[data-button-animate-chars]'))  initButtonCharacterStagger();
-  if (q('[data-link-animate-chars]'))    initLinkCharacterStagger();
-  if (q('[hero-wrap]'))                  initHeroWrapReveal();
-  if (q('.animated_mouse'))             initAnimatedMouse();
-  if (q('[data-sequence-wrap]'))         initImageSequenceScroll();
-  if (q('.img:not(.no-para)'))           initImageScrollEffect();
-  if (q('[data-team-member]'))           initTeamInteractions();
-  if (q('.faq_toggle_inner'))            initFAQToggle();
-  if (q('[data-split]'))                 initSplitTextReveal();
-  if (q('[data-reveal]'))                initReveal();
-  if (q('[serv-list]'))                  initServList();
-  if (q('[data-swiper-group]'))          initSwiperSlider();
-  if (q('[data-globe]'))                 initDefenceGlobe(nextPage);
-}
-
-function destroyPageFunctions(container) {
-  destroyDefenceGlobes(container);
-}
-
-function initSuperform(container) {
-  if (!container?.querySelector('[sf-form-block]')) return;
-  document.querySelectorAll('script[src*="superform"]').forEach(s => s.remove());
-  delete window.SuperformAPI;
-  delete window.Superform;
-  const script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/@deltaclan/superform@2/dist/superform.js';
-  document.head.appendChild(script);
-}
-
-
-// ─── PAGE TRANSITIONS ────────────────────────────────────────────────────────
-
-function runPageOnceAnimation(next) {
-  const tl = gsap.timeline();
-  tl.call(() => resetPage(next), null, 0);
-  return tl;
-}
-
-function runPageLeaveAnimation(current) {
-  const tl = gsap.timeline({ onComplete: () => { destroyPageFunctions(current); current.remove(); } });
-
-  if (reducedMotion) return tl.set(current, { autoAlpha: 0 });
-
-  tl.to(current, { autoAlpha: 0, ease: 'power1.in', duration: 0.5 }, 0);
-  return tl;
-}
-
-function runPageEnterAnimation(next) {
-  const tl = gsap.timeline();
-
-  if (reducedMotion) {
-    tl.set(next, { autoAlpha: 1 });
-    tl.add('pageReady');
-    tl.call(resetPage, [next], 'pageReady');
-    return new Promise(resolve => tl.call(resolve, null, 'pageReady'));
-  }
-
-  tl.add('startEnter', 0);
-
-  tl.fromTo(next, { autoAlpha: 0 }, {
-    autoAlpha: 1,
-    ease: 'power1.inOut',
-    duration: 0.75,
-  }, 'startEnter');
-
-  // pageReady fires at the very start of the enter animation while the
-  // container is still invisible — position:fixed clears and lenis restarts
-  // immediately so the user can scroll as soon as they navigate
-  tl.add('pageReady', 'startEnter');
-  tl.call(resetPage, [next], 'pageReady');
-
-  const h1 = next.querySelector('h1');
-  if (h1) {
-    tl.fromTo(h1, { yPercent: 25, autoAlpha: 0 }, {
-      yPercent: 0,
-      autoAlpha: 1,
-      ease: 'expo.out',
-      duration: 1,
-    }, 'startEnter+=0.3');
-  }
-
-  return new Promise(resolve => tl.call(resolve, null, 'pageReady'));
-}
-
-// Pick-location leave: graphic expands + page fades, fires once as the leave transition
-function runPickLocationLeaveAnimation(current) {
-  const graphic = current.querySelector('[trigger-graphic]');
-  const fadeEl  = current.querySelector('[fade-out]');
-
-  const tl = gsap.timeline({ onComplete: () => { destroyPageFunctions(current); current.remove(); } });
-
-  if (reducedMotion) return tl.set(current, { autoAlpha: 0 });
-
-  if (graphic) {
-    tl.to(graphic, { width: '225%', duration: 1, ease: 'osmo' }, 0);
-    tl.to(graphic, { opacity: 0,    duration: 0.5, ease: 'osmo' }, 0);
-  }
-  if (fadeEl) {
-    tl.to(fadeEl, { opacity: 0, filter: 'blur(10px)', duration: 0.5, ease: 'osmo' }, 0);
-  }
-
-  return tl;
-}
-
-
-// ─── BARBA HOOKS ─────────────────────────────────────────────────────────────
-
-barba.hooks.beforeEnter(data => {
-  if (window.innerWidth >= 992) {
-    gsap.set(data.next.container, { position: 'fixed', top: 0, left: 0, right: 0 });
-  }
-  applyThemeFrom(data.next.container);
-  initBeforeEnterFunctions(data.next.container);
+const lenis = new Lenis({ lerp: 0.165, wheelMultiplier: 1.25 });
+lenis.on('scroll', ScrollTrigger.update);
+gsap.ticker.add((time) => {
+  lenis.raf(time * 1000);
 });
+gsap.ticker.lagSmoothing(0);
 
-barba.hooks.beforeLeave(() => {
-  if (hasScrollTrigger) ScrollTrigger.getAll().forEach(t => t.kill());
+const resync = () => { lenis.resize(); ScrollTrigger.refresh(); };
+if (document.fonts?.ready) document.fonts.ready.then(resync);
+window.addEventListener('load', resync);
+
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+// Each init is guarded — only runs if its trigger element exists on the page.
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.querySelector('[data-cursor]'))              initScrambleTextCursor();
+  if (document.querySelector('[data-accordion-css-init]')) initAccordionCSS();
+  if (document.querySelector('[data-form-validate]'))      initBasicFormValidation();
+  if (document.querySelector('[data-current-year]'))       initDynamicCurrentYear();
+  if (document.querySelector('[data-button-animate-chars]')) initButtonCharacterStagger();
+  if (document.querySelector('[data-link-animate-chars]')) initLinkCharacterStagger();
+  if (document.querySelector('[hero-wrap]'))               initHeroWrapReveal();
+  if (document.querySelector('.animated_mouse'))           initAnimatedMouse();
+  if (document.querySelector('[data-sequence-wrap]'))      initImageSequenceScroll();
+  if (document.querySelector('.img:not(.no-para)'))        initImageScrollEffect();
+  if (document.querySelector('[data-team-member]'))        initTeamInteractions();
+  if (document.querySelector('.faq_toggle_inner'))         initFAQToggle();
+  if (document.querySelector('[data-split]'))              initSplitTextReveal();
+  if (document.querySelector('[data-reveal]'))             initReveal();
+  if (document.querySelector('[serv-list]'))               initServList();
+  if (document.querySelector('[data-swiper-group]'))       initSwiperSlider();
+  if (document.querySelector('[data-globe]'))              initDefenceGlobe(document);
 });
-
-barba.hooks.enter(data => {
-  initBarbaNavUpdate(data);
-});
-
-barba.hooks.afterEnter(data => {
-  if (lenis) lenis.start();
-  requestAnimationFrame(() => {
-    initAfterEnterFunctions(data.next.container);
-    // Second RAF: content has rendered, re-sync lenis limits and ScrollTrigger
-    requestAnimationFrame(() => {
-      if (lenis) lenis.resize();
-      if (hasScrollTrigger) ScrollTrigger.refresh();
-    });
-  });
-});
-
-barba.init({
-  debug: false,
-  timeout: 7000,
-  preventRunning: true,
-  transitions: [
-    {
-      name: 'pick-location',
-      custom: ({ trigger }) => trigger?.hasAttribute?.('trigger-animation'),
-      sync: true,
-      async once(data) {
-        initOnceFunctions();
-        return runPageOnceAnimation(data.next.container);
-      },
-      async leave(data) {
-        return runPickLocationLeaveAnimation(data.current.container);
-      },
-      async enter(data) {
-        return runPageEnterAnimation(data.next.container);
-      },
-    },
-    {
-      name: 'default',
-      sync: true,
-      async once(data) {
-        initOnceFunctions();
-        return runPageOnceAnimation(data.next.container);
-      },
-      async leave(data) {
-        return runPageLeaveAnimation(data.current.container);
-      },
-      async enter(data) {
-        return runPageEnterAnimation(data.next.container);
-      },
-    },
-  ],
-});
-
-
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
-
-const themeConfig = {
-  light: { nav: 'dark',  transition: 'light' },
-  dark:  { nav: 'light', transition: 'dark'  },
-};
-
-function applyThemeFrom(container) {
-  const pageTheme = container?.dataset?.pageTheme || 'light';
-  const config = themeConfig[pageTheme] || themeConfig.light;
-  document.body.dataset.pageTheme = pageTheme;
-  const transitionEl = document.querySelector('[data-theme-transition]');
-  if (transitionEl) transitionEl.dataset.themeTransition = config.transition;
-  const nav = document.querySelector('[data-theme-nav]');
-  if (nav) nav.dataset.themeNav = config.nav;
-}
-
-function initLenis() {
-  if (lenis || !hasLenis) return;
-  lenis = new Lenis({ lerp: 0.165, wheelMultiplier: 1.25 });
-  if (hasScrollTrigger) lenis.on('scroll', ScrollTrigger.update);
-  gsap.ticker.add((time) => lenis.raf(time * 1000));
-  gsap.ticker.lagSmoothing(0);
-
-  const resync = () => { lenis?.resize(); if (hasScrollTrigger) ScrollTrigger.refresh(); };
-  if (document.fonts?.ready) document.fonts.ready.then(resync);
-  window.addEventListener('load', resync);
-}
-
-function resetPage(container) {
-  if (lenis) lenis.scrollTo(0, { immediate: true });
-  else window.scrollTo(0, 0);
-  gsap.set(container, { clearProps: 'position,top,left,right' });
-  void document.documentElement.scrollHeight;
-  if (lenis) {
-    lenis.resize();
-    requestAnimationFrame(() => lenis.resize());
-  }
-}
-
-function initBarbaNavUpdate(data) {
-  const tpl = document.createElement('template');
-  tpl.innerHTML = data.next.html.trim();
-  const nextNodes    = tpl.content.querySelectorAll('[data-barba-update]');
-  const currentNodes = document.querySelectorAll('nav [data-barba-update]');
-  currentNodes.forEach((curr, i) => {
-    const next = nextNodes[i];
-    if (!next) return;
-    const newStatus = next.getAttribute('aria-current');
-    if (newStatus !== null) curr.setAttribute('aria-current', newStatus);
-    else curr.removeAttribute('aria-current');
-    curr.setAttribute('class', next.getAttribute('class') || '');
-  });
-}
-
-const DEFENCE_GLOBE_WORLD_ATLAS_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
-const DEFENCE_GLOBE_DEFAULT_LOCATIONS = [
-  { name: 'Darwin',        lat: -12.4634, lng: 130.8456 },
-  { name: 'Tindal',        lat: -14.5211, lng: 132.3783 },
-  { name: 'Alice Springs', lat: -23.6980, lng: 133.8807 },
-  { name: 'Woomera',       lat: -31.1999, lng: 136.8250 },
-  { name: 'Exmouth',       lat: -21.9323, lng: 114.1278 },
-  { name: 'Geraldton',     lat: -28.7744, lng: 114.6089 },
-  { name: 'Canberra',      lat: -35.2809, lng: 149.1300 },
-];
-const DEFENCE_GLOBE_US_LOCATIONS = [
-  { name: 'Northern Virginia', lat: 38.9696, lng: -77.3861 },
-  { name: 'Washington D.C.',   lat: 38.9072, lng: -77.0369 },
-  { name: 'Arlington',         lat: 38.8799, lng: -77.1068 },
-  { name: 'Maryland',          lat: 39.0458, lng: -76.6122 },
-  { name: 'Colorado Springs',  lat: 38.8339, lng: -104.8214 },
-  { name: 'Los Angeles',       lat: 34.0522, lng: -118.2437 },
-  { name: 'Cape Canaveral',    lat: 28.3922, lng: -80.6077 },
-];
-const DEFENCE_GLOBE_DEFAULT_COLOR = '#547EA3';
-const DEFENCE_GLOBE_AUSTRALIA_CENTER = { lat: -25.0, lng: 133.0 };
-
-let defenceGlobeModulesPromise = null;
-
-function initDefenceGlobe(container) {
-  initDefenceGlobes(container).catch((err) => {
-    console.error('[DefenceGlobe] init failed:', err);
-  });
-}
-
-function getDefenceGlobeElements(scope = document) {
-  const elements = [];
-  if (scope instanceof Element && scope.matches('[data-globe]')) elements.push(scope);
-  if (scope?.querySelectorAll) elements.push(...scope.querySelectorAll('[data-globe]'));
-  return elements;
-}
-
-function destroyDefenceGlobes(scope = document) {
-  getDefenceGlobeElements(scope).forEach((container) => {
-    container._defenceGlobeObserver?.disconnect?.();
-    delete container._defenceGlobeObserver;
-    container._defenceGlobe?.destroy?.();
-    delete container._defenceGlobe;
-  });
-}
-
-async function loadDefenceGlobeModules() {
-  if (!defenceGlobeModulesPromise) {
-    defenceGlobeModulesPromise = Promise.all([
-      import('https://esm.sh/three@0.160.0'),
-      import('https://esm.sh/topojson-client@3'),
-    ]).then(([THREE, topojsonMod]) => ({
-      THREE,
-      topojsonMod,
-    }));
-  }
-
-  return defenceGlobeModulesPromise;
-}
-
-function hexToRgbNorm(hex) {
-  const clean  = hex.replace('#', '');
-  const bigint = parseInt(clean, 16);
-  return {
-    r: ((bigint >> 16) & 255) / 255,
-    g: ((bigint >> 8)  & 255) / 255,
-    b: ( bigint        & 255) / 255,
-    hex: bigint,
-  };
-}
-
-function lightenHex(hexInt, amount = 0.3) {
-  const r = Math.min(255, ((hexInt >> 16) & 255) + 255 * amount);
-  const g = Math.min(255, ((hexInt >> 8)  & 255) + 255 * amount);
-  const b = Math.min(255, ( hexInt        & 255) + 255 * amount);
-  return (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(b);
-}
-
-function createLngLatToVec3(THREE, lng, lat, radius) {
-  const phi   = (90 - lat) * (Math.PI / 180);
-  const theta = (lng + 180) * (Math.PI / 180);
-  return new THREE.Vector3(
-    -(radius * Math.sin(phi) * Math.cos(theta)),
-      radius * Math.cos(phi),
-      radius * Math.sin(phi) * Math.sin(theta)
-  );
-}
-
-async function initDefenceGlobes(scope = document, options = {}) {
-  const { lazy = true, rootMargin = '200px', ...globeOptions } = options;
-
-  getDefenceGlobeElements(scope).forEach((container) => {
-    if (container.hasAttribute('data-globe-initialised')) return;
-
-    if (!lazy || typeof IntersectionObserver === 'undefined') {
-      initDefenceGlobeInstance(container, globeOptions).catch((err) => {
-        console.error('[DefenceGlobe] init failed:', err);
-      });
-      return;
-    }
-
-    if (container._defenceGlobeObserver) return;
-
-    const observer = new IntersectionObserver((entries, obs) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        obs.unobserve(entry.target);
-        obs.disconnect();
-        delete container._defenceGlobeObserver;
-        initDefenceGlobeInstance(entry.target, globeOptions).catch((err) => {
-          console.error('[DefenceGlobe] init failed:', err);
-        });
-      });
-    }, { rootMargin });
-
-    container._defenceGlobeObserver = observer;
-    observer.observe(container);
-  });
-}
-
-async function initDefenceGlobeInstance(container, options = {}) {
-  if (container.hasAttribute('data-globe-initialised')) return container._defenceGlobe;
-  container.setAttribute('data-globe-initialised', 'true');
-
-  const { THREE, topojsonMod } = await loadDefenceGlobeModules();
-  const accentHex = options.color || container.dataset.globeColor || DEFENCE_GLOBE_DEFAULT_COLOR;
-  const isUS    = container.dataset.globe === 'us';
-  let locations = options.locations || (isUS ? DEFENCE_GLOBE_US_LOCATIONS : DEFENCE_GLOBE_DEFAULT_LOCATIONS);
-
-  if (container.dataset.globeLocations) {
-    try { locations = JSON.parse(container.dataset.globeLocations); }
-    catch { console.warn('[DefenceGlobe] Invalid data-globe-locations JSON, using defaults.'); }
-  }
-
-  const zoomAttr = options.zoom || container.dataset.globeZoom || 'auto';
-  const accent   = hexToRgbNorm(accentHex);
-  const ACCENT_HEX   = accent.hex;
-  const ACCENT_LIGHT = lightenHex(ACCENT_HEX, 0.3);
-  const ACCENT_RGB   = { r: accent.r, g: accent.g, b: accent.b };
-
-  container.style.setProperty('--dg-accent', accentHex);
-  const rgbStr = `${Math.round(accent.r * 255)}, ${Math.round(accent.g * 255)}, ${Math.round(accent.b * 255)}`;
-  container.style.setProperty('--dg-rule', `rgba(${rgbStr}, 0.35)`);
-
-  const canvas     = Object.assign(document.createElement('canvas'), { className: 'dg-canvas' });
-  const vignette   = Object.assign(document.createElement('div'), { className: 'dg-vignette' });
-  const labelLayer = Object.assign(document.createElement('div'), { className: 'dg-pin-labels' });
-  container.append(canvas, vignette, labelLayer);
-
-  const topology = await fetch(DEFENCE_GLOBE_WORLD_ATLAS_URL).then((r) => r.json()).catch(() => null);
-  const getSize = () => ({ w: container.clientWidth || 1, h: container.clientHeight || 1 });
-  const size    = getSize();
-  const scene   = new THREE.Scene();
-  const camera  = new THREE.PerspectiveCamera(35, size.w / size.h, 0.1, 1000);
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(size.w, size.h, false);
-
-  const GLOBE_RADIUS = 1.6;
-  const globeGroup   = new THREE.Group();
-  scene.add(globeGroup);
-
-  globeGroup.add(new THREE.Mesh(
-    new THREE.SphereGeometry(GLOBE_RADIUS, 96, 96),
-    new THREE.MeshBasicMaterial({ color: 0x081624 })
-  ));
-
-  const gratMat = new THREE.LineBasicMaterial({ color: ACCENT_HEX, transparent: true, opacity: 0.22 });
-  for (let lat = -60; lat <= 60; lat += 15) {
-    const pts = [];
-    for (let lng = -180; lng <= 180; lng += 2) pts.push(createLngLatToVec3(THREE, lng, lat, GLOBE_RADIUS * 1.001));
-    globeGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gratMat));
-  }
-  for (let lng = -180; lng < 180; lng += 15) {
-    const pts = [];
-    for (let lat = -85; lat <= 85; lat += 2) pts.push(createLngLatToVec3(THREE, lng, lat, GLOBE_RADIUS * 1.001));
-    globeGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gratMat));
-  }
-
-  if (topology) {
-    try {
-      const countriesGeo = topojsonMod.feature(topology, topology.objects.countries);
-      const lineMat      = new THREE.LineBasicMaterial({ color: ACCENT_HEX, transparent: true, opacity: 0.95 });
-      const r            = GLOBE_RADIUS * 1.003;
-
-      countriesGeo.features.forEach(({ geometry: geom }) => {
-        if (!geom) return;
-        const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
-        polys.forEach((poly) => poly.forEach((ring) => {
-          const points = [];
-          for (let i = 0; i < ring.length - 1; i++) {
-            const [lng1, lat1] = ring[i];
-            const [lng2, lat2] = ring[i + 1];
-            const steps = Math.max(2, Math.ceil(Math.hypot(lng2 - lng1, lat2 - lat1)));
-            for (let s = 0; s < steps; s++) {
-              const t = s / steps;
-              points.push(createLngLatToVec3(THREE, lng1 + (lng2 - lng1) * t, lat1 + (lat2 - lat1) * t, r));
-            }
-          }
-          const [lngEnd, latEnd] = ring[ring.length - 1];
-          points.push(createLngLatToVec3(THREE, lngEnd, latEnd, r));
-          globeGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMat));
-        }));
-      });
-    } catch (err) {
-      console.warn('[DefenceGlobe] Country boundaries parse failed:', err);
-    }
-  }
-
-  scene.add(new THREE.Mesh(
-    new THREE.SphereGeometry(GLOBE_RADIUS * 1.06, 64, 64),
-    new THREE.ShaderMaterial({
-      uniforms: { uColor: { value: new THREE.Color(ACCENT_RGB.r, ACCENT_RGB.g, ACCENT_RGB.b) } },
-      vertexShader: `
-        varying vec3 vNormal; varying vec3 vPositionNormal;
-        void main() {
-          vNormal = normalize(normalMatrix * normal);
-          vPositionNormal = normalize((modelViewMatrix * vec4(position, 1.0)).xyz);
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }`,
-      fragmentShader: `
-        uniform vec3 uColor; varying vec3 vNormal; varying vec3 vPositionNormal;
-        void main() {
-          float intensity = pow(1.0 + dot(vNormal, vPositionNormal), 3.5);
-          gl_FragColor = vec4(uColor, 1.0) * intensity * 0.5;
-        }`,
-      blending: THREE.AdditiveBlending,
-      side: THREE.BackSide,
-      transparent: true,
-      depthWrite: false,
-    })
-  ));
-
-  const starCount = 1500;
-  const starPositions = new Float32Array(starCount * 3);
-  for (let i = 0; i < starCount; i++) {
-    const r     = 80 + Math.random() * 40;
-    const theta = Math.random() * Math.PI * 2;
-    const phi   = Math.acos(2 * Math.random() - 1);
-    starPositions[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
-    starPositions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-    starPositions[i * 3 + 2] = r * Math.cos(phi);
-  }
-  const starGeo = new THREE.BufferGeometry();
-  starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-  const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
-    color: 0xaaccee, size: 0.4, transparent: true, opacity: 0.6, sizeAttenuation: true,
-  }));
-  scene.add(stars);
-
-  const markers = [];
-  locations.forEach((loc) => {
-    const pos    = createLngLatToVec3(THREE, loc.lng, loc.lat, GLOBE_RADIUS * 1.004);
-    const normal = pos.clone().normalize();
-
-    const dot = new THREE.Mesh(
-      new THREE.SphereGeometry(0.012, 16, 16),
-      new THREE.MeshBasicMaterial({ color: ACCENT_LIGHT })
-    );
-    dot.position.copy(pos);
-    globeGroup.add(dot);
-
-    const halo = new THREE.Mesh(
-      new THREE.RingGeometry(0.014, 0.018, 32),
-      new THREE.MeshBasicMaterial({ color: ACCENT_HEX, transparent: true, opacity: 0.7, side: THREE.DoubleSide })
-    );
-    halo.position.copy(pos).add(normal.clone().multiplyScalar(0.001));
-    halo.lookAt(normal.clone().multiplyScalar(2));
-    globeGroup.add(halo);
-
-    const pulse = new THREE.Mesh(
-      new THREE.RingGeometry(0.014, 0.016, 48),
-      new THREE.MeshBasicMaterial({ color: ACCENT_HEX, transparent: true, opacity: 0.7, side: THREE.DoubleSide })
-    );
-    pulse.position.copy(pos).add(normal.clone().multiplyScalar(0.002));
-    pulse.lookAt(normal.clone().multiplyScalar(2));
-    globeGroup.add(pulse);
-
-    markers.push({ data: loc, worldPos: pos.clone(), normal, halo, pulse, dot, phase: Math.random() * Math.PI * 2 });
-  });
-
-  function createArc(start, end, heightFactor = 0.2) {
-    const distance    = start.distanceTo(end);
-    const mid         = start.clone().add(end).multiplyScalar(0.5);
-    const chordMidLen = mid.length();
-    mid.normalize().multiplyScalar(chordMidLen + distance * heightFactor);
-    const curve  = new THREE.QuadraticBezierCurve3(start, mid, end);
-    const points = curve.getPoints(64);
-    const geo    = new THREE.BufferGeometry().setFromPoints(points);
-    const colors = [];
-    for (let i = 0; i <= 64; i++) {
-      const fade = Math.sin((i / 64) * Math.PI);
-      colors.push(ACCENT_RGB.r * fade, ACCENT_RGB.g * fade, ACCENT_RGB.b * fade);
-    }
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-    return {
-      line: new THREE.Line(geo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.6 })),
-      points,
-    };
-  }
-
-  const connections = [];
-  const seen = new Set();
-  markers.forEach((m, i) => {
-    markers
-      .map((other, j) => ({ j, d: i === j ? Infinity : m.worldPos.distanceTo(other.worldPos) }))
-      .sort((a, b) => a.d - b.d)
-      .slice(0, 2)
-      .forEach(({ j }) => {
-        const key = i < j ? `${i}-${j}` : `${j}-${i}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          connections.push([i, j]);
-        }
-      });
-  });
-
-  const arcs = connections.map(([a, b]) => {
-    const arc = createArc(markers[a].worldPos, markers[b].worldPos);
-    globeGroup.add(arc.line);
-    return arc;
-  });
-
-  const pulseParticles = arcs.map((arc) => {
-    const mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.008, 12, 12),
-      new THREE.MeshBasicMaterial({ color: ACCENT_LIGHT, transparent: true, opacity: 1 })
-    );
-    globeGroup.add(mesh);
-    return { mesh, points: arc.points, progress: Math.random(), speed: 0.003 + Math.random() * 0.003 };
-  });
-
-  // Group nearby markers into shared labels so close points don't overlap
-  const CLUSTER_THRESHOLD = 0.12; // ~480 km on Earth
-  const clusterGroups = [];
-  const assigned = new Set();
-  markers.forEach((m, i) => {
-    if (assigned.has(i)) return;
-    const group = [i];
-    assigned.add(i);
-    markers.forEach((other, j) => {
-      if (i === j || assigned.has(j)) return;
-      if (m.worldPos.distanceTo(other.worldPos) < CLUSTER_THRESHOLD) {
-        group.push(j);
-        assigned.add(j);
-      }
-    });
-    clusterGroups.push(group);
-  });
-
-  const clusterLabelEls = clusterGroups.map((group) => {
-    const el = document.createElement('div');
-    el.className = 'dg-pin-label';
-    if (group.length > 1) {
-      el.style.cssText = 'display:flex;flex-direction:column;';
-      group.forEach((idx, lineIdx) => {
-        const line = document.createElement('div');
-        line.textContent = markers[idx].data.name;
-        if (lineIdx > 0) {
-          line.style.cssText = 'border-top:1px solid rgba(84,126,163,0.3);padding-top:4px;margin-top:2px;';
-        }
-        el.appendChild(line);
-      });
-    } else {
-      el.textContent = markers[group[0]].data.name;
-    }
-    labelLayer.appendChild(el);
-    return el;
-  });
-
-  let centreLat = DEFENCE_GLOBE_AUSTRALIA_CENTER.lat;
-  let centreLng = DEFENCE_GLOBE_AUSTRALIA_CENTER.lng;
-  if (locations.length > 0) {
-    centreLat = locations.reduce((sum, loc) => sum + loc.lat, 0) / locations.length;
-    centreLng = locations.reduce((sum, loc) => sum + loc.lng, 0) / locations.length;
-  }
-  const centreVec = createLngLatToVec3(THREE, centreLng, centreLat, 1).normalize();
-  const CAM_DISTANCE = zoomAttr === 'auto' ? (isUS ? 5.0 : 4.2) : Math.max(3.2, Math.min(6, parseFloat(zoomAttr)));
-  camera.position.copy(centreVec.clone().multiplyScalar(CAM_DISTANCE));
-  camera.lookAt(0, 0, 0);
-
-  let currentW = size.w;
-  let currentH = size.h;
-  const resizeObserver = new ResizeObserver(() => {
-    const { w, h } = getSize();
-    if (w === currentW && h === currentH) return;
-    currentW = w;
-    currentH = h;
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    renderer.setSize(w, h, false);
-  });
-  resizeObserver.observe(container);
-
-  const clock = new THREE.Clock();
-  let rafId = null;
-
-  function updatePinLabels() {
-    const tempVec = new THREE.Vector3();
-    const centroid = new THREE.Vector3();
-    const { w, h } = getSize();
-    clusterGroups.forEach((group, gi) => {
-      centroid.set(0, 0, 0);
-      group.forEach(idx => centroid.add(markers[idx].worldPos));
-      centroid.divideScalar(group.length);
-      tempVec.copy(centroid).applyMatrix4(globeGroup.matrixWorld);
-      const facing = -tempVec.clone().sub(camera.position).normalize().dot(tempVec.clone().normalize());
-      tempVec.project(camera);
-      const el = clusterLabelEls[gi];
-      if (facing > 0.1 && tempVec.z < 1) {
-        el.style.left    = `${(tempVec.x * 0.5 + 0.5) * w}px`;
-        el.style.top     = `${(-tempVec.y * 0.5 + 0.5) * h}px`;
-        el.style.opacity = Math.min(1, (facing - 0.1) * 4);
-      } else {
-        el.style.opacity = 0;
-      }
-    });
-  }
-
-  function animate() {
-    const t = clock.getElapsedTime();
-
-    markers.forEach((marker) => {
-      const phase = (t * 0.7 + marker.phase / 4) % 1;
-      marker.pulse.scale.setScalar(1 + phase * 0.8);
-      marker.pulse.material.opacity = 0.7 * (1 - phase);
-    });
-
-    pulseParticles.forEach((particle) => {
-      particle.progress += particle.speed;
-      if (particle.progress > 1) particle.progress = 0;
-      const idx     = Math.floor(particle.progress * (particle.points.length - 1));
-      const nextIdx = Math.min(idx + 1, particle.points.length - 1);
-      const localT  = (particle.progress * (particle.points.length - 1)) - idx;
-      particle.mesh.position.lerpVectors(particle.points[idx], particle.points[nextIdx], localT);
-      const fade = Math.sin(particle.progress * Math.PI);
-      particle.mesh.material.opacity = fade;
-      particle.mesh.scale.setScalar(0.8 + fade * 0.5);
-    });
-
-    stars.material.opacity = 0.55 + Math.sin(t * 0.5) * 0.08;
-    updatePinLabels();
-    renderer.render(scene, camera);
-    rafId = requestAnimationFrame(animate);
-  }
-
-  animate();
-
-  const instance = {
-    destroy() {
-      if (rafId) cancelAnimationFrame(rafId);
-      resizeObserver.disconnect();
-      renderer.dispose();
-      scene.traverse((obj) => {
-        obj.geometry?.dispose();
-        if (obj.material) {
-          Array.isArray(obj.material) ? obj.material.forEach((material) => material.dispose()) : obj.material.dispose();
-        }
-      });
-      container.innerHTML = '';
-      container.removeAttribute('data-globe-initialised');
-    },
-  };
-
-  container._defenceGlobe = instance;
-  return instance;
-}
-
-
-// ─── FUNCTIONS ───────────────────────────────────────────────────────────────
 
 
 // ─── FUNCTIONS ───────────────────────────────────────────────────────────────
@@ -1193,7 +485,6 @@ function initImageSequenceScroll() {
   const wraps = document.querySelectorAll('[data-sequence-wrap]');
 
   wraps.forEach((wrap) => {
-    // Prevent double-initializing
     if (wrap.dataset.sequenceInit === 'true') return;
     wrap.dataset.sequenceInit = 'true';
 
@@ -1201,7 +492,6 @@ function initImageSequenceScroll() {
     const canvas = element && element.querySelector('[data-sequence-canvas]');
     if (!element || !canvas) return;
 
-    // Data attributes and their fallbacks
     const frames = parseInt(canvas.dataset.frames, 10) || 1;
     const digits = parseInt(canvas.dataset.digits, 10) || 3;
     const indexStart = parseInt(canvas.dataset.indexStart, 10) || 1;
@@ -1217,10 +507,8 @@ function initImageSequenceScroll() {
     const baseUrl = isMobile ? mobileSrc : desktopSrc;
     const lastIndex = indexStart + frames - 1;
 
-    // Track last rendered scroll progress so we can redraw on resize
     let lastProgress = 0;
 
-    // Canvas setup (size to the sticky element)
     const ctx = canvas.getContext('2d');
     function resizeCanvas() {
       const dpr = window.devicePixelRatio || 1;
@@ -1235,13 +523,11 @@ function initImageSequenceScroll() {
     }
     resizeCanvas();
 
-    // Image cache and loading queue
     const loaded = new Map();
     const queue = [];
     let processingQueue = false;
     let resizeTimer;
 
-    // Draw helper (canvas equivalent of object-fit: cover)
     function drawCover(img) {
       if (!img) return;
       resizeCanvas();
@@ -1290,7 +576,6 @@ function initImageSequenceScroll() {
       };
     }
 
-    // Daybreak-style progressive loader (binary midpoint / "wave" fill)
     function processQueue() {
       if (processingQueue) return;
       const next = queue.shift();
@@ -1356,7 +641,6 @@ function initImageSequenceScroll() {
       }
     }
 
-    // Reduced motion: draw a single static image (or first frame fallback)
     if (reduceMotion) {
       if (staticSrc) {
         const staticImage = new Image();
@@ -1373,10 +657,8 @@ function initImageSequenceScroll() {
       return;
     }
 
-    // Begin loading frames in the background
     startLoading();
 
-    // Set up ScrollTrigger
     const st = ScrollTrigger.create({
       trigger: wrap,
       start: startTrigger,
@@ -1388,7 +670,6 @@ function initImageSequenceScroll() {
       }
     });
 
-    // Draw once immediately
     lastProgress = st.progress || 0;
     render(lastProgress);
 
@@ -1474,7 +755,6 @@ function initSplitTextReveal() {
     if (!items.length) return;
     const isLine = type === 'lines';
 
-    // Wrap each item in an overflow:hidden mask
     items.forEach(item => {
       const mask = document.createElement('div');
       mask.classList.add('split-mask');
@@ -1563,11 +843,7 @@ function initServList() {
     row.style.cursor = 'pointer';
     row.addEventListener('click', () => {
       setActive(i);
-      if (lenis) {
-        lenis.scrollTo(items[i], { duration: 1.1 });
-      } else {
-        items[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      lenis.scrollTo(items[i], { duration: 1.1 });
     });
   });
 
@@ -1583,7 +859,7 @@ function initServList() {
 
 // ANIMATED MOUSE //
 function initAnimatedMouse() {
-  const mouse = nextPage.querySelector('.animated_mouse');
+  const mouse = document.querySelector('.animated_mouse');
   if (!mouse) return;
   const inner = mouse.querySelector('.animated_inner');
   if (!inner) return;
@@ -1688,4 +964,474 @@ function initSwiperSlider() {
       },
     });
   });
+}
+
+
+// ─── DEFENCE GLOBE ───────────────────────────────────────────────────────────
+
+const DEFENCE_GLOBE_WORLD_ATLAS_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
+const DEFENCE_GLOBE_DEFAULT_LOCATIONS = [
+  { name: 'Darwin',        lat: -12.4634, lng: 130.8456 },
+  { name: 'Tindal',        lat: -14.5211, lng: 132.3783 },
+  { name: 'Alice Springs', lat: -23.6980, lng: 133.8807 },
+  { name: 'Woomera',       lat: -31.1999, lng: 136.8250 },
+  { name: 'Exmouth',       lat: -21.9323, lng: 114.1278 },
+  { name: 'Geraldton',     lat: -28.7744, lng: 114.6089 },
+  { name: 'Canberra',      lat: -35.2809, lng: 149.1300 },
+];
+const DEFENCE_GLOBE_US_LOCATIONS = [
+  { name: 'Northern Virginia', lat: 38.9696, lng: -77.3861 },
+  { name: 'Washington D.C.',   lat: 38.9072, lng: -77.0369 },
+  { name: 'Arlington',         lat: 38.8799, lng: -77.1068 },
+  { name: 'Maryland',          lat: 39.0458, lng: -76.6122 },
+  { name: 'Colorado Springs',  lat: 38.8339, lng: -104.8214 },
+  { name: 'Los Angeles',       lat: 34.0522, lng: -118.2437 },
+  { name: 'Cape Canaveral',    lat: 28.3922, lng: -80.6077 },
+];
+const DEFENCE_GLOBE_DEFAULT_COLOR = '#547EA3';
+const DEFENCE_GLOBE_AUSTRALIA_CENTER = { lat: -25.0, lng: 133.0 };
+
+let defenceGlobeModulesPromise = null;
+
+function initDefenceGlobe(container) {
+  initDefenceGlobes(container).catch((err) => {
+    console.error('[DefenceGlobe] init failed:', err);
+  });
+}
+
+function getDefenceGlobeElements(scope = document) {
+  const elements = [];
+  if (scope instanceof Element && scope.matches('[data-globe]')) elements.push(scope);
+  if (scope?.querySelectorAll) elements.push(...scope.querySelectorAll('[data-globe]'));
+  return elements;
+}
+
+function destroyDefenceGlobes(scope = document) {
+  getDefenceGlobeElements(scope).forEach((container) => {
+    container._defenceGlobeObserver?.disconnect?.();
+    delete container._defenceGlobeObserver;
+    container._defenceGlobe?.destroy?.();
+    delete container._defenceGlobe;
+  });
+}
+
+async function loadDefenceGlobeModules() {
+  if (!defenceGlobeModulesPromise) {
+    defenceGlobeModulesPromise = Promise.all([
+      import('https://esm.sh/three@0.160.0'),
+      import('https://esm.sh/topojson-client@3'),
+    ]).then(([THREE, topojsonMod]) => ({
+      THREE,
+      topojsonMod,
+    }));
+  }
+
+  return defenceGlobeModulesPromise;
+}
+
+function hexToRgbNorm(hex) {
+  const clean  = hex.replace('#', '');
+  const bigint = parseInt(clean, 16);
+  return {
+    r: ((bigint >> 16) & 255) / 255,
+    g: ((bigint >> 8)  & 255) / 255,
+    b: ( bigint        & 255) / 255,
+    hex: bigint,
+  };
+}
+
+function lightenHex(hexInt, amount = 0.3) {
+  const r = Math.min(255, ((hexInt >> 16) & 255) + 255 * amount);
+  const g = Math.min(255, ((hexInt >> 8)  & 255) + 255 * amount);
+  const b = Math.min(255, ( hexInt        & 255) + 255 * amount);
+  return (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(b);
+}
+
+function createLngLatToVec3(THREE, lng, lat, radius) {
+  const phi   = (90 - lat) * (Math.PI / 180);
+  const theta = (lng + 180) * (Math.PI / 180);
+  return new THREE.Vector3(
+    -(radius * Math.sin(phi) * Math.cos(theta)),
+      radius * Math.cos(phi),
+      radius * Math.sin(phi) * Math.sin(theta)
+  );
+}
+
+async function initDefenceGlobes(scope = document, options = {}) {
+  const { lazy = true, rootMargin = '200px', ...globeOptions } = options;
+
+  getDefenceGlobeElements(scope).forEach((container) => {
+    if (container.hasAttribute('data-globe-initialised')) return;
+
+    if (!lazy || typeof IntersectionObserver === 'undefined') {
+      initDefenceGlobeInstance(container, globeOptions).catch((err) => {
+        console.error('[DefenceGlobe] init failed:', err);
+      });
+      return;
+    }
+
+    if (container._defenceGlobeObserver) return;
+
+    const observer = new IntersectionObserver((entries, obs) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        obs.unobserve(entry.target);
+        obs.disconnect();
+        delete container._defenceGlobeObserver;
+        initDefenceGlobeInstance(entry.target, globeOptions).catch((err) => {
+          console.error('[DefenceGlobe] init failed:', err);
+        });
+      });
+    }, { rootMargin });
+
+    container._defenceGlobeObserver = observer;
+    observer.observe(container);
+  });
+}
+
+async function initDefenceGlobeInstance(container, options = {}) {
+  if (container.hasAttribute('data-globe-initialised')) return container._defenceGlobe;
+  container.setAttribute('data-globe-initialised', 'true');
+
+  const { THREE, topojsonMod } = await loadDefenceGlobeModules();
+  const accentHex = options.color || container.dataset.globeColor || DEFENCE_GLOBE_DEFAULT_COLOR;
+  const isUS    = container.dataset.globe === 'us';
+  let locations = options.locations || (isUS ? DEFENCE_GLOBE_US_LOCATIONS : DEFENCE_GLOBE_DEFAULT_LOCATIONS);
+
+  if (container.dataset.globeLocations) {
+    try { locations = JSON.parse(container.dataset.globeLocations); }
+    catch { console.warn('[DefenceGlobe] Invalid data-globe-locations JSON, using defaults.'); }
+  }
+
+  const zoomAttr = options.zoom || container.dataset.globeZoom || 'auto';
+  const accent   = hexToRgbNorm(accentHex);
+  const ACCENT_HEX   = accent.hex;
+  const ACCENT_LIGHT = lightenHex(ACCENT_HEX, 0.3);
+  const ACCENT_RGB   = { r: accent.r, g: accent.g, b: accent.b };
+
+  container.style.setProperty('--dg-accent', accentHex);
+  const rgbStr = `${Math.round(accent.r * 255)}, ${Math.round(accent.g * 255)}, ${Math.round(accent.b * 255)}`;
+  container.style.setProperty('--dg-rule', `rgba(${rgbStr}, 0.35)`);
+
+  const canvas     = Object.assign(document.createElement('canvas'), { className: 'dg-canvas' });
+  const vignette   = Object.assign(document.createElement('div'), { className: 'dg-vignette' });
+  const labelLayer = Object.assign(document.createElement('div'), { className: 'dg-pin-labels' });
+  container.append(canvas, vignette, labelLayer);
+
+  const topology = await fetch(DEFENCE_GLOBE_WORLD_ATLAS_URL).then((r) => r.json()).catch(() => null);
+  const getSize = () => ({ w: container.clientWidth || 1, h: container.clientHeight || 1 });
+  const size    = getSize();
+  const scene   = new THREE.Scene();
+  const camera  = new THREE.PerspectiveCamera(35, size.w / size.h, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(size.w, size.h, false);
+
+  const GLOBE_RADIUS = 1.6;
+  const globeGroup   = new THREE.Group();
+  scene.add(globeGroup);
+
+  globeGroup.add(new THREE.Mesh(
+    new THREE.SphereGeometry(GLOBE_RADIUS, 96, 96),
+    new THREE.MeshBasicMaterial({ color: 0x081624 })
+  ));
+
+  const gratMat = new THREE.LineBasicMaterial({ color: ACCENT_HEX, transparent: true, opacity: 0.22 });
+  for (let lat = -60; lat <= 60; lat += 15) {
+    const pts = [];
+    for (let lng = -180; lng <= 180; lng += 2) pts.push(createLngLatToVec3(THREE, lng, lat, GLOBE_RADIUS * 1.001));
+    globeGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gratMat));
+  }
+  for (let lng = -180; lng < 180; lng += 15) {
+    const pts = [];
+    for (let lat = -85; lat <= 85; lat += 2) pts.push(createLngLatToVec3(THREE, lng, lat, GLOBE_RADIUS * 1.001));
+    globeGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gratMat));
+  }
+
+  if (topology) {
+    try {
+      const countriesGeo = topojsonMod.feature(topology, topology.objects.countries);
+      const lineMat      = new THREE.LineBasicMaterial({ color: ACCENT_HEX, transparent: true, opacity: 0.95 });
+      const r            = GLOBE_RADIUS * 1.003;
+
+      countriesGeo.features.forEach(({ geometry: geom }) => {
+        if (!geom) return;
+        const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
+        polys.forEach((poly) => poly.forEach((ring) => {
+          const points = [];
+          for (let i = 0; i < ring.length - 1; i++) {
+            const [lng1, lat1] = ring[i];
+            const [lng2, lat2] = ring[i + 1];
+            const steps = Math.max(2, Math.ceil(Math.hypot(lng2 - lng1, lat2 - lat1)));
+            for (let s = 0; s < steps; s++) {
+              const t = s / steps;
+              points.push(createLngLatToVec3(THREE, lng1 + (lng2 - lng1) * t, lat1 + (lat2 - lat1) * t, r));
+            }
+          }
+          const [lngEnd, latEnd] = ring[ring.length - 1];
+          points.push(createLngLatToVec3(THREE, lngEnd, latEnd, r));
+          globeGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMat));
+        }));
+      });
+    } catch (err) {
+      console.warn('[DefenceGlobe] Country boundaries parse failed:', err);
+    }
+  }
+
+  scene.add(new THREE.Mesh(
+    new THREE.SphereGeometry(GLOBE_RADIUS * 1.06, 64, 64),
+    new THREE.ShaderMaterial({
+      uniforms: { uColor: { value: new THREE.Color(ACCENT_RGB.r, ACCENT_RGB.g, ACCENT_RGB.b) } },
+      vertexShader: `
+        varying vec3 vNormal; varying vec3 vPositionNormal;
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vPositionNormal = normalize((modelViewMatrix * vec4(position, 1.0)).xyz);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: `
+        uniform vec3 uColor; varying vec3 vNormal; varying vec3 vPositionNormal;
+        void main() {
+          float intensity = pow(1.0 + dot(vNormal, vPositionNormal), 3.5);
+          gl_FragColor = vec4(uColor, 1.0) * intensity * 0.5;
+        }`,
+      blending: THREE.AdditiveBlending,
+      side: THREE.BackSide,
+      transparent: true,
+      depthWrite: false,
+    })
+  ));
+
+  const starCount = 1500;
+  const starPositions = new Float32Array(starCount * 3);
+  for (let i = 0; i < starCount; i++) {
+    const r     = 80 + Math.random() * 40;
+    const theta = Math.random() * Math.PI * 2;
+    const phi   = Math.acos(2 * Math.random() - 1);
+    starPositions[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+    starPositions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    starPositions[i * 3 + 2] = r * Math.cos(phi);
+  }
+  const starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+  const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+    color: 0xaaccee, size: 0.4, transparent: true, opacity: 0.6, sizeAttenuation: true,
+  }));
+  scene.add(stars);
+
+  const markers = [];
+  locations.forEach((loc) => {
+    const pos    = createLngLatToVec3(THREE, loc.lng, loc.lat, GLOBE_RADIUS * 1.004);
+    const normal = pos.clone().normalize();
+
+    const dot = new THREE.Mesh(
+      new THREE.SphereGeometry(0.012, 16, 16),
+      new THREE.MeshBasicMaterial({ color: ACCENT_LIGHT })
+    );
+    dot.position.copy(pos);
+    globeGroup.add(dot);
+
+    const halo = new THREE.Mesh(
+      new THREE.RingGeometry(0.014, 0.018, 32),
+      new THREE.MeshBasicMaterial({ color: ACCENT_HEX, transparent: true, opacity: 0.7, side: THREE.DoubleSide })
+    );
+    halo.position.copy(pos).add(normal.clone().multiplyScalar(0.001));
+    halo.lookAt(normal.clone().multiplyScalar(2));
+    globeGroup.add(halo);
+
+    const pulse = new THREE.Mesh(
+      new THREE.RingGeometry(0.014, 0.016, 48),
+      new THREE.MeshBasicMaterial({ color: ACCENT_HEX, transparent: true, opacity: 0.7, side: THREE.DoubleSide })
+    );
+    pulse.position.copy(pos).add(normal.clone().multiplyScalar(0.002));
+    pulse.lookAt(normal.clone().multiplyScalar(2));
+    globeGroup.add(pulse);
+
+    markers.push({ data: loc, worldPos: pos.clone(), normal, halo, pulse, dot, phase: Math.random() * Math.PI * 2 });
+  });
+
+  function createArc(start, end, heightFactor = 0.2) {
+    const distance    = start.distanceTo(end);
+    const mid         = start.clone().add(end).multiplyScalar(0.5);
+    const chordMidLen = mid.length();
+    mid.normalize().multiplyScalar(chordMidLen + distance * heightFactor);
+    const curve  = new THREE.QuadraticBezierCurve3(start, mid, end);
+    const points = curve.getPoints(64);
+    const geo    = new THREE.BufferGeometry().setFromPoints(points);
+    const colors = [];
+    for (let i = 0; i <= 64; i++) {
+      const fade = Math.sin((i / 64) * Math.PI);
+      colors.push(ACCENT_RGB.r * fade, ACCENT_RGB.g * fade, ACCENT_RGB.b * fade);
+    }
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    return {
+      line: new THREE.Line(geo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.6 })),
+      points,
+    };
+  }
+
+  const connections = [];
+  const seen = new Set();
+  markers.forEach((m, i) => {
+    markers
+      .map((other, j) => ({ j, d: i === j ? Infinity : m.worldPos.distanceTo(other.worldPos) }))
+      .sort((a, b) => a.d - b.d)
+      .slice(0, 2)
+      .forEach(({ j }) => {
+        const key = i < j ? `${i}-${j}` : `${j}-${i}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          connections.push([i, j]);
+        }
+      });
+  });
+
+  const arcs = connections.map(([a, b]) => {
+    const arc = createArc(markers[a].worldPos, markers[b].worldPos);
+    globeGroup.add(arc.line);
+    return arc;
+  });
+
+  const pulseParticles = arcs.map((arc) => {
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.008, 12, 12),
+      new THREE.MeshBasicMaterial({ color: ACCENT_LIGHT, transparent: true, opacity: 1 })
+    );
+    globeGroup.add(mesh);
+    return { mesh, points: arc.points, progress: Math.random(), speed: 0.003 + Math.random() * 0.003 };
+  });
+
+  const CLUSTER_THRESHOLD = 0.12;
+  const clusterGroups = [];
+  const assigned = new Set();
+  markers.forEach((m, i) => {
+    if (assigned.has(i)) return;
+    const group = [i];
+    assigned.add(i);
+    markers.forEach((other, j) => {
+      if (i === j || assigned.has(j)) return;
+      if (m.worldPos.distanceTo(other.worldPos) < CLUSTER_THRESHOLD) {
+        group.push(j);
+        assigned.add(j);
+      }
+    });
+    clusterGroups.push(group);
+  });
+
+  const clusterLabelEls = clusterGroups.map((group) => {
+    const el = document.createElement('div');
+    el.className = 'dg-pin-label';
+    if (group.length > 1) {
+      el.style.cssText = 'display:flex;flex-direction:column;';
+      group.forEach((idx, lineIdx) => {
+        const line = document.createElement('div');
+        line.textContent = markers[idx].data.name;
+        if (lineIdx > 0) {
+          line.style.cssText = 'border-top:1px solid rgba(84,126,163,0.3);padding-top:4px;margin-top:2px;';
+        }
+        el.appendChild(line);
+      });
+    } else {
+      el.textContent = markers[group[0]].data.name;
+    }
+    labelLayer.appendChild(el);
+    return el;
+  });
+
+  let centreLat = DEFENCE_GLOBE_AUSTRALIA_CENTER.lat;
+  let centreLng = DEFENCE_GLOBE_AUSTRALIA_CENTER.lng;
+  if (locations.length > 0) {
+    centreLat = locations.reduce((sum, loc) => sum + loc.lat, 0) / locations.length;
+    centreLng = locations.reduce((sum, loc) => sum + loc.lng, 0) / locations.length;
+  }
+  const centreVec = createLngLatToVec3(THREE, centreLng, centreLat, 1).normalize();
+  const CAM_DISTANCE = zoomAttr === 'auto' ? (isUS ? 5.0 : 4.2) : Math.max(3.2, Math.min(6, parseFloat(zoomAttr)));
+  camera.position.copy(centreVec.clone().multiplyScalar(CAM_DISTANCE));
+  camera.lookAt(0, 0, 0);
+
+  let currentW = size.w;
+  let currentH = size.h;
+  const resizeObserver = new ResizeObserver(() => {
+    const { w, h } = getSize();
+    if (w === currentW && h === currentH) return;
+    currentW = w;
+    currentH = h;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h, false);
+  });
+  resizeObserver.observe(container);
+
+  const clock = new THREE.Clock();
+  let rafId = null;
+
+  function updatePinLabels() {
+    const tempVec = new THREE.Vector3();
+    const centroid = new THREE.Vector3();
+    const { w, h } = getSize();
+    clusterGroups.forEach((group, gi) => {
+      centroid.set(0, 0, 0);
+      group.forEach(idx => centroid.add(markers[idx].worldPos));
+      centroid.divideScalar(group.length);
+      tempVec.copy(centroid).applyMatrix4(globeGroup.matrixWorld);
+      const facing = -tempVec.clone().sub(camera.position).normalize().dot(tempVec.clone().normalize());
+      tempVec.project(camera);
+      const el = clusterLabelEls[gi];
+      if (facing > 0.1 && tempVec.z < 1) {
+        el.style.left    = `${(tempVec.x * 0.5 + 0.5) * w}px`;
+        el.style.top     = `${(-tempVec.y * 0.5 + 0.5) * h}px`;
+        el.style.opacity = Math.min(1, (facing - 0.1) * 4);
+      } else {
+        el.style.opacity = 0;
+      }
+    });
+  }
+
+  function animate() {
+    const t = clock.getElapsedTime();
+
+    markers.forEach((marker) => {
+      const phase = (t * 0.7 + marker.phase / 4) % 1;
+      marker.pulse.scale.setScalar(1 + phase * 0.8);
+      marker.pulse.material.opacity = 0.7 * (1 - phase);
+    });
+
+    pulseParticles.forEach((particle) => {
+      particle.progress += particle.speed;
+      if (particle.progress > 1) particle.progress = 0;
+      const idx     = Math.floor(particle.progress * (particle.points.length - 1));
+      const nextIdx = Math.min(idx + 1, particle.points.length - 1);
+      const localT  = (particle.progress * (particle.points.length - 1)) - idx;
+      particle.mesh.position.lerpVectors(particle.points[idx], particle.points[nextIdx], localT);
+      const fade = Math.sin(particle.progress * Math.PI);
+      particle.mesh.material.opacity = fade;
+      particle.mesh.scale.setScalar(0.8 + fade * 0.5);
+    });
+
+    stars.material.opacity = 0.55 + Math.sin(t * 0.5) * 0.08;
+    updatePinLabels();
+    renderer.render(scene, camera);
+    rafId = requestAnimationFrame(animate);
+  }
+
+  animate();
+
+  const instance = {
+    destroy() {
+      if (rafId) cancelAnimationFrame(rafId);
+      resizeObserver.disconnect();
+      renderer.dispose();
+      scene.traverse((obj) => {
+        obj.geometry?.dispose();
+        if (obj.material) {
+          Array.isArray(obj.material) ? obj.material.forEach((material) => material.dispose()) : obj.material.dispose();
+        }
+      });
+      container.innerHTML = '';
+      container.removeAttribute('data-globe-initialised');
+    },
+  };
+
+  container._defenceGlobe = instance;
+  return instance;
 }
