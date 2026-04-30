@@ -1332,43 +1332,70 @@ function initHeroWrapReveal() {
   const ease         = 'osmo';
   const DURATION     = 0.85;
   const BASE_STAGGER = 0.14;
+  const isTablet     = window.innerWidth < 992;
 
-  const isMobile = window.innerWidth < 992;
-
-  const tl = gsap.timeline(isMobile ? {} : {
-    scrollTrigger: {
-      trigger: wrap,
-      start: 'top top',
-      once: true,
-    }
-  });
+  const tl = gsap.timeline({ paused: true });
 
   let offset = 0;
 
   allEls.forEach((el) => {
     if (el.hasAttribute('hero-fade')) {
-      gsap.set(el, { opacity: 0, filter: 'blur(10px)', y: rem });
-      tl.to(el, { opacity: 1, filter: 'blur(0px)', y: 0, duration: DURATION, ease }, offset);
+      if (isTablet) {
+        gsap.set(el, { opacity: 0, y: rem });
+        tl.to(el, { opacity: 1, y: 0, duration: DURATION, ease }, offset);
+      } else {
+        gsap.set(el, { opacity: 0, filter: 'blur(10px)', y: rem });
+        tl.to(el, { opacity: 1, filter: 'blur(0px)', y: 0, duration: DURATION, ease }, offset);
+      }
 
     } else if (el.hasAttribute('hero-heading')) {
-      const split = new SplitText(el, { type: 'words' });
-      gsap.set(split.words, { opacity: 0, filter: 'blur(8px)', y: rem });
-      tl.to(split.words, { opacity: 1, filter: 'blur(0px)', y: 0, duration: DURATION, ease, stagger: 0.06 }, offset);
+      const splitType = isTablet ? 'lines' : 'words';
+      const split = new SplitText(el, { type: splitType });
+      const items = split[splitType];
+      if (isTablet) {
+        gsap.set(items, { opacity: 0, y: rem });
+        tl.to(items, { opacity: 1, y: 0, duration: DURATION, ease, stagger: 0.06 }, offset);
+      } else {
+        gsap.set(items, { opacity: 0, filter: 'blur(8px)', y: rem });
+        tl.to(items, { opacity: 1, filter: 'blur(0px)', y: 0, duration: DURATION, ease, stagger: 0.06 }, offset);
+      }
 
     } else if (el.hasAttribute('hero-body')) {
       const split = new SplitText(el, { type: 'lines' });
-      gsap.set(split.lines, { opacity: 0, filter: 'blur(8px)', y: rem });
-      tl.to(split.lines, { opacity: 1, filter: 'blur(0px)', y: 0, duration: DURATION, ease, stagger: 0.08 }, offset);
+      if (isTablet) {
+        gsap.set(split.lines, { opacity: 0, y: rem });
+        tl.to(split.lines, { opacity: 1, y: 0, duration: DURATION, ease, stagger: 0.08 }, offset);
+      } else {
+        gsap.set(split.lines, { opacity: 0, filter: 'blur(8px)', y: rem });
+        tl.to(split.lines, { opacity: 1, filter: 'blur(0px)', y: 0, duration: DURATION, ease, stagger: 0.08 }, offset);
+      }
     }
 
     offset += BASE_STAGGER;
   });
+
+  // Wait for the hero video to start before playing the reveal
+  const video = wrap.querySelector('video');
+  if (video) {
+    let played = false;
+    const play = () => { if (played) return; played = true; tl.play(); };
+    if (video.readyState >= 3) {
+      play();
+    } else {
+      video.addEventListener('canplay', play, { once: true });
+      setTimeout(play, 2500);
+    }
+  } else {
+    tl.play();
+  }
 }
 
 // SPLIT TEXT REVEAL //
 function initSplitTextReveal() {
+  const isTablet = window.innerWidth < 992;
+
   document.querySelectorAll('[data-split]').forEach(el => {
-    const type = el.getAttribute('data-split') || 'lines';
+    const type = isTablet ? 'lines' : (el.getAttribute('data-split') || 'lines');
     if (!['chars', 'words', 'lines'].includes(type)) return;
 
     const split = new SplitText(el, { types: type });
@@ -1385,24 +1412,28 @@ function initSplitTextReveal() {
       mask.appendChild(item);
     });
 
-    const stagger = type === 'chars' ? 0.025 : type === 'words' ? 0.06 : 0.1;
+    const stagger = isTablet ? 0.07 : (type === 'chars' ? 0.025 : type === 'words' ? 0.06 : 0.1);
 
-    gsap.fromTo(items,
-      { yPercent: 100, opacity: 0, filter: 'blur(4px)' },
-      {
-        yPercent: 0,
-        opacity: 1,
-        filter: 'blur(0px)',
-        duration: 0.9,
-        ease: 'osmo',
-        stagger,
-        scrollTrigger: {
-          trigger: el,
-          start: 'top 85%',
-          toggleActions: 'play none none none',
-        }
+    const fromVars = { yPercent: 100, opacity: 0 };
+    const toVars = {
+      yPercent: 0,
+      opacity: 1,
+      duration: 0.9,
+      ease: 'osmo',
+      stagger,
+      scrollTrigger: {
+        trigger: el,
+        start: 'top 85%',
+        toggleActions: 'play none none none',
       }
-    );
+    };
+
+    if (!isTablet) {
+      fromVars.filter = 'blur(4px)';
+      toVars.filter = 'blur(0px)';
+    }
+
+    gsap.fromTo(items, fromVars, toVars);
   });
 }
 
