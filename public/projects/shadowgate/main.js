@@ -296,8 +296,16 @@ const DEFENCE_GLOBE_DEFAULT_LOCATIONS = [
   { name: 'Woomera',       lat: -31.1999, lng: 136.8250 },
   { name: 'Exmouth',       lat: -21.9323, lng: 114.1278 },
   { name: 'Geraldton',     lat: -28.7744, lng: 114.6089 },
-  { name: 'Wagga Wagga',   lat: -35.1082, lng: 147.3598 },
-  { name: 'Broome',        lat: -17.9614, lng: 122.2359 },
+  { name: 'Canberra',      lat: -35.2809, lng: 149.1300 },
+];
+const DEFENCE_GLOBE_US_LOCATIONS = [
+  { name: 'Northern Virginia', lat: 38.9696, lng: -77.3861 },
+  { name: 'Washington D.C.',   lat: 38.9072, lng: -77.0369 },
+  { name: 'Arlington',         lat: 38.8799, lng: -77.1068 },
+  { name: 'Maryland',          lat: 39.0458, lng: -76.6122 },
+  { name: 'Colorado Springs',  lat: 38.8339, lng: -104.8214 },
+  { name: 'Los Angeles',       lat: 34.0522, lng: -118.2437 },
+  { name: 'Cape Canaveral',    lat: 28.3922, lng: -80.6077 },
 ];
 const DEFENCE_GLOBE_DEFAULT_COLOR = '#547EA3';
 const DEFENCE_GLOBE_AUSTRALIA_CENTER = { lat: -25.0, lng: 133.0 };
@@ -406,7 +414,8 @@ async function initDefenceGlobeInstance(container, options = {}) {
 
   const { THREE, topojsonMod } = await loadDefenceGlobeModules();
   const accentHex = options.color || container.dataset.globeColor || DEFENCE_GLOBE_DEFAULT_COLOR;
-  let locations   = options.locations || DEFENCE_GLOBE_DEFAULT_LOCATIONS;
+  const isUS    = container.dataset.globe === 'us';
+  let locations = options.locations || (isUS ? DEFENCE_GLOBE_US_LOCATIONS : DEFENCE_GLOBE_DEFAULT_LOCATIONS);
 
   if (container.dataset.globeLocations) {
     try { locations = JSON.parse(container.dataset.globeLocations); }
