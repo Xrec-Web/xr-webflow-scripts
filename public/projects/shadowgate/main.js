@@ -57,23 +57,28 @@ function initAfterEnterFunctions(next) {
   nextPage = next || document;
   const q = (s) => !!nextPage.matches?.(s) || !!nextPage.querySelector(s);
 
-  // Runs after the enter animation
+  // Phase 1 — critical, above-fold, runs immediately
   if (q('[data-accordion-css-init]'))    initAccordionCSS();
   if (q('[data-form-validate]'))         initBasicFormValidation();
-  if (q('.img:not(.no-para)'))           initImageScrollEffect();
   if (q('[data-current-year]'))          initDynamicCurrentYear();
-  if (q('[data-team-member]'))           initTeamInteractions();
-  if (q('.faq_toggle_inner'))            initFAQToggle();
   if (q('[data-button-animate-chars]'))  initButtonCharacterStagger();
   if (q('[data-link-animate-chars]'))    initLinkCharacterStagger();
-  if (q('[data-sequence-wrap]'))         initImageSequenceScroll();
   if (q('[hero-wrap]'))                  initHeroWrapReveal();
-  if (q('[data-split]'))                 initSplitTextReveal();
-  if (q('[data-reveal]'))                initReveal();
-  if (q('[serv-list]'))                  initServList();
-  if (q('[data-globe]'))                 initDefenceGlobe(nextPage);
-  if (q('[data-swiper-group]'))          initSwiperSlider();
-  if (q('.animated_mouse'))              initAnimatedMouse();
+  if (q('.animated_mouse'))             initAnimatedMouse();
+  if (q('[data-sequence-wrap]'))         initImageSequenceScroll();
+
+  // Phase 2 — scroll-based and heavy, deferred so page is interactive first
+  setTimeout(() => {
+    if (q('.img:not(.no-para)'))         initImageScrollEffect();
+    if (q('[data-team-member]'))         initTeamInteractions();
+    if (q('.faq_toggle_inner'))          initFAQToggle();
+    if (q('[data-split]'))               initSplitTextReveal();
+    if (q('[data-reveal]'))              initReveal();
+    if (q('[serv-list]'))                initServList();
+    if (q('[data-swiper-group]'))        initSwiperSlider();
+    if (q('[data-globe]'))               initDefenceGlobe(nextPage);
+    if (hasScrollTrigger) ScrollTrigger.refresh();
+  }, 300);
 }
 
 function destroyPageFunctions(container) {
@@ -186,7 +191,6 @@ barba.hooks.afterEnter(data => {
   if (hasLenis) { lenis.resize(); lenis.start(); }
   requestAnimationFrame(() => {
     initAfterEnterFunctions(data.next.container);
-    if (hasScrollTrigger) setTimeout(() => ScrollTrigger.refresh(), 400);
   });
 });
 
