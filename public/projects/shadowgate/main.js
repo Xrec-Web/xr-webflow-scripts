@@ -46,20 +46,18 @@ function initOnceFunctions() {
   if (document.querySelector('[data-cursor]')) initScrambleTextCursor();
 }
 
-function initSuperform(container) {
-  if (!container.querySelector('[sf-form-block]')) return;
-  document.querySelectorAll('script[src*="superform"]').forEach(s => s.remove());
-  delete window.SuperformAPI;
-  delete window.Superform;
-  const script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/@deltaclan/superform@2/dist/superform.js';
-  document.head.appendChild(script);
+function initBeforeEnterFunctions(next) {
+  nextPage = next || document;
+
+  // Runs before the enter animation
+  initSuperform(next);
 }
 
-function initPageFunctions(container) {
-  nextPage = container || document;
+function initAfterEnterFunctions(next) {
+  nextPage = next || document;
   const q = (s) => !!nextPage.matches?.(s) || !!nextPage.querySelector(s);
 
+  // Runs after the enter animation
   if (q('[data-accordion-css-init]'))    initAccordionCSS();
   if (q('[data-form-validate]'))         initBasicFormValidation();
   if (q('.img:not(.no-para)'))           initImageScrollEffect();
@@ -69,7 +67,7 @@ function initPageFunctions(container) {
   if (q('[data-button-animate-chars]'))  initButtonCharacterStagger();
   if (q('[data-link-animate-chars]'))    initLinkCharacterStagger();
   if (q('[data-sequence-wrap]'))         initImageSequenceScroll();
-  if (q('[hero-wrap]'))                   initHeroWrapReveal();
+  if (q('[hero-wrap]'))                  initHeroWrapReveal();
   if (q('[data-split]'))                 initSplitTextReveal();
   if (q('[data-reveal]'))                initReveal();
   if (q('[serv-list]'))                  initServList();
@@ -80,6 +78,16 @@ function initPageFunctions(container) {
 
 function destroyPageFunctions(container) {
   destroyDefenceGlobes(container);
+}
+
+function initSuperform(container) {
+  if (!container?.querySelector('[sf-form-block]')) return;
+  document.querySelectorAll('script[src*="superform"]').forEach(s => s.remove());
+  delete window.SuperformAPI;
+  delete window.Superform;
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/@deltaclan/superform@2/dist/superform.js';
+  document.head.appendChild(script);
 }
 
 
@@ -162,9 +170,8 @@ function runPickLocationLeaveAnimation(current) {
 
 barba.hooks.beforeEnter(data => {
   gsap.set(data.next.container, { position: 'fixed', top: 0, left: 0, right: 0 });
-  if (lenis) lenis.stop();
   applyThemeFrom(data.next.container);
-  initSuperform(data.next.container);
+  initBeforeEnterFunctions(data.next.container);
 });
 
 barba.hooks.afterLeave(() => {
@@ -176,10 +183,10 @@ barba.hooks.enter(data => {
 });
 
 barba.hooks.afterEnter(data => {
-  if (lenis) { lenis.resize(); lenis.start(); }
+  if (hasLenis) { lenis.resize(); lenis.start(); }
   requestAnimationFrame(() => {
-    initPageFunctions(data.next.container);
-    if (hasScrollTrigger) ScrollTrigger.refresh();
+    initAfterEnterFunctions(data.next.container);
+    if (hasScrollTrigger) setTimeout(() => ScrollTrigger.refresh(), 400);
   });
 });
 
@@ -249,7 +256,6 @@ function initLenis() {
 function resetPage(container) {
   window.scrollTo(0, 0);
   gsap.set(container, { clearProps: 'position,top,left,right' });
-  if (lenis) { lenis.resize(); lenis.start(); }
 }
 
 function initBarbaNavUpdate(data) {
