@@ -620,8 +620,40 @@ async function initDefenceGlobeInstance(container, options = {}) {
     return { mesh, points: arc.points, progress: Math.random(), speed: 0.003 + Math.random() * 0.003 };
   });
 
-  const labelEls = markers.map((m) => {
-    const el = Object.assign(document.createElement('div'), { className: 'dg-pin-label', textContent: m.data.name });
+  // Group nearby markers into shared labels so close points don't overlap
+  const CLUSTER_THRESHOLD = 0.12; // ~480 km on Earth
+  const clusterGroups = [];
+  const assigned = new Set();
+  markers.forEach((m, i) => {
+    if (assigned.has(i)) return;
+    const group = [i];
+    assigned.add(i);
+    markers.forEach((other, j) => {
+      if (i === j || assigned.has(j)) return;
+      if (m.worldPos.distanceTo(other.worldPos) < CLUSTER_THRESHOLD) {
+        group.push(j);
+        assigned.add(j);
+      }
+    });
+    clusterGroups.push(group);
+  });
+
+  const clusterLabelEls = clusterGroups.map((group) => {
+    const el = document.createElement('div');
+    el.className = 'dg-pin-label';
+    if (group.length > 1) {
+      el.style.cssText = 'display:flex;flex-direction:column;';
+      group.forEach((idx, lineIdx) => {
+        const line = document.createElement('div');
+        line.textContent = markers[idx].data.name;
+        if (lineIdx > 0) {
+          line.style.cssText = 'border-top:1px solid rgba(84,126,163,0.3);padding-top:4px;margin-top:2px;';
+        }
+        el.appendChild(line);
+      });
+    } else {
+      el.textContent = markers[group[0]].data.name;
+    }
     labelLayer.appendChild(el);
     return el;
   });
@@ -633,7 +665,7 @@ async function initDefenceGlobeInstance(container, options = {}) {
     centreLng = locations.reduce((sum, loc) => sum + loc.lng, 0) / locations.length;
   }
   const centreVec = createLngLatToVec3(THREE, centreLng, centreLat, 1).normalize();
-  const CAM_DISTANCE = zoomAttr === 'auto' ? 4.2 : Math.max(3.2, Math.min(6, parseFloat(zoomAttr)));
+  const CAM_DISTANCE = zoomAttr === 'auto' ? (isUS ? 5.0 : 4.2) : Math.max(3.2, Math.min(6, parseFloat(zoomAttr)));
   camera.position.copy(centreVec.clone().multiplyScalar(CAM_DISTANCE));
   camera.lookAt(0, 0, 0);
 
@@ -655,12 +687,16 @@ async function initDefenceGlobeInstance(container, options = {}) {
 
   function updatePinLabels() {
     const tempVec = new THREE.Vector3();
+    const centroid = new THREE.Vector3();
     const { w, h } = getSize();
-    markers.forEach((marker, i) => {
-      tempVec.copy(marker.worldPos).applyMatrix4(globeGroup.matrixWorld);
+    clusterGroups.forEach((group, gi) => {
+      centroid.set(0, 0, 0);
+      group.forEach(idx => centroid.add(markers[idx].worldPos));
+      centroid.divideScalar(group.length);
+      tempVec.copy(centroid).applyMatrix4(globeGroup.matrixWorld);
       const facing = -tempVec.clone().sub(camera.position).normalize().dot(tempVec.clone().normalize());
       tempVec.project(camera);
-      const el = labelEls[i];
+      const el = clusterLabelEls[gi];
       if (facing > 0.1 && tempVec.z < 1) {
         el.style.left    = `${(tempVec.x * 0.5 + 0.5) * w}px`;
         el.style.top     = `${(-tempVec.y * 0.5 + 0.5) * h}px`;
