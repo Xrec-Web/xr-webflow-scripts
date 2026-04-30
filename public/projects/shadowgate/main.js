@@ -65,7 +65,7 @@ function initAfterEnterFunctions(next) {
   if (q('[data-link-animate-chars]'))    initLinkCharacterStagger();
   if (q('[hero-wrap]'))                  initHeroWrapReveal();
   if (q('.animated_mouse'))             initAnimatedMouse();
-  if (q('[data-sequence-wrap]'))         initImageSequenceScroll();
+  // if (q('[data-sequence-wrap]'))         initImageSequenceScroll();
 
   // Phase 2 — scroll-based and heavy, deferred so page is interactive first
   setTimeout(() => {
