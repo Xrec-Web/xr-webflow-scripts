@@ -1331,7 +1331,9 @@ function initHeroWrapReveal() {
   const DURATION     = 0.85;
   const BASE_STAGGER = 0.14;
 
-  const tl = gsap.timeline({
+  const isMobile = window.innerWidth < 992;
+
+  const tl = gsap.timeline(isMobile ? {} : {
     scrollTrigger: {
       trigger: wrap,
       start: 'top top',
