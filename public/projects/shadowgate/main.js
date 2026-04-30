@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-link-animate-chars]')) initLinkCharacterStagger();
   if (document.querySelector('[hero-wrap]'))               initHeroWrapReveal();
   if (document.querySelector('.animated_mouse'))           initAnimatedMouse();
-  if (document.querySelector('[data-sequence-wrap]'))      initImageSequenceScroll();
+  if (window.innerWidth >= 992 && document.querySelector('[data-sequence-wrap]')) initImageSequenceScroll();
   if (document.querySelector('.img:not(.no-para)'))        initImageScrollEffect();
   if (document.querySelector('[data-team-member]'))        initTeamInteractions();
   if (document.querySelector('.faq_toggle_inner'))         initFAQToggle();
@@ -495,15 +495,13 @@ function initImageSequenceScroll() {
     const digits = parseInt(canvas.dataset.digits, 10) || 3;
     const indexStart = parseInt(canvas.dataset.indexStart, 10) || 1;
     const desktopSrc = canvas.dataset.desktopSrc || '';
-    const mobileSrc = canvas.dataset.mobileSrc || desktopSrc;
     const staticSrc = canvas.dataset.staticSrc;
     const filetype = canvas.dataset.filetype || 'webp';
     const startTrigger = wrap.dataset.scrollStart || 'top top';
     const endTrigger = wrap.dataset.scrollEnd || 'bottom top';
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const isMobile = window.matchMedia('(max-width: 767px)').matches;
-    const baseUrl = isMobile ? mobileSrc : desktopSrc;
+    const baseUrl = desktopSrc;
     const lastIndex = indexStart + frames - 1;
 
     let lastProgress = 0;
