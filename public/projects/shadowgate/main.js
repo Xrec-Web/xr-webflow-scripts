@@ -173,7 +173,9 @@ function runPickLocationLeaveAnimation(current) {
 // ─── BARBA HOOKS ─────────────────────────────────────────────────────────────
 
 barba.hooks.beforeEnter(data => {
-  gsap.set(data.next.container, { position: 'fixed', top: 0, left: 0, right: 0 });
+  if (window.innerWidth >= 992) {
+    gsap.set(data.next.container, { position: 'fixed', top: 0, left: 0, right: 0 });
+  }
   applyThemeFrom(data.next.container);
   initBeforeEnterFunctions(data.next.container);
 });
@@ -259,19 +261,23 @@ function initLenis() {
   if (hasScrollTrigger) lenis.on('scroll', ScrollTrigger.update);
   gsap.ticker.add((time) => lenis.raf(time * 1000));
   gsap.ticker.lagSmoothing(0);
+
+  const resync = () => { lenis?.resize(); if (hasScrollTrigger) ScrollTrigger.refresh(); };
+  if (document.fonts?.ready) document.fonts.ready.then(resync);
+  window.addEventListener('load', resync);
+  setTimeout(resync, 500);
+  setTimeout(resync, 1500);
 }
 
 function resetPage(container) {
-  if (lenis) {
-    lenis.scrollTo(0, { immediate: true });
-  } else {
-    window.scrollTo(0, 0);
-  }
+  if (lenis) lenis.scrollTo(0, { immediate: true });
+  else window.scrollTo(0, 0);
   gsap.set(container, { clearProps: 'position,top,left,right' });
-  // Force synchronous reflow so lenis reads the correct scrollHeight immediately,
-  // preventing it from locking touch scroll with a limit of 0
   void document.documentElement.scrollHeight;
-  if (lenis) lenis.resize();
+  if (lenis) {
+    lenis.resize();
+    requestAnimationFrame(() => lenis.resize());
+  }
 }
 
 function initBarbaNavUpdate(data) {
