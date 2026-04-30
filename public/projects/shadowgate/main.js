@@ -24,7 +24,6 @@ gsap.ticker.add((time) => {
 gsap.ticker.lagSmoothing(0);
 
 const resync = () => { lenis.resize(); ScrollTrigger.refresh(); };
-if (document.fonts?.ready) document.fonts.ready.then(resync);
 window.addEventListener('load', resync);
 
 
@@ -991,8 +990,6 @@ const DEFENCE_GLOBE_US_LOCATIONS = [
 const DEFENCE_GLOBE_DEFAULT_COLOR = '#547EA3';
 const DEFENCE_GLOBE_AUSTRALIA_CENTER = { lat: -25.0, lng: 133.0 };
 
-let defenceGlobeModulesPromise = null;
-
 function initDefenceGlobe(container) {
   initDefenceGlobes(container).catch((err) => {
     console.error('[DefenceGlobe] init failed:', err);
@@ -1013,20 +1010,6 @@ function destroyDefenceGlobes(scope = document) {
     container._defenceGlobe?.destroy?.();
     delete container._defenceGlobe;
   });
-}
-
-async function loadDefenceGlobeModules() {
-  if (!defenceGlobeModulesPromise) {
-    defenceGlobeModulesPromise = Promise.all([
-      import('https://esm.sh/three@0.160.0'),
-      import('https://esm.sh/topojson-client@3'),
-    ]).then(([THREE, topojsonMod]) => ({
-      THREE,
-      topojsonMod,
-    }));
-  }
-
-  return defenceGlobeModulesPromise;
 }
 
 function hexToRgbNorm(hex) {
@@ -1093,7 +1076,8 @@ async function initDefenceGlobeInstance(container, options = {}) {
   if (container.hasAttribute('data-globe-initialised')) return container._defenceGlobe;
   container.setAttribute('data-globe-initialised', 'true');
 
-  const { THREE, topojsonMod } = await loadDefenceGlobeModules();
+  const THREE = window.THREE;
+  const topojsonMod = window.topojson;
   const accentHex = options.color || container.dataset.globeColor || DEFENCE_GLOBE_DEFAULT_COLOR;
   const isUS    = container.dataset.globe === 'us';
   let locations = options.locations || (isUS ? DEFENCE_GLOBE_US_LOCATIONS : DEFENCE_GLOBE_DEFAULT_LOCATIONS);
