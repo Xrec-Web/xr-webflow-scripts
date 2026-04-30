@@ -63,7 +63,7 @@ function initAfterEnterFunctions(next) {
   if (q('[data-current-year]'))          initDynamicCurrentYear();
   if (q('[data-button-animate-chars]'))  initButtonCharacterStagger();
   if (q('[data-link-animate-chars]'))    initLinkCharacterStagger();
-  if (q('[hero-wrap]'))                  initHeroWrapReveal();
+  // if (q('[hero-wrap]'))                  initHeroWrapReveal();
   if (q('.animated_mouse'))             initAnimatedMouse();
   // if (q('[data-sequence-wrap]'))         initImageSequenceScroll();
 
@@ -76,7 +76,7 @@ function initAfterEnterFunctions(next) {
     if (q('[data-reveal]'))              initReveal();
     if (q('[serv-list]'))                initServList();
     if (q('[data-swiper-group]'))        initSwiperSlider();
-    if (q('[data-globe]'))               initDefenceGlobe(nextPage);
+   // if (q('[data-globe]'))               initDefenceGlobe(nextPage);
   }, 300);
 }
 
