@@ -77,7 +77,6 @@ function initAfterEnterFunctions(next) {
     if (q('[serv-list]'))                initServList();
     if (q('[data-swiper-group]'))        initSwiperSlider();
     if (q('[data-globe]'))               initDefenceGlobe(nextPage);
-    if (hasScrollTrigger) ScrollTrigger.refresh();
   }, 300);
 }
 
@@ -1260,7 +1259,6 @@ function initImageSequenceScroll() {
         loadFrame(lastIndex);
         queue.push([indexStart, lastIndex]);
         processQueue();
-        ScrollTrigger.refresh();
       });
     }
 
