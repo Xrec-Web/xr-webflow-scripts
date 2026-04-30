@@ -177,8 +177,10 @@ barba.hooks.enter(data => {
 
 barba.hooks.afterEnter(data => {
   if (lenis) { lenis.resize(); lenis.start(); }
-  initPageFunctions(data.next.container);
-  if (hasScrollTrigger) ScrollTrigger.refresh();
+  requestAnimationFrame(() => {
+    initPageFunctions(data.next.container);
+    if (hasScrollTrigger) ScrollTrigger.refresh();
+  });
 });
 
 barba.init({
