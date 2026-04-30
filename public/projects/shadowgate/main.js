@@ -257,7 +257,11 @@ function initLenis() {
 }
 
 function resetPage(container) {
-  window.scrollTo(0, 0);
+  if (lenis) {
+    lenis.scrollTo(0, { immediate: true });
+  } else {
+    window.scrollTo(0, 0);
+  }
   gsap.set(container, { clearProps: 'position,top,left,right' });
 }
 
