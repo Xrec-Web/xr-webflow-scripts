@@ -131,16 +131,6 @@ function runPageEnterAnimation(next) {
   tl.add('pageReady', 'startEnter');
   tl.call(resetPage, [next], 'pageReady');
 
-  const h1 = next.querySelector('h1');
-  if (h1) {
-    tl.fromTo(h1, { yPercent: 25, autoAlpha: 0 }, {
-      yPercent: 0,
-      autoAlpha: 1,
-      ease: 'expo.out',
-      duration: 1,
-    }, 'startEnter+=0.3');
-  }
-
   return new Promise(resolve => tl.call(resolve, null, 'pageReady'));
 }
 
@@ -171,12 +161,19 @@ barba.hooks.beforeEnter(data => {
   if (window.innerWidth >= 992) {
     gsap.set(data.next.container, { position: 'fixed', top: 0, left: 0, right: 0 });
   }
+  // Pre-set hero elements to invisible while the container is still autoAlpha:0,
+  // so initHeroWrapReveal's gsap.set calls don't flash-to-invisible on visible content.
+  const heroWrap = data.next.container.querySelector('[hero-wrap]');
+  if (heroWrap) {
+    gsap.set(heroWrap.querySelectorAll('[hero-fade], [hero-heading], [hero-body]'), { opacity: 0 });
+  }
   applyThemeFrom(data.next.container);
   initBeforeEnterFunctions(data.next.container);
 });
 
 barba.hooks.beforeLeave(() => {
   if (hasScrollTrigger) ScrollTrigger.getAll().forEach(t => t.kill());
+  if (lenis) lenis.stop();
 });
 
 barba.hooks.enter(data => {
