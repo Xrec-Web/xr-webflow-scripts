@@ -176,8 +176,8 @@ barba.hooks.enter(data => {
 });
 
 barba.hooks.afterEnter(data => {
-  initPageFunctions(data.next.container);
   if (lenis) { lenis.resize(); lenis.start(); }
+  initPageFunctions(data.next.container);
   if (hasScrollTrigger) ScrollTrigger.refresh();
 });
 
@@ -725,7 +725,9 @@ function initBasicFormValidation() {
   forms.forEach((form) => {
     const fields = form.querySelectorAll('[data-validate] input, [data-validate] textarea');
     const submitButtonDiv = form.querySelector('[data-submit]');
+    if (!submitButtonDiv) return;
     const submitInput = submitButtonDiv.querySelector('input[type="submit"]');
+    if (!submitInput) return;
     const formLoadTime = new Date().getTime();
 
     const validateField = (field) => {
