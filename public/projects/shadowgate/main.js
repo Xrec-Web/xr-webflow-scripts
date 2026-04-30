@@ -189,12 +189,12 @@ barba.hooks.enter(data => {
 });
 
 barba.hooks.afterEnter(data => {
-  if (hasLenis) lenis.start();
+  if (lenis) lenis.start();
   requestAnimationFrame(() => {
     initAfterEnterFunctions(data.next.container);
     // Second RAF: content has rendered, re-sync lenis limits and ScrollTrigger
     requestAnimationFrame(() => {
-      if (hasLenis) lenis.resize();
+      if (lenis) lenis.resize();
       if (hasScrollTrigger) ScrollTrigger.refresh();
     });
   });
