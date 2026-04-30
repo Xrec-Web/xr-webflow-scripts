@@ -118,15 +118,21 @@ function runPageEnterAnimation(next) {
     duration: 0.75,
   }, 'startEnter');
 
-  tl.fromTo(next.querySelector('h1'), { yPercent: 25, autoAlpha: 0 }, {
-    yPercent: 0,
-    autoAlpha: 1,
-    ease: 'expo.out',
-    duration: 1,
-  }, '< 0.3');
-
-  tl.add('pageReady');
+  // pageReady fires as soon as the page is visible — lenis restarts and
+  // position:fixed clears here, so the user can scroll without waiting for
+  // the h1 animation to finish
+  tl.add('pageReady', 'startEnter+=0.75');
   tl.call(resetPage, [next], 'pageReady');
+
+  const h1 = next.querySelector('h1');
+  if (h1) {
+    tl.fromTo(h1, { yPercent: 25, autoAlpha: 0 }, {
+      yPercent: 0,
+      autoAlpha: 1,
+      ease: 'expo.out',
+      duration: 1,
+    }, 'startEnter+=0.3');
+  }
 
   return new Promise(resolve => tl.call(resolve, null, 'pageReady'));
 }
