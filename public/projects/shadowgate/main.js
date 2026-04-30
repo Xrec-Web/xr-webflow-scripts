@@ -25,6 +25,8 @@ let lenis = null;
 let nextPage = document;
 let onceFunctionsInitialized = false;
 
+const _seqCache = new WeakMap();
+
 const hasLenis = typeof window.Lenis !== 'undefined';
 const hasScrollTrigger = typeof window.ScrollTrigger !== 'undefined';
 
@@ -80,6 +82,64 @@ function initPageFunctions(container) {
 
 function destroyPageFunctions(container) {
   destroyDefenceGlobes(container);
+}
+
+
+// ─── SEQUENCE PRELOADER ──────────────────────────────────────────────────────
+
+function preloadImageSequences(container) {
+  container.querySelectorAll('[data-sequence-wrap]').forEach(wrap => {
+    const canvas = wrap.querySelector('[data-sequence-canvas]');
+    if (!canvas || _seqCache.has(canvas)) return;
+
+    const frames     = parseInt(canvas.dataset.frames, 10) || 1;
+    const digits     = parseInt(canvas.dataset.digits, 10) || 3;
+    const indexStart = parseInt(canvas.dataset.indexStart, 10) || 1;
+    const desktopSrc = canvas.dataset.desktopSrc || '';
+    const mobileSrc  = canvas.dataset.mobileSrc || desktopSrc;
+    const filetype   = canvas.dataset.filetype || 'webp';
+    const isMobile   = window.matchMedia('(max-width: 767px)').matches;
+    const baseUrl    = isMobile ? mobileSrc : desktopSrc;
+    const lastIndex  = indexStart + frames - 1;
+    const loaded     = new Map();
+
+    _seqCache.set(canvas, loaded);
+
+    function pad(n) { return String(n).padStart(digits, '0'); }
+    function url(i) { return `${baseUrl}frame-${pad(i)}.${filetype}`; }
+
+    function loadOne(i, cb) {
+      if (loaded.has(i) || i < indexStart || i > lastIndex) { cb?.(); return; }
+      const img = new Image();
+      img.onload  = () => { loaded.set(i, img); cb?.(); };
+      img.onerror = () => { cb?.(); };
+      img.src = url(i);
+    }
+
+    const queue = [];
+    let processing = false;
+
+    function processQueue() {
+      if (processing) return;
+      const next = queue.shift();
+      if (!next) return;
+      processing = true;
+      const [a, b] = next;
+      if (b - a <= 1) { processing = false; processQueue(); return; }
+      const m = Math.floor((a + b) / 2);
+      loadOne(m, () => {
+        queue.push([a, m], [m, b]);
+        processing = false;
+        setTimeout(processQueue, 0);
+      });
+    }
+
+    loadOne(indexStart, () => {
+      loadOne(lastIndex);
+      queue.push([indexStart, lastIndex]);
+      processQueue();
+    });
+  });
 }
 
 
@@ -159,6 +219,7 @@ barba.hooks.beforeEnter(data => {
   if (lenis) lenis.stop();
   applyThemeFrom(data.next.container);
   initSuperform(data.next.container);
+  preloadImageSequences(data.next.container);
 });
 
 barba.hooks.afterLeave(() => {
@@ -1157,8 +1218,9 @@ function initImageSequenceScroll() {
     }
     resizeCanvas();
 
-    // Image cache and loading queue
-    const loaded = new Map();
+    // Image cache — use preloaded frames if available
+    const loaded = _seqCache.get(canvas) || new Map();
+    _seqCache.delete(canvas);
     const queue = [];
     let processingQueue = false;
     let resizeTimer;
@@ -1233,12 +1295,19 @@ function initImageSequenceScroll() {
     }
 
     function startLoading() {
-      loadFrame(indexStart, () => {
+      if (loaded.has(indexStart)) {
         drawImageAt(indexStart);
-        loadFrame(lastIndex);
+        if (!loaded.has(lastIndex)) loadFrame(lastIndex);
         queue.push([indexStart, lastIndex]);
         processQueue();
-      });
+      } else {
+        loadFrame(indexStart, () => {
+          drawImageAt(indexStart);
+          loadFrame(lastIndex);
+          queue.push([indexStart, lastIndex]);
+          processQueue();
+        });
+      }
     }
 
     function findNearestLoaded(i) {
