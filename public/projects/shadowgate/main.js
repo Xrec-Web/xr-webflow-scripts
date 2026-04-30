@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-reveal]'))             initReveal();
   if (document.querySelector('[serv-list]'))               initServList();
   if (document.querySelector('[data-swiper-group]'))       initSwiperSlider();
-  if (document.querySelector('[data-globe]'))              initDefenceGlobe(document);
+  if (document.querySelector('[data-globe]'))              initDefenceGlobeWhenIdle(document);
 });
 
 
@@ -686,6 +686,7 @@ function initHeroWrapReveal() {
   const DURATION     = 0.85;
   const BASE_STAGGER = 0.14;
   const isTablet     = window.innerWidth < 992;
+  const isMobile     = window.matchMedia('(max-width: 767px)').matches;
 
   const tl = gsap.timeline({ paused: true });
 
@@ -702,7 +703,7 @@ function initHeroWrapReveal() {
       }
 
     } else if (el.hasAttribute('hero-heading')) {
-      const splitType = isTablet ? 'lines' : 'words';
+      const splitType = isMobile ? 'lines' : 'words';
       const split = new SplitText(el, { type: splitType });
       const items = split[splitType];
       if (isTablet) {
@@ -741,13 +742,13 @@ function initHeroWrapReveal() {
 
 // SPLIT TEXT REVEAL //
 function initSplitTextReveal() {
-  const isTablet = window.innerWidth < 992;
+  const isMobile = window.matchMedia('(max-width: 767px)').matches;
 
   document.querySelectorAll('[data-split]').forEach(el => {
-    const type = isTablet ? 'lines' : (el.getAttribute('data-split') || 'lines');
+    const type = isMobile ? 'lines' : (el.getAttribute('data-split') || 'lines');
     if (!['chars', 'words', 'lines'].includes(type)) return;
 
-    const split = new SplitText(el, { types: type });
+    const split = new SplitText(el, { type });
     const items = split[type];
     if (!items.length) return;
     const isLine = type === 'lines';
@@ -760,7 +761,7 @@ function initSplitTextReveal() {
       mask.appendChild(item);
     });
 
-    const stagger = isTablet ? 0.07 : (type === 'chars' ? 0.025 : type === 'words' ? 0.06 : 0.1);
+    const stagger = isMobile ? 0.07 : (type === 'chars' ? 0.025 : type === 'words' ? 0.06 : 0.1);
 
     const fromVars = { yPercent: 100, opacity: 0 };
     const toVars = {
@@ -776,7 +777,7 @@ function initSplitTextReveal() {
       }
     };
 
-    if (!isTablet) {
+    if (!isMobile) {
       fromVars.filter = 'blur(4px)';
       toVars.filter = 'blur(0px)';
     }
@@ -994,6 +995,21 @@ function initDefenceGlobe(container) {
   });
 }
 
+function initDefenceGlobeWhenIdle(scope = document) {
+  const run = () => {
+    const schedule = window.requestIdleCallback
+      ? window.requestIdleCallback.bind(window)
+      : (callback) => setTimeout(callback, 300);
+    schedule(() => initDefenceGlobe(scope), { timeout: 2500 });
+  };
+
+  if (document.readyState === 'complete') {
+    run();
+  } else {
+    window.addEventListener('load', run, { once: true });
+  }
+}
+
 function getDefenceGlobeElements(scope = document) {
   const elements = [];
   if (scope instanceof Element && scope.matches('[data-globe]')) elements.push(scope);
@@ -1039,7 +1055,7 @@ function createLngLatToVec3(THREE, lng, lat, radius) {
 }
 
 async function initDefenceGlobes(scope = document, options = {}) {
-  const { lazy = true, rootMargin = '200px', ...globeOptions } = options;
+  const { lazy = true, rootMargin = '0px', ...globeOptions } = options;
 
   getDefenceGlobeElements(scope).forEach((container) => {
     if (container.hasAttribute('data-globe-initialised')) return;
