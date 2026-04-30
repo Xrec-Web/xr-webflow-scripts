@@ -1238,7 +1238,6 @@ function initImageSequenceScroll() {
         loadFrame(lastIndex);
         queue.push([indexStart, lastIndex]);
         processQueue();
-        ScrollTrigger.refresh();
       });
     }
 
