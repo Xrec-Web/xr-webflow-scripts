@@ -1374,17 +1374,12 @@ function initHeroWrapReveal() {
     offset += BASE_STAGGER;
   });
 
-  // Wait for the hero video to start before playing the reveal
-  const video = wrap.querySelector('video');
+  // On tablet/below play immediately; on desktop wait for the video (short fallback)
+  const video = !isTablet && wrap.querySelector('video');
   if (video) {
     let played = false;
     const play = () => { if (played) return; played = true; tl.play(); };
-    if (video.readyState >= 3) {
-      play();
-    } else {
-      video.addEventListener('canplay', play, { once: true });
-      setTimeout(play, 2500);
-    }
+    video.readyState >= 3 ? play() : (video.addEventListener('canplay', play, { once: true }), setTimeout(play, 1000));
   } else {
     tl.play();
   }
