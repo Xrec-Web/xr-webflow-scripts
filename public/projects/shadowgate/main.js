@@ -118,10 +118,10 @@ function runPageEnterAnimation(next) {
     duration: 0.75,
   }, 'startEnter');
 
-  // pageReady fires as soon as the page is visible — lenis restarts and
-  // position:fixed clears here, so the user can scroll without waiting for
-  // the h1 animation to finish
-  tl.add('pageReady', 'startEnter+=0.75');
+  // pageReady fires at the very start of the enter animation while the
+  // container is still invisible — position:fixed clears and lenis restarts
+  // immediately so the user can scroll as soon as they navigate
+  tl.add('pageReady', 'startEnter');
   tl.call(resetPage, [next], 'pageReady');
 
   const h1 = next.querySelector('h1');
