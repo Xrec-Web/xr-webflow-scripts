@@ -1,0 +1,23 @@
+{
+  "name": "xr-webflow-scripts",
+  "version": "1.0.0",
+  "description": "JavaScript and CSS files hosted for use across XR Webflow sites.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Xrec-Web/xr-webflow-scripts.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Xrec-Web/xr-webflow-scripts/issues"
+  },
+  "homepage": "https://github.com/Xrec-Web/xr-webflow-scripts#readme",
+  "dependencies": {
+    "@vercel/blob": "^2.3.3"
+  }
+}

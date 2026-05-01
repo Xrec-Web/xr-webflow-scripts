@@ -161,22 +161,61 @@ function initBasicFormValidation() {
   });
 }
 
-// FILE UPLOAD (FILEPOND v5) //
+// FILE UPLOAD (FILEPOND) //
 function initFilePondUpload() {
-  Promise.all([
-    import('filepond'),
-    import('filepond/locales/en-gb.js'),
-  ]).then(([{ defineFilePond }, { locale }]) => {
-    defineFilePond({ locale });
+  if (typeof FilePond === 'undefined') {
+    console.error('❌ FilePond not loaded.');
+    return;
+  }
 
-    document.querySelectorAll('[file-upload-input]').forEach((zone) => {
-      zone.innerHTML = '';
-      const input    = document.createElement('input');
-      input.type     = 'file';
-      input.name     = zone.getAttribute('file-upload-input');
-      const pond     = document.createElement('file-pond');
-      pond.appendChild(input);
-      zone.appendChild(pond);
+  document.querySelectorAll('[file-upload-input]').forEach((zone) => {
+    const name  = zone.getAttribute('file-upload-input');
+    const input = document.createElement('input');
+    input.type  = 'file';
+    input.name  = name;
+    input.id    = name;
+    zone.appendChild(input);
+
+    const pond = FilePond.create(input, {
+      credits:     false,
+      storeAsFile: true,
+    });
+
+    const form = zone.closest('form');
+    if (!form) return;
+
+    const urlInput  = document.createElement('input');
+    urlInput.type   = 'hidden';
+    urlInput.name   = 'CV-Link';
+    form.appendChild(urlInput);
+
+    let uploadedUrl = '';
+
+    form.addEventListener('submit', async (e) => {
+      if (uploadedUrl) return;
+
+      const file = pond.getFile();
+      if (!file) return;
+
+      e.preventDefault();
+
+      try {
+        const res = await fetch('/api/shadowgate/upload-cv', {
+          method:  'POST',
+          headers: {
+            'Content-Type': file.file.type,
+            'x-filename':   encodeURIComponent(file.file.name),
+          },
+          body: file.file,
+        });
+
+        const data  = await res.json();
+        uploadedUrl = data.url;
+        urlInput.value = uploadedUrl;
+        form.requestSubmit();
+      } catch (err) {
+        console.error('❌ CV upload failed:', err);
+      }
     });
   });
 }
