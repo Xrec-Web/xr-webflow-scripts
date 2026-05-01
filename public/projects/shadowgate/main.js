@@ -312,6 +312,7 @@ function initDynamicCurrentYear() {
 function initScrambleTextCursor() {
   const cursor = document.querySelector("[data-cursor]");
   const cursorTextTarget = document.querySelector("[data-cursor-text-target]");
+  const chevron = cursor?.querySelector('.cursor-scramble__chevron');
 
   if (!cursor || !cursorTextTarget || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
 
@@ -345,6 +346,11 @@ function initScrambleTextCursor() {
           speed: 1.2
         }
       });
+
+      if (chevron) {
+        const hideChevron = hoverItem?.hasAttribute('data-cursor-hide-chevron');
+        gsap.to(chevron, { autoAlpha: hideChevron ? 0 : 1, duration: 0.25, ease: 'osmo', overwrite: 'auto' });
+      }
 
       activeHoverItem = hoverItem;
     }
