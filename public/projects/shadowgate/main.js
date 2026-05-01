@@ -225,6 +225,7 @@ function initTeamInteractions() {
   if (preview) {
     members.forEach(member => {
       member.addEventListener('mouseenter', () => {
+        if (member.hasAttribute('data-team-preview-ignore')) return;
         if (member === hoverActive) return;
         hoverActive = member;
 
@@ -728,16 +729,7 @@ function initHeroWrapReveal() {
     offset += BASE_STAGGER;
   });
 
-  if (isTablet) {
-    tl.play();
-  } else {
-    ScrollTrigger.create({
-      trigger: wrap,
-      start: 'top top',
-      once: true,
-      onEnter: () => tl.play(),
-    });
-  }
+  tl.play();
 }
 
 // SPLIT TEXT REVEAL //
@@ -978,13 +970,14 @@ const DEFENCE_GLOBE_DEFAULT_LOCATIONS = [
   { name: 'Canberra',      lat: -35.2809, lng: 149.1300 },
 ];
 const DEFENCE_GLOBE_US_LOCATIONS = [
-  { name: 'Northern Virginia', lat: 38.9696, lng: -77.3861 },
   { name: 'Washington D.C.',   lat: 38.9072, lng: -77.0369 },
-  { name: 'Arlington',         lat: 38.8799, lng: -77.1068 },
-  { name: 'Maryland',          lat: 39.0458, lng: -76.6122 },
   { name: 'Colorado Springs',  lat: 38.8339, lng: -104.8214 },
   { name: 'Los Angeles',       lat: 34.0522, lng: -118.2437 },
   { name: 'Cape Canaveral',    lat: 28.3922, lng: -80.6077 },
+  { name: 'San Antonio',       lat: 29.4241, lng: -98.4936  },
+  { name: 'Seattle',           lat: 47.6062, lng: -122.3321 },
+  { name: 'Texas',             lat: 31.4686, lng: -99.3319  },
+  { name: 'Las Cruces',        lat: 32.3199, lng: -106.7637 },
 ];
 const DEFENCE_GLOBE_DEFAULT_COLOR = '#547EA3';
 const DEFENCE_GLOBE_AUSTRALIA_CENTER = { lat: -25.0, lng: 133.0 };
