@@ -164,16 +164,17 @@ function initBasicFormValidation() {
 // FILE UPLOAD (FILEPOND v5) //
 function initFilePondUpload() {
   import('filepond').then(({ defineFilePond }) => {
-    defineFilePond({
-      labelIdle: 'Drag & drop your CV, or <span class="filepond--label-action">browse</span>',
-    });
+    defineFilePond();
 
     document.querySelectorAll('[file-upload-input]').forEach((zone) => {
-      zone.innerHTML  = '';
-      const input     = document.createElement('input');
-      input.type      = 'file';
-      input.name      = zone.getAttribute('file-upload-input');
-      const pond      = document.createElement('file-pond');
+      zone.innerHTML   = '';
+      const input      = document.createElement('input');
+      input.type       = 'file';
+      input.name       = zone.getAttribute('file-upload-input');
+      const label      = document.createElement('label');
+      label.textContent = 'Drag & drop your CV, or browse';
+      const pond       = document.createElement('file-pond');
+      pond.appendChild(label);
       pond.appendChild(input);
       zone.appendChild(pond);
     });
