@@ -682,6 +682,8 @@ function initHeroWrapReveal() {
   const allEls = [...wrap.querySelectorAll('[hero-fade], [hero-heading], [hero-body]')];
   if (!allEls.length) return;
 
+  gsap.set(wrap, { opacity: 1 });
+
   const rem          = parseFloat(getComputedStyle(document.documentElement).fontSize);
   const ease         = 'osmo';
   const DURATION     = 0.85;
