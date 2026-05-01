@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-cursor]'))              initScrambleTextCursor();
   if (document.querySelector('[data-accordion-css-init]')) initAccordionCSS();
   if (document.querySelector('[data-form-validate]'))      initBasicFormValidation();
+  if (document.querySelector('[file-upload-input]'))              initFilePondUpload();
   if (document.querySelector('[data-current-year]'))       initDynamicCurrentYear();
   if (document.querySelector('[data-button-animate-chars]')) initButtonCharacterStagger();
   if (document.querySelector('[data-link-animate-chars]')) initLinkCharacterStagger();
@@ -156,6 +157,28 @@ function initBasicFormValidation() {
           submitInput.click();
         }
       }
+    });
+  });
+}
+
+// FILE UPLOAD (FILEPOND v5) //
+function initFilePondUpload() {
+  import('filepond').then(({ defineFilePond }) => {
+    defineFilePond();
+
+    document.querySelectorAll('[file-upload-input]').forEach((div) => {
+      const name  = div.getAttribute('file-upload-input');
+      const input = div.querySelector('input[type="file"]') || (() => {
+        const el  = document.createElement('input');
+        el.type   = 'file';
+        el.name   = name;
+        div.appendChild(el);
+        return el;
+      })();
+
+      const pond = document.createElement('file-pond');
+      input.before(pond);
+      pond.appendChild(input);
     });
   });
 }
