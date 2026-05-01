@@ -164,9 +164,7 @@ function initBasicFormValidation() {
 // FILE UPLOAD (FILEPOND v5) //
 function initFilePondUpload() {
   import('filepond').then(({ defineFilePond }) => {
-    defineFilePond({
-      locale: { dropAreaLabel: 'Drag & drop your CV, or browse' },
-    });
+    defineFilePond();
 
     document.querySelectorAll('[file-upload-input]').forEach((zone) => {
       zone.innerHTML = '';
