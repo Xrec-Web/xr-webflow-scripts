@@ -175,11 +175,6 @@ function initFilePondUpload() {
     input.name   = zone.getAttribute('file-upload-input');
     zone.appendChild(input);
 
-    const pond = FilePond.create(input, {
-      credits:     false,
-      storeAsFile: true,
-    });
-
     const form = zone.closest('form');
     if (!form) return;
 
@@ -188,36 +183,33 @@ function initFilePondUpload() {
     urlInput.name   = 'CV-Link';
     form.appendChild(urlInput);
 
-    let uploadedUrl = '';
+    FilePond.create(input, {
+      credits:     false,
+      storeAsFile: true,
+      onaddfile: async (error, fileItem) => {
+        if (error) return;
+        urlInput.value = '';
 
-    form.addEventListener('submit', async (e) => {
-      if (uploadedUrl) return;
-
-      const pondFile = pond.getFile();
-      if (!pondFile) return;
-
-      e.preventDefault();
-      e.stopPropagation();
-
-      try {
-        const file = pondFile.file;
-        const res  = await fetch('https://xr-webflow-scripts.vercel.app/api/shadowgate/upload-cv', {
-          method:  'POST',
-          headers: {
-            'Content-Type': file.type,
-            'x-filename':   encodeURIComponent(file.name),
-          },
-          body: file,
-        });
-
-        const data     = await res.json();
-        uploadedUrl    = data.url;
-        urlInput.value = uploadedUrl;
-        form.requestSubmit();
-      } catch (err) {
-        console.error('❌ CV upload failed:', err);
-      }
-    }, true);
+        try {
+          const file = fileItem.file;
+          const res  = await fetch('https://xr-webflow-scripts.vercel.app/api/shadowgate/upload-cv', {
+            method:  'POST',
+            headers: {
+              'Content-Type': file.type,
+              'x-filename':   encodeURIComponent(file.name),
+            },
+            body: file,
+          });
+          const data     = await res.json();
+          urlInput.value = data.url;
+        } catch (err) {
+          console.error('❌ CV upload failed:', err);
+        }
+      },
+      onremovefile: () => {
+        urlInput.value = '';
+      },
+    });
   });
 }
 
