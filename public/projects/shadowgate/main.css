@@ -2,3 +2,44 @@
 /* Project: [Project Name] */
 /* Description: [Description] */
 
+/* ── FILEPOND DARK THEME ─────────────────────────────────────────────────── */
+
+.filepond--panel-root {
+  background-color: #1c1c1e;
+  border-radius: 0.5rem;
+}
+
+.filepond--drop-label {
+  color: #ffffff;
+}
+
+.filepond--drop-label label {
+  cursor: pointer;
+}
+
+.filepond--label-action {
+  text-decoration-color: #ffffff;
+}
+
+.filepond--item-panel {
+  background-color: #2c2c2e;
+  border-radius: 0.4rem;
+}
+
+.filepond--file {
+  color: #ffffff;
+}
+
+.filepond--file-action-button {
+  background-color: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+}
+
+.filepond--file-action-button:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+.filepond--progress-indicator {
+  color: #ffffff;
+}
+
