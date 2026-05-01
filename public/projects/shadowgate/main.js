@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-accordion-css-init]')) initAccordionCSS();
   if (document.querySelector('[data-form-validate]'))      initBasicFormValidation();
   if (document.querySelector('[file-upload-input]'))              initFilePondUpload();
+
   if (document.querySelector('[data-current-year]'))       initDynamicCurrentYear();
   if (document.querySelector('[data-button-animate-chars]')) initButtonCharacterStagger();
   if (document.querySelector('[data-link-animate-chars]')) initLinkCharacterStagger();
@@ -161,61 +162,61 @@ function initBasicFormValidation() {
   });
 }
 
-// FILE UPLOAD (FILEPOND) //
+// FILE UPLOAD (FILEPOND v5) //
 function initFilePondUpload() {
-  if (typeof FilePond === 'undefined') {
-    console.error('❌ FilePond not loaded.');
-    return;
-  }
+  Promise.all([
+    import('filepond'),
+    import('filepond/locales/en-gb.js'),
+  ]).then(([{ defineFilePond }, { locale }]) => {
+    defineFilePond({ locale });
 
-  document.querySelectorAll('[file-upload-input]').forEach((zone) => {
-    const name  = zone.getAttribute('file-upload-input');
-    const input = document.createElement('input');
-    input.type  = 'file';
-    input.name  = name;
-    input.id    = name;
-    zone.appendChild(input);
+    document.querySelectorAll('[file-upload-input]').forEach((zone) => {
+      zone.innerHTML = '';
+      const input    = document.createElement('input');
+      input.type     = 'file';
+      input.name     = zone.getAttribute('file-upload-input');
+      const pond     = document.createElement('file-pond');
+      pond.appendChild(input);
+      zone.appendChild(pond);
 
-    const pond = FilePond.create(input, {
-      credits:     false,
-      storeAsFile: true,
-    });
+      const form = zone.closest('form');
+      if (!form) return;
 
-    const form = zone.closest('form');
-    if (!form) return;
+      const urlInput  = document.createElement('input');
+      urlInput.type   = 'hidden';
+      urlInput.name   = 'CV-Link';
+      form.appendChild(urlInput);
 
-    const urlInput  = document.createElement('input');
-    urlInput.type   = 'hidden';
-    urlInput.name   = 'CV-Link';
-    form.appendChild(urlInput);
+      let uploadedUrl = '';
 
-    let uploadedUrl = '';
+      form.addEventListener('submit', async (e) => {
+        if (uploadedUrl) return;
 
-    form.addEventListener('submit', async (e) => {
-      if (uploadedUrl) return;
+        const shadowInput = pond.shadowRoot?.querySelector('input[type="file"]');
+        const file        = shadowInput?.files?.[0];
+        if (!file) return;
 
-      const file = pond.getFile();
-      if (!file) return;
+        e.preventDefault();
+        e.stopPropagation();
 
-      e.preventDefault();
+        try {
+          const res = await fetch('https://xr-webflow-scripts.vercel.app/api/shadowgate/upload-cv', {
+            method:  'POST',
+            headers: {
+              'Content-Type': file.type,
+              'x-filename':   encodeURIComponent(file.name),
+            },
+            body: file,
+          });
 
-      try {
-        const res = await fetch('/api/shadowgate/upload-cv', {
-          method:  'POST',
-          headers: {
-            'Content-Type': file.file.type,
-            'x-filename':   encodeURIComponent(file.file.name),
-          },
-          body: file.file,
-        });
-
-        const data  = await res.json();
-        uploadedUrl = data.url;
-        urlInput.value = uploadedUrl;
-        form.requestSubmit();
-      } catch (err) {
-        console.error('❌ CV upload failed:', err);
-      }
+          const data     = await res.json();
+          uploadedUrl    = data.url;
+          urlInput.value = uploadedUrl;
+          form.requestSubmit();
+        } catch (err) {
+          console.error('❌ CV upload failed:', err);
+        }
+      }, true);
     });
   });
 }
