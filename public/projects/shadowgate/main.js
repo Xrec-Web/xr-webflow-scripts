@@ -166,19 +166,13 @@ function initFilePondUpload() {
   import('filepond').then(({ defineFilePond }) => {
     defineFilePond();
 
-    document.querySelectorAll('[file-upload-input]').forEach((div) => {
-      const name  = div.getAttribute('file-upload-input');
-      const input = div.querySelector('input[type="file"]') || (() => {
-        const el  = document.createElement('input');
-        el.type   = 'file';
-        el.name   = name;
-        div.appendChild(el);
-        return el;
-      })();
-
-      const pond = document.createElement('file-pond');
-      input.before(pond);
+    document.querySelectorAll('[file-upload-input]').forEach((zone) => {
+      const input = document.createElement('input');
+      input.type  = 'file';
+      input.name  = zone.getAttribute('file-upload-input');
+      const pond  = document.createElement('file-pond');
       pond.appendChild(input);
+      zone.appendChild(pond);
     });
   });
 }
