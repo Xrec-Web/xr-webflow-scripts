@@ -163,8 +163,11 @@ function initBasicFormValidation() {
 
 // FILE UPLOAD (FILEPOND v5) //
 function initFilePondUpload() {
-  import('filepond').then(({ defineFilePond }) => {
-    defineFilePond();
+  Promise.all([
+    import('filepond'),
+    import('filepond/locales/en-gb.js'),
+  ]).then(([{ defineFilePond }, { locale }]) => {
+    defineFilePond({ locale });
 
     document.querySelectorAll('[file-upload-input]').forEach((zone) => {
       zone.innerHTML = '';
