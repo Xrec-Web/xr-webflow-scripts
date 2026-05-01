@@ -349,7 +349,7 @@ function initScrambleTextCursor() {
 
       if (chevron) {
         const hideChevron = hoverItem?.hasAttribute('data-cursor-hide-chevron');
-        gsap.to(chevron, { autoAlpha: hideChevron ? 0 : 1, duration: 0.25, ease: 'osmo', overwrite: 'auto' });
+        gsap.set(chevron, { display: hideChevron ? 'none' : '' });
       }
 
       activeHoverItem = hoverItem;
