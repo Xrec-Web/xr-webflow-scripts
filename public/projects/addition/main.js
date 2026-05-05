@@ -4,7 +4,7 @@
 
 // ─── ALWAYS-ON SETUP ────────────────────────────────────────────────────────
 
-gsap.registerPlugin(SplitText, ScrollTrigger, ScrollToPlugin, InertiaPlugin, Observer, CustomEase);
+gsap.registerPlugin(SplitText, ScrollTrigger, CustomEase);
 
 CustomEase.create('reveal', 'M0,0 C0.16,1 0.3,1 1,1');
 CustomEase.create("osmo", "M0,0 C0.625,0.05 0,1 1,1");
