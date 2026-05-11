@@ -785,7 +785,8 @@ function initBasicFormValidation() {
 
 // CSS MARQUEE //
 function initCSSMarquee() {
-  const pixelsPerSecond = 75;
+  const isMobile = window.matchMedia('(max-width: 767px)').matches;
+  const pixelsPerSecond = isMobile ? 35 : 75;
   const marquees = document.querySelectorAll('[data-css-marquee]');
 
   marquees.forEach(marquee => {
