@@ -371,7 +371,7 @@ function initPageAnimations() {
 
 // NAV SCROLL //
 function initNavScrollAnimation() {
-  const navWrap = document.querySelector(".nav_wrap");
+  const navWrap = document.querySelector(".nav_wrap, .hamburger-002_top-line, .hamburger-002_middle-line, .hamburger-002_bottom-line");
   if (!navWrap) return;
 
   gsap.set(navWrap, {
