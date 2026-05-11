@@ -371,8 +371,12 @@ function initPageAnimations() {
 
 // NAV SCROLL //
 function initNavScrollAnimation() {
-  const navWrap = document.querySelector(".nav_wrap, .hamburger-002_top-line, .hamburger-002_middle-line, .hamburger-002_bottom-line");
+  const navWrap = document.querySelector(".nav_wrap");
   if (!navWrap) return;
+
+  const hamburgerLines = document.querySelectorAll(
+    ".hamburger-002_top-line, .hamburger-002_middle-line, .hamburger-002_bottom-line"
+  );
 
   gsap.set(navWrap, {
     paddingLeft: "0rem",
@@ -381,6 +385,10 @@ function initNavScrollAnimation() {
     color: "white",
     backgroundColor: "rgba(255,255,255,0)"
   });
+
+  if (hamburgerLines.length) {
+    gsap.set(hamburgerLines, { backgroundColor: "white" });
+  }
 
   gsap.to(navWrap, {
     paddingLeft: "1.5rem",
@@ -404,6 +412,18 @@ function initNavScrollAnimation() {
       scrub: true
     }
   });
+
+  if (hamburgerLines.length) {
+    gsap.to(hamburgerLines, {
+      backgroundColor: "black",
+      ease: "power3.out",
+      scrollTrigger: {
+        start: 1,
+        end: window.innerHeight * 0.06,
+        scrub: true
+      }
+    });
+  }
 }
 
 // STICKY PANELS SCROLL //
