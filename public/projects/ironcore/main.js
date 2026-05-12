@@ -631,3 +631,60 @@ function initImageScrollEffect() {
     });
   });
 }
+
+// SWIPER SLIDER //
+function initSwiperSlider() {
+  const swiperSliderGroups = document.querySelectorAll("[data-swiper-group]");
+  if (!swiperSliderGroups.length) return;
+
+  swiperSliderGroups.forEach((swiperGroup) => {
+    const swiperSliderWrap = swiperGroup.querySelector("[data-swiper-wrap]");
+    if (!swiperSliderWrap) return;
+
+    const prevButton = swiperGroup.querySelector("[data-swiper-prev]");
+    const nextButton = swiperGroup.querySelector("[data-swiper-next]");
+    const paginationEl = swiperGroup.querySelector(".swiper-pagination");
+
+    const syncSlideState = (swiperInstance) => {
+      swiperInstance.slides.forEach((slide, index) => {
+        const isActive = index === swiperInstance.activeIndex;
+
+        gsap.to(slide, {
+          opacity: isActive ? 1 : 0.5,
+          scale: isActive ? 1 : 0.95,
+          duration: 0.35,
+          ease: "power2.out",
+          overwrite: true,
+        });
+      });
+    };
+
+    new Swiper(swiperSliderWrap, {
+      slidesPerView: 1,
+      speed: 600,
+      mousewheel: true,
+      grabCursor: true,
+      navigation: {
+        nextEl: nextButton,
+        prevEl: prevButton,
+      },
+      pagination: {
+        el: paginationEl,
+        type: 'bullets',
+        clickable: true,
+      },
+      keyboard: {
+        enabled: true,
+        onlyInViewport: false,
+      },
+      on: {
+        init(swiperInstance) {
+          syncSlideState(swiperInstance);
+        },
+        slideChange(swiperInstance) {
+          syncSlideState(swiperInstance);
+        },
+      },
+    });
+  });
+}
