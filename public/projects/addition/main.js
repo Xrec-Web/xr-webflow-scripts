@@ -64,6 +64,7 @@ function initTabSystem() {
     let activeVisual = null;
     let isAnimating = false;
     let progressBarTween = null;
+    let inView = false;
 
     function startProgressBar(index) {
       if (progressBarTween) progressBarTween.kill();
@@ -76,6 +77,7 @@ function initTabSystem() {
         scaleX: 1,
         duration: autoplayDuration / 1000,
         ease: "power1.inOut",
+        paused: !inView,
         onComplete: () => {
           if (!isAnimating) {
             const nextIndex = (index + 1) % contentItems.length;
@@ -145,6 +147,19 @@ function initTabSystem() {
         switchTab(i);
       });
     });
+
+    if (autoplay) {
+      ScrollTrigger.create({
+        trigger: wrapper,
+        start: 'top 80%',
+        end: 'bottom 20%',
+        onToggle: (self) => {
+          inView = self.isActive;
+          if (!progressBarTween) return;
+          inView ? progressBarTween.play() : progressBarTween.pause();
+        }
+      });
+    }
   });
 }
 
