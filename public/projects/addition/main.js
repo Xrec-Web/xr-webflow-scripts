@@ -38,6 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-marquee-scroll-direction-target]')) initMarqueeScrollDirection();
   if (document.querySelector('[data-slideshow="wrap"]')) initParallaxImageGallery();
   if (document.querySelector('[data-reveal], [data-reveal-fade]')) initReveal();
+  if (document.querySelector('[data-hero-parallax], [data-footer-parallax]')) initParallax();
+
 });
 
 
@@ -753,5 +755,42 @@ function initReveal() {
         });
       }
     });
+  });
+}
+
+// HERO + FOOTER PARALLAX //
+function initParallax() {
+  document.querySelectorAll('[data-hero-parallax]').forEach(el => {
+    const inner = el.querySelector('[data-hero-parallax-inner]');
+    const dark  = el.querySelector('[data-hero-parallax-dark]');
+
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: el,
+        start: 'top top',
+        end: 'bottom top',
+        scrub: 1
+      }
+    });
+
+    if (inner) tl.to(inner, { yPercent: 25, ease: 'linear' });
+    if (dark)  tl.to(dark,  { opacity: 0.7, ease: 'linear' }, '<');
+  });
+
+  document.querySelectorAll('[data-footer-parallax]').forEach(el => {
+    const inner = el.querySelector('[data-footer-parallax-inner]');
+    const dark  = el.querySelector('[data-footer-parallax-dark]');
+
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: el,
+        start: 'clamp(top bottom)',
+        end: 'clamp(top top)',
+        scrub: 1
+      }
+    });
+
+    if (inner) tl.from(inner, { yPercent: -25, ease: 'linear' });
+    if (dark)  tl.from(dark,  { opacity: 0.5, ease: 'linear' }, '<');
   });
 }
