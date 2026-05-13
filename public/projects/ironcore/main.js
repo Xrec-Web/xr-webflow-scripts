@@ -15,6 +15,7 @@ CustomEase.create("relaxed", "M0,0 C0.7,0 0.3,1 1,1");
 CustomEase.create("expo.inOut", "M0,0 C0.87,0 0.13,1 1,1");
 CustomEase.create("jump", "M0,0 C0.35,1.5 0.6,1 1,1");
 CustomEase.create("pop", "M0,0 C0.17,0.67 0.3,1.33 1,1");
+CustomEase.create("slideshow-wipe", "0.6, 0.08, 0.02, 0.99");
 
 // Lenis (with GSAP Scroltrigger)
 const lenis = new Lenis();
@@ -37,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('.img')) initImageScrollEffect();
   if (document.querySelector('[data-marquee-scroll-direction-target]')) initMarqueeScrollDirection();
   if (document.querySelector('[data-reveal], [data-reveal-fade]')) initReveal();
+  if (document.querySelector('[data-slideshow="wrap"]')) initParallaxImageGallery();
 
 });
 
@@ -59,6 +61,26 @@ function hasRevealAncestor(el) {
   return false;
 }
 
+function getLoadOrder(el) {
+  if (!el.hasAttribute('data-load')) return null;
+  const n = parseFloat(el.getAttribute('data-load'));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function effectiveLoadOrder(el) {
+  let o = getLoadOrder(el);
+  if (o !== null) return o;
+  let parent = el.parentElement;
+  while (parent) {
+    if (parent.matches('[data-reveal-fade]')) {
+      o = getLoadOrder(parent);
+      if (o !== null) return o;
+    }
+    parent = parent.parentElement;
+  }
+  return null;
+}
+
 function animateFadeBatch(els, baseDelay) {
   const DURATION = 0.9;
   const STAGGER  = 0.1;
@@ -76,20 +98,44 @@ function animateFadeBatch(els, baseDelay) {
 }
 
 function initReveal() {
+  const GROUP_GAP = 0.3;
+
   // Fade reveals
   const allFadeEls  = [...document.querySelectorAll('[data-reveal-fade]')];
-  const loadFades   = allFadeEls.filter(el => el.hasAttribute('data-load'));
-  const scrollFades = allFadeEls.filter(el => !el.hasAttribute('data-load'));
+  const allRevealEls = [...document.querySelectorAll('[data-reveal]')];
+  const isLoadFade  = (el) => effectiveLoadOrder(el) !== null;
+  const loadFades   = allFadeEls.filter(isLoadFade);
+  const scrollFades = allFadeEls.filter(el => !isLoadFade(el));
+
+  // Build a shared order → delay map from every element participating in the load sequence
+  const orderSet = new Set();
+  [...allFadeEls, ...allRevealEls].forEach(el => {
+    const o = effectiveLoadOrder(el);
+    if (o !== null) orderSet.add(o);
+  });
+  const sortedOrders = [...orderSet].sort((a, b) => a - b);
+  const orderDelay = new Map();
+  sortedOrders.forEach((o, i) => orderDelay.set(o, i * GROUP_GAP));
 
   if (allFadeEls.length) {
     gsap.set(allFadeEls, { y: 24, filter: 'blur(10px)', opacity: 0 });
   }
 
   if (loadFades.length) {
-    const roots    = loadFades.filter(el => !hasRevealAncestor(el));
-    const children = loadFades.filter(el =>  hasRevealAncestor(el));
-    animateFadeBatch(roots, 0);
-    animateFadeBatch(children, 0.2);
+    const grouped = new Map();
+    loadFades.forEach(el => {
+      const o = effectiveLoadOrder(el);
+      if (!grouped.has(o)) grouped.set(o, []);
+      grouped.get(o).push(el);
+    });
+    [...grouped.keys()].sort((a, b) => a - b).forEach(o => {
+      const group    = grouped.get(o);
+      const base     = orderDelay.get(o) ?? 0;
+      const roots    = group.filter(el => !hasRevealAncestor(el));
+      const children = group.filter(el =>  hasRevealAncestor(el));
+      animateFadeBatch(roots, base);
+      animateFadeBatch(children, base + 0.2);
+    });
   }
 
   if (scrollFades.length) {
@@ -110,7 +156,9 @@ function initReveal() {
 
   document.querySelectorAll('[data-reveal]').forEach((el) => {
     const fadeParent = el.parentElement?.closest('[data-reveal-fade]');
-    const isLoad     = fadeParent ? fadeParent.hasAttribute('data-load') : el.hasAttribute('data-load');
+    const order      = effectiveLoadOrder(el);
+    const isLoad     = order !== null;
+    const groupOffset = isLoad ? (orderDelay.get(order) ?? 0) : 0;
     const isChild    = hasRevealAncestor(el);
     const type       = (el.dataset.reveal || 'lines').toLowerCase();
     const safeType   = ['lines', 'words', 'chars'].includes(type) ? type : 'lines';
@@ -135,9 +183,9 @@ function initReveal() {
         gsap.set(el, { opacity: 1 });
         const targets   = instance[safeType];
         const config    = splitConfig[safeType];
-        const baseDelay = fadeParent
+        const baseDelay = (fadeParent
           ? 0.2 + childIdx * FADE_CHILD_STAGGER
-          : isChild ? 0.2 : 0;
+          : isChild ? 0.2 : 0) + groupOffset;
         targets.forEach((target, i) => {
           const offset = i * config.stagger;
           gsap.from(target, {
@@ -683,5 +731,87 @@ function initSwiperSlider() {
         },
       },
     });
+  });
+}
+
+// PARALLAX IMAGE SLIDESHOW //
+function initSlideShow(el) {
+  const slides = Array.from(el.querySelectorAll('[data-slideshow="slide"]'));
+  if (!slides.length) return;
+
+  const getInner = (slide) =>
+    slide.querySelector('[data-slideshow="parallax"]') || slide;
+
+  el.style.backgroundColor = "#000";
+
+  const hold = parseFloat(el.getAttribute("data-slideshow-duration")) || 2.0;
+  const crossfade = 0.8;
+  const overlap = 0.75;
+  const scaleAmount = 1.05;
+  const fadeInLead = crossfade * overlap;
+
+  slides.forEach((s, i) => {
+    gsap.set(s, { opacity: i === 0 ? 1 : 0, zIndex: i === 0 ? 2 : 1 });
+    s.classList.toggle("is--current", i === 0);
+    gsap.set(getInner(s), { scale: 1, transformOrigin: "50% 50%" });
+  });
+
+  let current = 0;
+
+  function startZoom(slide) {
+    const inner = getInner(slide);
+    if (inner._zoomTween) inner._zoomTween.kill();
+    gsap.set(inner, { scale: 1, transformOrigin: "50% 50%" });
+    inner._zoomTween = gsap.to(inner, {
+      scale: scaleAmount,
+      duration: hold + crossfade,
+      ease: "none"
+    });
+  }
+
+  startZoom(slides[current]);
+
+  function cycle() {
+    const fromIndex = current;
+    const toIndex = (current + 1) % slides.length;
+    const fromSlide = slides[fromIndex];
+    const toSlide = slides[toIndex];
+    const fromInner = getInner(fromSlide);
+
+    toSlide.classList.add("is--current");
+    gsap.set(fromSlide, { zIndex: 1 });
+    gsap.set(toSlide, { zIndex: 2, opacity: 0 });
+    gsap.killTweensOf(fromSlide);
+    gsap.killTweensOf(toSlide);
+
+    const fadeInStart = Math.max(0, hold - fadeInLead);
+    const fadeOutStart = hold;
+
+    const tl = gsap.timeline({
+      onComplete: () => {
+        if (fromInner._zoomTween) {
+          fromInner._zoomTween.kill();
+          fromInner._zoomTween = null;
+        }
+        gsap.set(fromInner, { scale: 1 });
+        fromSlide.classList.remove("is--current");
+        current = toIndex;
+        cycle();
+      }
+    });
+
+    tl.call(() => startZoom(toSlide), null, fadeInStart);
+    tl.to(toSlide, { opacity: 1, duration: crossfade, ease: "slideshow-wipe" }, fadeInStart);
+    tl.to(fromSlide, { opacity: 0, duration: crossfade, ease: "slideshow-wipe" }, fadeOutStart);
+  }
+
+  cycle();
+}
+
+function initParallaxImageGallery() {
+  document.querySelectorAll('[data-slideshow="wrap"]').forEach((wrap) => {
+    if (wrap._slideshowInit) return;
+    wrap._slideshowInit = true;
+    initSlideShow(wrap);
   });
 }
