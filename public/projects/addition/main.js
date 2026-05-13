@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-slideshow="wrap"]')) initParallaxImageGallery();
   if (document.querySelector('[data-reveal], [data-reveal-fade]')) initReveal();
   if (document.querySelector('[data-hero-parallax], [data-footer-parallax]')) initParallax();
+  if (document.querySelector('.nav_wrap')) initNavScrollColor();
 
 });
 
@@ -755,6 +756,37 @@ function initReveal() {
         });
       }
     });
+  });
+}
+
+// NAV SCROLL COLOR SWAP //
+function initNavScrollColor() {
+  const nav = document.querySelector('.nav_wrap');
+  if (!nav) return;
+
+  const rootStyles = getComputedStyle(document.documentElement);
+  const lightBg = rootStyles.getPropertyValue('--swatch--light-100').trim();
+  const lightText = rootStyles.getPropertyValue('--swatch--dark-900').trim();
+
+  if (nav.hasAttribute('data-nav-light')) {
+    gsap.set(nav, { backgroundColor: lightBg, color: lightText });
+    return;
+  }
+
+  const tl = gsap.timeline({ paused: true })
+    .to(nav, {
+      backgroundColor: lightBg,
+      color: lightText,
+      duration: 0.4,
+      ease: 'osmo'
+    });
+
+  ScrollTrigger.create({
+    trigger: 'body',
+    start: '10% top',
+    end: 'bottom top',
+    onEnter: () => tl.play(),
+    onLeaveBack: () => tl.reverse()
   });
 }
 
