@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('.img')) initImageScrollEffect();
   if (document.querySelector('[data-marquee-scroll-direction-target]')) initMarqueeScrollDirection();
   if (document.querySelector('[data-slideshow="wrap"]')) initParallaxImageGallery();
+  if (document.querySelector('[data-reveal], [data-reveal-fade]')) initReveal();
 });
 
 
@@ -597,5 +598,160 @@ function initParallaxImageGallery() {
     if (wrap._slideshowInit) return;
     wrap._slideshowInit = true;
     initSlideShow(wrap);
+  });
+}
+
+const splitConfig = {
+  lines: { duration: 1.0, stagger: 0.08 },
+  words: { duration: 0.8, stagger: 0.06 },
+  chars: { duration: 0.6, stagger: 0.01 }
+};
+
+function hasRevealAncestor(el) {
+  let parent = el.parentElement;
+  while (parent) {
+    if (parent.matches('[data-reveal], [data-reveal-fade]')) return true;
+    parent = parent.parentElement;
+  }
+  return false;
+}
+
+function getLoadOrder(el) {
+  if (!el.hasAttribute('data-load')) return null;
+  const n = parseFloat(el.getAttribute('data-load'));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function effectiveLoadOrder(el) {
+  let o = getLoadOrder(el);
+  if (o !== null) return o;
+  let parent = el.parentElement;
+  while (parent) {
+    if (parent.matches('[data-reveal-fade]')) {
+      o = getLoadOrder(parent);
+      if (o !== null) return o;
+    }
+    parent = parent.parentElement;
+  }
+  return null;
+}
+
+function animateFadeBatch(els, baseDelay) {
+  const DURATION = 0.9;
+  const STAGGER  = 0.1;
+  els.forEach((el, i) => {
+    const offset = i * STAGGER;
+    gsap.to(el, {
+      y: 0,
+      filter: 'blur(0px)',
+      opacity: 1,
+      duration: DURATION - offset,
+      ease: 'reveal',
+      delay: baseDelay + offset
+    });
+  });
+}
+
+function initReveal() {
+  const GROUP_GAP = 0.3;
+
+  // Fade reveals
+  const allFadeEls  = [...document.querySelectorAll('[data-reveal-fade]')];
+  const allRevealEls = [...document.querySelectorAll('[data-reveal]')];
+  const isLoadFade  = (el) => effectiveLoadOrder(el) !== null;
+  const loadFades   = allFadeEls.filter(isLoadFade);
+  const scrollFades = allFadeEls.filter(el => !isLoadFade(el));
+
+  // Build a shared order → delay map from every element participating in the load sequence
+  const orderSet = new Set();
+  [...allFadeEls, ...allRevealEls].forEach(el => {
+    const o = effectiveLoadOrder(el);
+    if (o !== null) orderSet.add(o);
+  });
+  const sortedOrders = [...orderSet].sort((a, b) => a - b);
+  const orderDelay = new Map();
+  sortedOrders.forEach((o, i) => orderDelay.set(o, i * GROUP_GAP));
+
+  if (allFadeEls.length) {
+    gsap.set(allFadeEls, { y: 24, filter: 'blur(10px)', opacity: 0 });
+  }
+
+  if (loadFades.length) {
+    const grouped = new Map();
+    loadFades.forEach(el => {
+      const o = effectiveLoadOrder(el);
+      if (!grouped.has(o)) grouped.set(o, []);
+      grouped.get(o).push(el);
+    });
+    [...grouped.keys()].sort((a, b) => a - b).forEach(o => {
+      const group    = grouped.get(o);
+      const base     = orderDelay.get(o) ?? 0;
+      const roots    = group.filter(el => !hasRevealAncestor(el));
+      const children = group.filter(el =>  hasRevealAncestor(el));
+      animateFadeBatch(roots, base);
+      animateFadeBatch(children, base + 0.2);
+    });
+  }
+
+  if (scrollFades.length) {
+    ScrollTrigger.batch(scrollFades, {
+      start: 'clamp(top 80%)',
+      once: true,
+      onEnter: (batch) => {
+        const roots    = batch.filter(el => !hasRevealAncestor(el));
+        const children = batch.filter(el =>  hasRevealAncestor(el));
+        animateFadeBatch(roots, 0);
+        animateFadeBatch(children, 0.2);
+      }
+    });
+  }
+
+  // Split text reveals
+  const FADE_CHILD_STAGGER = 0.15;
+
+  document.querySelectorAll('[data-reveal]').forEach((el) => {
+    const fadeParent = el.parentElement?.closest('[data-reveal-fade]');
+    const order      = effectiveLoadOrder(el);
+    const isLoad     = order !== null;
+    const groupOffset = isLoad ? (orderDelay.get(order) ?? 0) : 0;
+    const isChild    = hasRevealAncestor(el);
+    const type       = (el.dataset.reveal || 'lines').toLowerCase();
+    const safeType   = ['lines', 'words', 'chars'].includes(type) ? type : 'lines';
+
+    const childIdx = fadeParent
+      ? [...fadeParent.querySelectorAll('[data-reveal]')].indexOf(el)
+      : 0;
+
+    const typesToSplit =
+      safeType === 'lines' ? ['lines'] :
+      safeType === 'words' ? ['lines', 'words'] :
+      ['lines', 'words', 'chars'];
+
+    SplitText.create(el, {
+      type: typesToSplit.join(','),
+      mask: safeType,
+      autoSplit: true,
+      linesClass: 'line',
+      wordsClass: 'word',
+      charsClass: 'letter',
+      onSplit: (instance) => {
+        gsap.set(el, { opacity: 1 });
+        const targets   = instance[safeType];
+        const config    = splitConfig[safeType];
+        const baseDelay = (fadeParent
+          ? 0.2 + childIdx * FADE_CHILD_STAGGER
+          : isChild ? 0.2 : 0) + groupOffset;
+        targets.forEach((target, i) => {
+          const offset = i * config.stagger;
+          gsap.from(target, {
+            yPercent: 110,
+            duration: config.duration - offset,
+            ease: 'reveal',
+            delay: baseDelay + offset,
+            ...(isLoad ? {} : { scrollTrigger: { trigger: fadeParent || el, start: 'clamp(top 80%)', once: true } })
+          });
+        });
+      }
+    });
   });
 }
