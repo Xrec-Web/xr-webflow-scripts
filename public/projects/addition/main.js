@@ -787,6 +787,7 @@ function initNavScrollColor() {
 
   if (nav.hasAttribute('data-nav-light')) {
     gsap.set(nav, { backgroundColor: lightBg, color: lightText });
+    nav._isAlwaysLight = true;
     return;
   }
 
@@ -798,13 +799,17 @@ function initNavScrollColor() {
       ease: 'osmo'
     });
 
-  ScrollTrigger.create({
+  const st = ScrollTrigger.create({
     trigger: 'body',
     start: '10% top',
     end: 'bottom top',
-    onEnter: () => tl.play(),
-    onLeaveBack: () => tl.reverse()
+    onEnter: () => { if (!nav._menuForceLight) tl.play(); },
+    onLeaveBack: () => { if (!nav._menuForceLight) tl.reverse(); }
   });
+
+  nav._colorTl = tl;
+  nav._colorST = st;
+  nav._menuForceLight = false;
 }
 
 // MENU BUTTON //
@@ -812,8 +817,19 @@ function initMenuButton() {
   const menuButton = document.querySelector("[data-menu-button]");
   const lines = document.querySelectorAll(".menu-button-line");
   const [line1, line2, line3] = lines;
+  const nav = document.querySelector('.nav_wrap');
 
   if (!menuButton || lines.length < 3) return;
+
+  const setNavLight = (force) => {
+    if (!nav || nav._isAlwaysLight || !nav._colorTl) return;
+    nav._menuForceLight = force;
+    if (force) {
+      nav._colorTl.play();
+    } else {
+      nav._colorST && nav._colorST.isActive ? nav._colorTl.play() : nav._colorTl.reverse();
+    }
+  };
 
   const menuButtonTl = gsap.timeline({
     defaults: {
@@ -852,9 +868,11 @@ function initMenuButton() {
     const currentState = menuButton.getAttribute("data-menu-button");
     if (currentState === "burger") {
       menuOpen();
+      setNavLight(true);
       menuButton.setAttribute("data-menu-button", "close");
     } else {
       menuClose();
+      setNavLight(false);
       menuButton.setAttribute("data-menu-button", "burger");
     }
   });
