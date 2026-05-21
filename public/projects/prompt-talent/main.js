@@ -14,10 +14,24 @@ gsap.ticker.lagSmoothing(0);
 let heightRefreshTimer;
 let lastVW = window.innerWidth;
 let lastVH = window.innerHeight;
+let lastScrollTime = 0;
+
+// Track scroll activity — refreshing ScrollTrigger mid-scroll desyncs Lenis and
+// snaps the scroll position, so refreshes wait until scrolling has settled.
+lenis.on('scroll', () => { lastScrollTime = performance.now(); });
+
+function runRefresh() {
+  // Still scrolling? Re-arm and wait — never refresh mid-scroll.
+  if (performance.now() - lastScrollTime < 250) {
+    heightRefreshTimer = setTimeout(runRefresh, 250);
+    return;
+  }
+  ScrollTrigger.refresh();
+}
 
 function scheduleRefresh(delay = 150) {
   clearTimeout(heightRefreshTimer);
-  heightRefreshTimer = setTimeout(() => ScrollTrigger.refresh(), delay);
+  heightRefreshTimer = setTimeout(runRefresh, delay);
 }
 
 // Catches height changes from filters or any layout shift — but skips the mobile
@@ -42,7 +56,7 @@ domMutationObserver.observe(document.body, { childList: true, subtree: true });
 // and stop watching DOM mutations to avoid ongoing overhead
 window.addEventListener('load', () => {
   setTimeout(() => {
-    ScrollTrigger.refresh();
+    scheduleRefresh(0);
     domMutationObserver.disconnect();
   }, 500);
 });
