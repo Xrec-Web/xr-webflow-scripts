@@ -47,6 +47,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('.img')) initImageScrollEffect();
   if (document.querySelector('[data-hero-parallax], [data-footer-parallax]')) initParallax();
   if (document.querySelector('[data-form-validate]')) initBasicFormValidation();
+  if (document.querySelector('[data-menu-button]')) initMenuButton();
+
 });
 
 // ─── FUNCTIONS ───────────────────────────────────────────────────────────────
@@ -780,5 +782,56 @@ function initBasicFormValidation() {
         }
       }
     });
+  });
+}
+
+// MENU BUTTON //
+function initMenuButton() {
+  const menuButton = document.querySelector("[data-menu-button]");
+  const lines = document.querySelectorAll(".menu-button-line");
+  const [line1, line2, line3] = lines;
+
+  const menuButtonTl = gsap.timeline({
+    defaults: {
+      overwrite: "auto",
+      ease: "button-ease",
+      duration: 0.3
+    }
+  });
+
+  const menuOpen = () => {
+    menuButtonTl.clear()
+      .to(line2, { scaleX: 0, opacity: 0 })
+      .to(line1, { x: "-1.3em", opacity: 0 }, "<")
+      .to(line3, { x: "1.3em", opacity: 0 }, "<")
+      .to([line1, line3], { opacity: 0, duration: 0.1 }, "<+=0.2")
+      .set(line1, { rotate: -135, y: "-1.3em", scaleX: 0.9 })
+      .set(line3, { rotate: 135, y: "-1.4em", scaleX: 0.9 }, "<")
+      .to(line1, { opacity: 1, x: "0em", y: "0.5em" })
+      .to(line3, { opacity: 1, x: "0em", y: "-0.25em" }, "<+=0.1");
+  };
+
+  const menuClose = () => {
+    menuButtonTl.clear()
+      .to([line1, line2, line3], {
+        scaleX: 1,
+        rotate: 0,
+        x: "0em",
+        y: "0em",
+        opacity: 1,
+        duration: 0.45,
+        overwrite: "auto"
+      });
+  };
+
+  menuButton.addEventListener("click", () => {
+    const currentState = menuButton.getAttribute("data-menu-button");
+    if (currentState === "burger") {
+      menuOpen();
+      menuButton.setAttribute("data-menu-button", "close");
+    } else {
+      menuClose();
+      menuButton.setAttribute("data-menu-button", "burger");
+    }
   });
 }
