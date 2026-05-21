@@ -12,14 +12,26 @@ gsap.ticker.lagSmoothing(0);
 
 // Refresh ScrollTrigger whenever page height changes (filters, dynamic content, etc.)
 let heightRefreshTimer;
+let lastVW = window.innerWidth;
+let lastVH = window.innerHeight;
 
 function scheduleRefresh(delay = 150) {
   clearTimeout(heightRefreshTimer);
   heightRefreshTimer = setTimeout(() => ScrollTrigger.refresh(), delay);
 }
 
-// Catches height changes from filters or any layout shift
-const bodyHeightObserver = new ResizeObserver(scheduleRefresh);
+// Catches height changes from filters or any layout shift — but skips the mobile
+// address-bar show/hide (viewport-only resize), which snaps the scroll if it
+// refreshes ScrollTrigger mid-scroll while Lenis is running.
+const bodyHeightObserver = new ResizeObserver(() => {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  // Viewport height moved but width didn't → address bar. Ignore.
+  if (vw === lastVW && vh !== lastVH) { lastVH = vh; return; }
+  lastVW = vw;
+  lastVH = vh;
+  scheduleRefresh();
+});
 bodyHeightObserver.observe(document.documentElement);
 
 // Catches dummy items being removed/replaced by CMS scripts on load
@@ -582,6 +594,7 @@ function initNav() {
     suppressTheme = true;
     themeBeforeMenu = nav.classList.contains('u-theme-light') ? 'u-theme-light' : 'u-theme-dark';
     setTheme('u-theme-light');
+    if (typeof lenis !== 'undefined') lenis.stop();
     lockScroll();
     menuOpen = true;
     requestAnimationFrame(() => (suppressTheme = false));
@@ -590,6 +603,7 @@ function initNav() {
   function closeMenu() {
     suppressTheme = true;
     unlockScroll();
+    if (typeof lenis !== 'undefined') lenis.start();
     requestAnimationFrame(() => {
       setTheme(themeBeforeMenu || 'u-theme-dark');
       menuOpen = false;
