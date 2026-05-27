@@ -632,6 +632,39 @@ function initCascadingSlider() {
       };
     }
 
+    function playSlideVideo(slide) {
+      const video = slide.querySelector('video');
+      if (video) { video.play(); return; }
+
+      const iframe = slide.querySelector('iframe');
+      if (!iframe) return;
+      const src = iframe.src || '';
+
+      if (src.includes('youtube.com') || src.includes('youtu.be')) {
+        if (!src.includes('enablejsapi=1')) {
+          iframe.src = src + (src.includes('?') ? '&' : '?') + 'enablejsapi=1';
+        }
+        iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+      } else if (src.includes('vimeo.com')) {
+        iframe.contentWindow.postMessage('{"method":"play"}', 'https://player.vimeo.com');
+      }
+    }
+
+    function pauseSlideVideo(slide) {
+      const video = slide.querySelector('video');
+      if (video) { video.pause(); return; }
+
+      const iframe = slide.querySelector('iframe');
+      if (!iframe) return;
+      const src = iframe.src || '';
+
+      if (src.includes('youtube.com') || src.includes('youtu.be')) {
+        iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+      } else if (src.includes('vimeo.com')) {
+        iframe.contentWindow.postMessage('{"method":"pause"}', 'https://player.vimeo.com');
+      }
+    }
+
     function layout(animate, previousIndex) {
       slides.forEach(function(slide, index) {
         const offset = getOffset(index);
@@ -656,7 +689,13 @@ function initCascadingSlider() {
         }
 
         const props = getSlideProps(offset);
-        slide.setAttribute('data-status', offset === 0 ? 'active' : 'inactive');
+        const newStatus = offset === 0 ? 'active' : 'inactive';
+        const oldStatus = slide.getAttribute('data-status');
+        slide.setAttribute('data-status', newStatus);
+        if (newStatus !== oldStatus) {
+          if (newStatus === 'active') playSlideVideo(slide);
+          else pauseSlideVideo(slide);
+        }
 
         if (animate) {
           gsap.to(slide, Object.assign({}, props, {
