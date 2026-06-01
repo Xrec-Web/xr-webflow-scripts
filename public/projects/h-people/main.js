@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-form-validate]')) initBasicFormValidation();
   if (document.querySelector('[data-cascading-slider-wrap]')) initCascadingSlider();
   if (document.querySelector('.swiper.is-gallery')) initGallerySlider();
-  if (document.querySelector('.swiper.is-gallery')) initSwiperSlider();
+  if (document.querySelector('[data-swiper-group]')) initSwiperSlider();
 });
 
 
@@ -483,6 +483,7 @@ function initParallax() {
   });
 }
 
+// SWIPER //
 function initSwiperSlider() {  
   const swiperSliderGroups = document.querySelectorAll("[data-swiper-group]");
   
