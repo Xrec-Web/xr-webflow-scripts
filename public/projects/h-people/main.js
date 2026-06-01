@@ -484,24 +484,31 @@ function initParallax() {
 
 // GALLERY SLIDER //
 function initGallerySlider() {
-  function playActiveVideo(swiper) {
+  function syncVideos(swiper) {
     swiper.slides.forEach((slide) => {
       const video = slide.querySelector('video');
       if (!video) return;
-      slide.classList.contains('swiper-slide-active') ? video.play() : video.pause();
+      if (slide.classList.contains('swiper-slide-active')) {
+        const playPromise = video.play();
+        if (playPromise) playPromise.catch(() => {});
+      } else {
+        video.pause();
+      }
     });
   }
 
   new Swiper(".swiper.is-gallery", {
     loop: true,
+    loopAdditionalSlides: 2,
     slidesPerView: 3,
     centeredSlides: true,
     speed: 800,
     grabCursor: true,
     parallax: true,
     on: {
-      afterInit: (swiper) => playActiveVideo(swiper),
-      slideChangeTransitionEnd: (swiper) => playActiveVideo(swiper)
+      afterInit: (swiper) => syncVideos(swiper),
+      slideChangeTransitionEnd: (swiper) => syncVideos(swiper),
+      loopFix: (swiper) => syncVideos(swiper)
     }
   });
 }
