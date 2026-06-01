@@ -494,7 +494,7 @@ function initGallerySlider() {
 
   new Swiper(".swiper.is-gallery", {
     loop: true,
-    slidesPerView: 2,
+    slidesPerView: 3,
     centeredSlides: true,
     speed: 800,
     grabCursor: true,
