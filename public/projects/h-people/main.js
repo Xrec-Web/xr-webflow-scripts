@@ -493,7 +493,27 @@ function initSwiperSlider() {
     
     const prevButton = swiperGroup.querySelector("[data-swiper-prev]");
     const nextButton = swiperGroup.querySelector("[data-swiper-next]");
-    
+
+    // Add 'is-active' class to the active slide(s) and play their video,
+    // pause + reset the video on every other slide.
+    function updateActiveSlides(swiperInstance) {
+      swiperInstance.slides.forEach((slide) => {
+        const isActive = slide.classList.contains('swiper-slide-active');
+        slide.classList.toggle('is-active', isActive);
+
+        const video = slide.querySelector('.swiper-video');
+        if (!video) return;
+
+        if (isActive) {
+          const playPromise = video.play();
+          if (playPromise !== undefined) playPromise.catch(() => {});
+        } else {
+          video.pause();
+          video.currentTime = 0;
+        }
+      });
+    }
+
     const swiper = new Swiper(swiperSliderWrap, {
       slidesPerView: 1.25,
       speed: 600,
@@ -517,13 +537,17 @@ function initSwiperSlider() {
         el: '.swiper-pagination',
         type: 'bullets',
         clickable: true
-      },    
+      },
       keyboard: {
         enabled: true,
         onlyInViewport: false,
-      },      
-    });    
-    
+      },
+      on: {
+        init: updateActiveSlides,
+        slideChange: updateActiveSlides,
+      },
+    });
+
   });
 }
 
