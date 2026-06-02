@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('.swiper.is-gallery')) initGallerySlider();
   if (document.querySelector('[data-mini-showreel-open]')) initMiniShowreelPlayer();
   if (document.querySelector('[data-video="playpause"]')) initPlayPauseVideoScroll();
+  if (document.querySelector('[data-modal-target]')) initModalBasic();
 });
 
 
@@ -630,6 +631,41 @@ function initMiniShowreelPlayer() {
     if (pw) pw.style.zIndex = pwZ;
   }
 
+  function playFor(name) {
+    const wrap = getPW(name);
+    if (!wrap) return;
+
+    const bunny = wrap.querySelector("[data-bunny-player-init]");
+    const video = wrap.querySelector("video");
+    if (!video) return;
+
+    if (bunny) {
+      const btn = bunny.querySelector('[data-player-control="play"], [data-player-control="playpause"]');
+      if (btn && (video.paused || video.ended)) btn.click();
+      return;
+    }
+
+    try { video.play(); } catch(_) {}
+  }
+
+  function stopFor(name) {
+    const wrap = getPW(name);
+    if (!wrap) return;
+
+    const bunny = wrap.querySelector("[data-bunny-player-init]");
+    const video = wrap.querySelector("video");
+    if (!video) return;
+
+    if (bunny) {
+      const btn = bunny.querySelector('[data-player-control="pause"], [data-player-control="playpause"]');
+      if (btn && (!video.paused && !video.ended)) btn.click();
+    } else {
+      try { video.pause(); } catch(_) {}
+    }
+
+    try { video.currentTime = 0; } catch(_) {}
+  }
+
   function openBy(name) {
     if (!name || isOpen) return;
 
@@ -648,6 +684,7 @@ function initMiniShowreelPlayer() {
 
     zOn();
     setStatus("active");
+    playFor(n);
 
     const state = Flip.getState(pw);
     place(pw, rectFor(tg));
@@ -664,6 +701,7 @@ function initMiniShowreelPlayer() {
     if (!isOpen || !pw) return;
     if (nameOrEmpty && nameOrEmpty !== n) return;
 
+    stopFor(n);
     setStatus("not-active");
 
     const state = Flip.getState(pw);
@@ -733,4 +771,52 @@ function initPlayPauseVideoScroll() {
       onLeaveBack: () => video.pause(),
     });
   });
+}
+
+// BASIC MODAL //
+function initModalBasic() {
+  const modalGroup = document.querySelector('[data-modal-group-status]');
+  const modals = document.querySelectorAll('[data-modal-name]');
+  const modalTargets = document.querySelectorAll('[data-modal-target]');
+
+  // Open modal
+  modalTargets.forEach((modalTarget) => {
+    modalTarget.addEventListener('click', function () {
+      const modalTargetName = this.getAttribute('data-modal-target');
+
+      // Close all modals
+      modalTargets.forEach((target) => target.setAttribute('data-modal-status', 'not-active'));
+      modals.forEach((modal) => modal.setAttribute('data-modal-status', 'not-active'));
+
+      // Activate clicked modal
+      document.querySelector(`[data-modal-target="${modalTargetName}"]`).setAttribute('data-modal-status', 'active');
+      document.querySelector(`[data-modal-name="${modalTargetName}"]`).setAttribute('data-modal-status', 'active');
+
+      // Set group to active
+      if (modalGroup) {
+        modalGroup.setAttribute('data-modal-group-status', 'active');
+      }
+    });
+  });
+
+  // Close modal
+  document.querySelectorAll('[data-modal-close]').forEach((closeBtn) => {
+    closeBtn.addEventListener('click', closeAllModals);
+  });
+
+  // Close modal on `Escape` key
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+      closeAllModals();
+    }
+  });
+
+  // Function to close all modals
+  function closeAllModals() {
+    modalTargets.forEach((target) => target.setAttribute('data-modal-status', 'not-active'));
+
+    if (modalGroup) {
+      modalGroup.setAttribute('data-modal-group-status', 'not-active');
+    }
+  }
 }
