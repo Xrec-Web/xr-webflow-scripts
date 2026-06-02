@@ -29,7 +29,6 @@ gsap.ticker.lagSmoothing(0);
 document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-slideshow="wrap"]'))    initParallaxImageGallery();
   if (document.querySelector('[data-accordion-css-init]')) initAccordionCSS();
-  if (document.querySelector('[data-video-on-hover]')) initPlayVideoHover();
   if (document.querySelector('[data-reveal], [data-reveal-clip]')) initReveal();
   if (document.querySelector('.img:not(.no-para)')) initImageScrollEffect();
   if (document.querySelector('[data-current-year]')) initDynamicCurrentYear();
