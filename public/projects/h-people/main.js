@@ -32,14 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-video-on-hover]')) initPlayVideoHover();
   if (document.querySelector('[data-reveal], [data-reveal-clip]')) initReveal();
   if (document.querySelector('.img:not(.no-para)')) initImageScrollEffect();
-  if (document.querySelector('.cursor')) initDynamicCustomTextCursor();
   if (document.querySelector('[data-current-year]')) initDynamicCurrentYear();
   if (document.querySelector('.faq_toggle_inner')) initFAQToggle();
   if (document.querySelector('[data-hero-parallax], [data-footer-parallax]')) initParallax();
   if (document.querySelector('[data-form-validate]')) initBasicFormValidation();
-  if (document.querySelector('[data-cascading-slider-wrap]')) initCascadingSlider();
   if (document.querySelector('.swiper.is-gallery')) initGallerySlider();
-  if (document.querySelector('[data-swiper-group]')) initSwiperSlider();
 });
 
 
@@ -480,74 +477,6 @@ function initParallax() {
 
     if (inner) tl.from(inner, { yPercent: -25, ease: 'linear' });
     if (dark)  tl.from(dark,  { opacity: 0.5, ease: 'linear' }, '<');
-  });
-}
-
-// SWIPER //
-function initSwiperSlider() {  
-  const swiperSliderGroups = document.querySelectorAll("[data-swiper-group]");
-  
-  swiperSliderGroups.forEach((swiperGroup) => {
-    const swiperSliderWrap = swiperGroup.querySelector("[data-swiper-wrap]");
-    if(!swiperSliderWrap) return;
-    
-    const prevButton = swiperGroup.querySelector("[data-swiper-prev]");
-    const nextButton = swiperGroup.querySelector("[data-swiper-next]");
-
-    // Add 'is-active' class to the active slide(s) and play their video,
-    // pause + reset the video on every other slide.
-    function updateActiveSlides(swiperInstance) {
-      swiperInstance.slides.forEach((slide) => {
-        const isActive = slide.classList.contains('swiper-slide-active');
-        slide.classList.toggle('is-active', isActive);
-
-        const video = slide.querySelector('.swiper-video');
-        if (!video) return;
-
-        if (isActive) {
-          const playPromise = video.play();
-          if (playPromise !== undefined) playPromise.catch(() => {});
-        } else {
-          video.pause();
-          video.currentTime = 0;
-        }
-      });
-    }
-
-    const swiper = new Swiper(swiperSliderWrap, {
-      slidesPerView: 1.25,
-      speed: 600,
-      mousewheel: true,
-      grabCursor: true,
-      breakpoints: {
-        // when window width is >= 480px
-        480: {
-          slidesPerView: 1.8,
-        },
-        // when window width is >= 992px
-        992: {
-          slidesPerView: 2.25,
-        }
-      },
-      navigation: {
-        nextEl: nextButton,
-        prevEl: prevButton,
-      },
-      pagination: {
-        el: '.swiper-pagination',
-        type: 'bullets',
-        clickable: true
-      },
-      keyboard: {
-        enabled: true,
-        onlyInViewport: false,
-      },
-      on: {
-        init: updateActiveSlides,
-        slideChange: updateActiveSlides,
-      },
-    });
-
   });
 }
 
