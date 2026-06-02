@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-form-validate]')) initBasicFormValidation();
   if (document.querySelector('.swiper.is-gallery')) initGallerySlider();
   if (document.querySelector('[data-mini-showreel-open]')) initMiniShowreelPlayer();
+  if (document.querySelector('[data-video="playpause"]')) initPlayPauseVideoScroll();
 });
 
 
@@ -712,4 +713,24 @@ function initMiniShowreelPlayer() {
   });
 
   window.addEventListener("resize", onResize);
+}
+
+// PLAY/PAUSE VIDEO ON SCROLL //
+function initPlayPauseVideoScroll() {
+  const videos = gsap.utils.toArray('[data-video="playpause"]');
+
+  videos.forEach(el => {
+    const video = el.querySelector('video');
+    if (!video) return;
+
+    ScrollTrigger.create({
+      trigger: el,
+      start: '0% 100%',
+      end: '100% 0%',
+      onEnter: () => video.play(),
+      onEnterBack: () => video.play(),
+      onLeave: () => video.pause(),
+      onLeaveBack: () => video.pause(),
+    });
+  });
 }
