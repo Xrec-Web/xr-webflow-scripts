@@ -141,9 +141,9 @@ function runPageLeaveAnimation(current, next) {
   });
   
   tl.set(transitionLogoPath, {
-    yPercent: 105
+    yPercent: 150
   });
-  
+
   tl.set(next,{
     autoAlpha: 0
   }, 0);
@@ -163,7 +163,7 @@ function runPageLeaveAnimation(current, next) {
   }, "<");
   
   tl.fromTo(transitionLogoPath, {
-    yPercent: 105
+    yPercent: 150
   },{
     yPercent: 0,
     duration: 0.8,
@@ -226,7 +226,7 @@ function runPageEnterAnimation(next){
   }, ">");
   
   tl.to(transitionLogoPath, {
-    yPercent: -130,
+    yPercent: -160,
     duration: 1.2,
     ease: "expo.inOut",
     stagger: {
