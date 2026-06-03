@@ -3,6 +3,8 @@
 gsap.registerPlugin(SplitText, ScrollTrigger, InertiaPlugin, Observer, CustomEase);
 
 CustomEase.create('reveal', 'M0,0 C0.16,1 0.3,1 1,1');
+CustomEase.create('osmo',   'M0,0 C0.2,0 0,1 1,1');
+CustomEase.create('smooth', 'M0,0 C0.25,0 0,1 1,1');
 
 // Initialize a new Lenis instance for smooth scrolling
 const lenis = new Lenis();
@@ -37,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-popup]')) initPopupForm();
   if (document.querySelector('[data-current-year]')) initDynamicCurrentYear();
   if (document.querySelector('[data-swiper-group]')) initSwiperSlider();
+  if (document.querySelector('[data-team-member]')) initTeamInteractions();
 });
 
 // ─── FUNCTIONS ───────────────────────────────────────────────────────────────
@@ -590,6 +593,109 @@ function initDynamicCurrentYear() {
   currentYearElements.forEach(currentYearElement => {
     currentYearElement.textContent = currentYear;
   });
+}
+
+// TEAM INTERACTIONS //
+function initTeamInteractions() {
+  const members        = document.querySelectorAll('[data-team-member]');
+  const preview        = document.querySelector('[data-team-preview]');
+  const previewImgEl   = preview?.querySelector('[data-team-preview-img]');
+  const previewImg     = previewImgEl?.tagName === 'IMG' ? previewImgEl : previewImgEl?.querySelector('img');
+  const previewName    = preview?.querySelector('[data-team-preview-name]');
+  const previewRole    = preview?.querySelector('[data-team-preview-role]');
+
+  const panelBg        = document.querySelector('[data-team-bg]');
+  const panel          = document.querySelector('[data-team-panel]');
+  const panelInner     = panel?.querySelector('[data-team-panel-inner]');
+  const panelImg       = panel?.querySelector('[data-team-panel-img]');
+  const panelName      = panel?.querySelector('[data-team-panel-name]');
+  const panelRole      = panel?.querySelector('[data-team-panel-role]');
+  const panelBioHead   = panel?.querySelector('[data-team-panel-bio-title]');
+  const panelBioBody   = panel?.querySelector('[data-team-panel-bio-body]');
+  const panelClose     = panel?.querySelector('[data-team-panel-close]');
+
+  let hoverActive = null;
+  let panelTl     = null;
+  let isOpen      = false;
+
+  // ── HOVER ──────────────────────────────────────────────────────────────────
+
+  if (preview) {
+    members.forEach(member => {
+      member.addEventListener('mouseenter', () => {
+        if (member.hasAttribute('data-team-preview-ignore')) return;
+        if (member === hoverActive) return;
+        hoverActive = member;
+
+        const { name, role } = member.dataset;
+        const imgSrc = member.querySelector('img')?.src || '';
+        const targets = [previewImgEl, previewName, previewRole].filter(Boolean);
+
+        gsap.timeline()
+          .to(targets, { scale: 0.92, opacity: 0, duration: 0.22, ease: 'osmo' })
+          .call(() => {
+            if (previewImg) { previewImg.srcset = ''; previewImg.src = imgSrc; }
+            if (previewName) previewName.textContent = name || '';
+            if (previewRole) previewRole.textContent = role || '';
+          }, [], '-=0.04')
+          .to(targets, { scale: 1, opacity: 1, duration: 0.4, ease: 'osmo' });
+      });
+    });
+  }
+
+  // ── OPEN ───────────────────────────────────────────────────────────────────
+
+  if (panel) {
+    members.forEach(member => {
+      member.addEventListener('click', () => {
+        const { name, role, bioHeading, bio } = member.dataset;
+        if (panelImg)     panelImg.src             = member.querySelector('img')?.src || '';
+        if (panelName)    panelName.textContent     = name       || '';
+        if (panelRole)    panelRole.textContent     = role       || '';
+        if (panelBioHead) panelBioHead.textContent  = bioHeading || '';
+        if (panelBioBody) panelBioBody.textContent  = bio        || '';
+
+        openPanel();
+      });
+    });
+
+    function openPanel() {
+      if (isOpen) return;
+      isOpen = true;
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+      document.body.classList.add('panel-open');
+      lenis.stop();
+
+      const innerEls = [panelImg, panelName, panelRole, panelBioHead, panelBioBody].filter(Boolean);
+
+      panelTl = gsap.timeline({ onReverseComplete: () => gsap.set(panel, { display: 'none' }) })
+        .set(panel, { display: 'flex' });
+
+      if (panelBg)         panelTl.fromTo(panelBg,    { opacity: 0 },                          { opacity: 1,  duration: 0.7, ease: 'smooth' }, 0);
+      if (panelInner)      panelTl.fromTo(panelInner,  { xPercent: 100 },                       { xPercent: 0, duration: 0.9, ease: 'smooth' }, 0);
+      if (innerEls.length) panelTl.fromTo(innerEls,    { opacity: 0, y: 20, filter: 'blur(4px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.7, ease: 'smooth', stagger: 0.09 }, 0.25);
+    }
+
+    // ── CLOSE ────────────────────────────────────────────────────────────────
+
+    function closePanel() {
+      if (!isOpen) return;
+      isOpen = false;
+      document.body.classList.remove('panel-open');
+      document.body.style.paddingRight = '';
+      lenis.start();
+
+      if (panelTl) panelTl.timeScale(1.2).reverse();
+    }
+
+    panelClose?.addEventListener('click', closePanel);
+    panelBg?.addEventListener('click', closePanel);
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && isOpen) closePanel();
+    });
+  }
 }
 
 // TESTIMONIAL SWIPER CONFIG //
