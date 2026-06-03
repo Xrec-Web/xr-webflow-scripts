@@ -1344,6 +1344,9 @@ function initModalBasic() {
         modalGroup.setAttribute('data-modal-group-status', 'active');
       }
 
+      // Lock background scroll (Lenis keeps scrolling under a fixed overlay)
+      if (lenis && typeof lenis.stop === 'function') lenis.stop();
+
       // Start the video inside the opened modal
       playModal(modalTargetName);
     });
@@ -1369,5 +1372,8 @@ function initModalBasic() {
     if (modalGroup) {
       modalGroup.setAttribute('data-modal-group-status', 'not-active');
     }
+
+    // Resume background scroll
+    if (lenis && typeof lenis.start === 'function') lenis.start();
   }
 }
