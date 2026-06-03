@@ -465,7 +465,9 @@ function initLenis() {
 
 function resetPage(container){
   window.scrollTo(0, 0);
-  gsap.set(container, { clearProps: "position,top,left,right" });
+  // Also clear transform — a leftover translate(0,0) from the enter tween makes
+  // the container a containing block, breaking position:fixed for modals etc.
+  gsap.set(container, { clearProps: "position,top,left,right,transform,translate,rotate,scale" });
 
   if(hasLenis){
     lenis.resize();
