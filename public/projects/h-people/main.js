@@ -779,12 +779,96 @@ function initModalBasic() {
   const modals = document.querySelectorAll('[data-modal-name]');
   const modalTargets = document.querySelectorAll('[data-modal-target]');
 
+  // ── Vimeo control ──
+  // Loads the official Vimeo Player SDK once, then attaches a player to each
+  // modal's Vimeo iframe (Webflow's Video element). Players are cached by name.
+  const players = {};
+  let apiPromise;
+
+  function loadVimeoAPI() {
+    if (window.Vimeo && window.Vimeo.Player) return Promise.resolve();
+    if (apiPromise) return apiPromise;
+    apiPromise = new Promise((resolve) => {
+      const s = document.createElement('script');
+      s.src = 'https://player.vimeo.com/api/player.js';
+      s.onload = resolve;
+      s.onerror = resolve;
+      document.head.appendChild(s);
+    });
+    return apiPromise;
+  }
+
+  // Webflow embeds Vimeo through an embedly wrapper iframe, which the Vimeo
+  // SDK can't control. Pull the real player.vimeo.com URL out of its `src`.
+  function vimeoSrcFromIframe(iframe) {
+    let raw = iframe.getAttribute('src') || '';
+    if (raw.indexOf('//') === 0) raw = 'https:' + raw;
+    try {
+      const u = new URL(raw);
+      if (u.hostname.indexOf('vimeo.com') !== -1) return raw;
+      const inner = u.searchParams.get('src'); // embedly stores the real URL here
+      if (inner && inner.indexOf('vimeo.com') !== -1) return inner;
+    } catch (_) {}
+    return null;
+  }
+
+  // Replace the embedly iframe with a native Vimeo iframe so the SDK can drive it.
+  function ensureVimeoIframe(modal) {
+    const existing = modal.querySelector('iframe');
+    if (!existing) return null;
+    if (existing.src.indexOf('player.vimeo.com') !== -1) return existing;
+
+    const vsrc = vimeoSrcFromIframe(existing);
+    if (!vsrc) return null;
+
+    const iframe = document.createElement('iframe');
+    iframe.src = vsrc;
+    iframe.title = existing.title || '';
+    iframe.setAttribute('frameborder', '0');
+    iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
+    iframe.setAttribute('allowfullscreen', 'allowfullscreen');
+    iframe.style.position = 'absolute';
+    iframe.style.top = '0';
+    iframe.style.left = '0';
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    existing.parentNode.replaceChild(iframe, existing);
+    return iframe;
+  }
+
+  function getPlayer(name) {
+    if (players[name]) return players[name];
+    const modal = document.querySelector(`[data-modal-name="${name}"]`);
+    if (!modal || !window.Vimeo || !window.Vimeo.Player) return null;
+    const iframe = ensureVimeoIframe(modal);
+    if (!iframe) return null;
+    players[name] = new window.Vimeo.Player(iframe);
+    return players[name];
+  }
+
+  function playModal(name) {
+    loadVimeoAPI().then(() => {
+      const player = getPlayer(name);
+      if (player) player.play().catch(() => {});
+    });
+  }
+
+  function stopAllVideos() {
+    Object.keys(players).forEach((name) => {
+      const player = players[name];
+      if (!player) return;
+      player.pause().catch(() => {});
+      player.setCurrentTime(0).catch(() => {});
+    });
+  }
+
   // Open modal
   modalTargets.forEach((modalTarget) => {
     modalTarget.addEventListener('click', function () {
       const modalTargetName = this.getAttribute('data-modal-target');
 
-      // Close all modals
+      // Stop any playing video, then close all modals
+      stopAllVideos();
       modalTargets.forEach((target) => target.setAttribute('data-modal-status', 'not-active'));
       modals.forEach((modal) => modal.setAttribute('data-modal-status', 'not-active'));
 
@@ -796,6 +880,9 @@ function initModalBasic() {
       if (modalGroup) {
         modalGroup.setAttribute('data-modal-group-status', 'active');
       }
+
+      // Start the video inside the opened modal
+      playModal(modalTargetName);
     });
   });
 
@@ -813,6 +900,7 @@ function initModalBasic() {
 
   // Function to close all modals
   function closeAllModals() {
+    stopAllVideos();
     modalTargets.forEach((target) => target.setAttribute('data-modal-status', 'not-active'));
 
     if (modalGroup) {
