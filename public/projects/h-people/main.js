@@ -96,11 +96,73 @@ function initAfterEnterFunctions(next) {
 // -----------------------------------------
 
 function runPageOnceAnimation(next) {
+  const transitionWrap = document.querySelector("[data-transition-wrap]");
+  const transitionPanel = transitionWrap.querySelector("[data-transition-panel]");
+  const transitionPanelTop = transitionWrap.querySelector("[data-transition-panel-top]");
+  const transitionPanelBottom = transitionWrap.querySelector("[data-transition-panel-bottom]");
+  const transitionLogo = transitionWrap.querySelector("[data-transition-logo]");
+  const transitionLogoPath = transitionWrap.querySelectorAll("path");
+
+  // Absolute travel distance (px) so every path clears the mask uniformly.
+  const logoTravel = (transitionLogo.getBoundingClientRect().height || 300) * 1.2;
+
   const tl = gsap.timeline();
 
-  tl.call(() => {
-    resetPage(next);
-  }, null, 0);
+  if (reducedMotion) {
+    // Immediate swap behavior if user prefers reduced motion
+    tl.set(next, { autoAlpha: 1 });
+    tl.add("pageReady")
+    tl.call(resetPage, [next], "pageReady");
+    return new Promise(resolve => tl.call(resolve, null, "pageReady"));
+  }
+
+  // Start mid-transition: panel already covering the screen, logo shown.
+  tl.set(transitionPanel, { autoAlpha: 1, yPercent: -100 }, 0);
+  tl.set(transitionPanelTop, { scaleY: 1, height: "15vw" }, 0);
+  tl.set(transitionPanelBottom, { scaleY: 1, height: "20vw" }, 0);
+  tl.set(transitionLogo, { autoAlpha: 1 }, 0);
+  tl.set(transitionLogoPath, { y: 0 }, 0);
+  tl.set(next, { autoAlpha: 1 }, 0);
+
+  // Short hold so the logo is briefly visible, then play the reveal (end) half.
+  tl.add("startEnter", 0.6);
+
+  tl.fromTo(transitionPanel, {
+    yPercent: -100,
+  },{
+    yPercent: -200,
+    duration: 1,
+    overwrite: "auto",
+    immediateRender: false
+  }, "startEnter");
+
+  tl.fromTo(transitionPanelBottom,{
+    scaleY: 1
+  },{
+    scaleY: 0,
+    duration: 1,
+  }, "<");
+
+  tl.set(transitionPanel, {
+    autoAlpha: 0
+  }, ">");
+
+  tl.to(transitionLogoPath, {
+    y: -logoTravel,
+    duration: 1.2,
+    ease: "expo.inOut",
+    stagger: {
+      amount: -0.06
+    }
+  }, "startEnter-=0.4");
+
+  tl.from(next, {
+    y: "25dvh",
+    duration: 1,
+  }, "startEnter");
+
+  tl.add("pageReady");
+  tl.call(resetPage, [next], "pageReady");
 
   return tl;
 }
@@ -112,60 +174,64 @@ function runPageLeaveAnimation(current, next) {
   const transitionPanelBottom = transitionWrap.querySelector("[data-transition-panel-bottom]");
   const transitionLogo = transitionWrap.querySelector("[data-transition-logo]");
   const transitionLogoPath = transitionWrap.querySelectorAll("path");
-  
+
+  // Absolute travel distance (px) so every path moves the same amount,
+  // regardless of its individual height. Moving by the mask height clears all.
+  const logoTravel = (transitionLogo.getBoundingClientRect().height || 300) * 1.2;
+
   const tl = gsap.timeline({
     onComplete: () => { current.remove() }
   });
-  
+
   if (reducedMotion) {
     // Immediate swap behavior if user prefers reduced motion
     return tl.set(current, { autoAlpha: 0 });
   }
-  
+
   tl.set(transitionPanel, {
     autoAlpha: 1
   }, 0);
-  
+
   tl.set(transitionPanelTop, {
     scaleY: 0,
     height: "15vw"
   }, 0);
-  
+
   tl.set(transitionPanelBottom, {
     scaleY: 1,
     height: "20vw"
   }, 0);
-  
+
   tl.set(transitionLogo, {
     autoAlpha: 1
   });
-  
+
   tl.set(transitionLogoPath, {
-    yPercent: 150
+    y: logoTravel
   });
 
   tl.set(next,{
     autoAlpha: 0
   }, 0);
-  
+
   tl.fromTo(transitionPanel,{
     yPercent: 0
   },{
     yPercent: -100,
     duration: 1,
   }, 0);
-  
+
   tl.fromTo(transitionPanelTop,{
     scaleY: 0
   },{
     scaleY: 1,
     duration: 1,
   }, "<");
-  
+
   tl.fromTo(transitionLogoPath, {
-    yPercent: 150
+    y: logoTravel
   },{
-    yPercent: 0,
+    y: 0,
     duration: 0.8,
     ease: "expo.out",
     stagger: {
@@ -188,17 +254,20 @@ function runPageEnterAnimation(next){
   const transitionPanelBottom = transitionWrap.querySelector("[data-transition-panel-bottom]");
   const transitionLogo = transitionWrap.querySelector("[data-transition-logo]");
   const transitionLogoPath = transitionWrap.querySelectorAll("path");
-  
+
+  // Absolute travel distance (px) so every path clears the mask uniformly.
+  const logoTravel = (transitionLogo.getBoundingClientRect().height || 300) * 1.2;
+
   const tl = gsap.timeline();
-  
+
   if (reducedMotion) {
     // Immediate swap behavior if user prefers reduced motion
     tl.set(next, { autoAlpha: 1 });
     tl.add("pageReady")
     tl.call(resetPage, [next], "pageReady");
     return new Promise(resolve => tl.call(resolve, null, "pageReady"));
-  }  
-  
+  }
+
   tl.add("startEnter", 1.35);
   
   tl.set(next, {
@@ -226,19 +295,19 @@ function runPageEnterAnimation(next){
   }, ">");
   
   tl.to(transitionLogoPath, {
-    yPercent: -160,
+    y: -logoTravel,
     duration: 1.2,
     ease: "expo.inOut",
     stagger: {
       amount: -0.06
     }
   }, "startEnter-=0.4");
-  
+
   tl.from(next, {
     y: "25dvh",
     duration: 1,
   }, "startEnter");
-  
+
   tl.add("pageReady");
   tl.call(resetPage, [next], "pageReady");
 
@@ -272,6 +341,24 @@ barba.hooks.beforeEnter(data => {
 barba.hooks.afterLeave(() => {
   if(hasScrollTrigger){
     ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+  }
+});
+
+barba.hooks.beforeOnce(data => {
+  applyThemeFrom(data.next.container);
+});
+
+barba.hooks.afterOnce(data => {
+  // First load doesn't fire the enter hooks, so run page functions here too.
+  initAfterEnterFunctions(data.next.container);
+
+  if(hasLenis){
+    lenis.resize();
+    lenis.start();
+  }
+
+  if(hasScrollTrigger){
+    ScrollTrigger.refresh();
   }
 });
 
