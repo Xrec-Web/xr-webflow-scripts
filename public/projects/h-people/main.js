@@ -1406,8 +1406,13 @@ function initProgressiveBlurScroll() {
   const setO = blurs.map((el) => gsap.quickTo(el, 'opacity', { duration: 0.4, ease: 'osmo' }));
 
   function update() {
-    const distance = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
-    const progress = gsap.utils.clamp(0, 1, 1 - distance / RANGE); // 0 far, 1 at bottom
+    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+    const distance = maxScroll - window.scrollY; // px remaining to the bottom
+
+    // Fade only over the last RANGE px — but never more than the page can scroll,
+    // so short pages stay fully visible at the top instead of starting collapsed.
+    const range = Math.min(RANGE, maxScroll);
+    const progress = maxScroll <= 0 ? 0 : gsap.utils.clamp(0, 1, 1 - distance / range);
 
     blurs.forEach((el, i) => {
       setH[i](heights[i] * (1 - progress));
@@ -1427,6 +1432,10 @@ function initProgressiveBlurScroll() {
     window.addEventListener('scroll', update, { passive: true });
   }
   window.addEventListener('resize', onResize);
+
+  // scrollHeight isn't final until content/images load (and it changes per Barba
+  // page), so re-evaluate once everything settles.
+  window.addEventListener('load', update);
 
   update(); // set the correct initial state
 }
