@@ -1383,40 +1383,40 @@ function initModalBasic() {
 // PROGRESSIVE BLUR AT PAGE BOTTOM //
 // Always-active (bound once): the .progressive-blur lives outside the Barba
 // container, so we use a scroll listener rather than a ScrollTrigger (those get
-// killed on every page transition). At the bottom of the page the blur collapses
-// to 0em / 0 opacity; scrolling back up restores it.
+// killed on every page transition). Approaching the bottom of the page the blur
+// scrubs smoothly to 0em / 0 opacity; scrolling back up grows it back.
 function initProgressiveBlurScroll() {
   const blurs = Array.from(document.querySelectorAll('.progressive-blur'));
   if (!blurs.length) return;
 
-  // Capture each element's natural (CSS) height so we can animate back to it.
-  let heights = blurs.map((el) => getComputedStyle(el).height);
+  const RANGE = 300; // px before the bottom over which it fades out
 
-  const threshold = 4; // px tolerance for "at the bottom"
-  let atBottom = null;  // unknown until first check
+  // Measure each element's natural height (with any inline height cleared).
+  const measure = (el) => {
+    const prev = el.style.height;
+    el.style.height = '';
+    const h = parseFloat(getComputedStyle(el).height) || 0;
+    el.style.height = prev;
+    return h;
+  };
+  let heights = blurs.map(measure);
+
+  // Smoothed setters so the value eases even with abrupt scroll/momentum.
+  const setH = blurs.map((el) => gsap.quickTo(el, 'height', { duration: 0.4, ease: 'osmo' }));
+  const setO = blurs.map((el) => gsap.quickTo(el, 'opacity', { duration: 0.4, ease: 'osmo' }));
 
   function update() {
-    const scrollPos = window.scrollY + window.innerHeight;
-    const docHeight = document.documentElement.scrollHeight;
-    const nowAtBottom = scrollPos >= docHeight - threshold;
-
-    if (nowAtBottom === atBottom) return; // no state change
-    atBottom = nowAtBottom;
+    const distance = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
+    const progress = gsap.utils.clamp(0, 1, 1 - distance / RANGE); // 0 far, 1 at bottom
 
     blurs.forEach((el, i) => {
-      gsap.to(el, {
-        height: nowAtBottom ? '0em' : heights[i],
-        opacity: nowAtBottom ? 0 : 1,
-        duration: 0.5,
-        ease: 'osmo',
-        overwrite: true
-      });
+      setH[i](heights[i] * (1 - progress));
+      setO[i](1 - progress);
     });
   }
 
   function onResize() {
-    // Re-measure natural heights while expanded so the restore target stays correct.
-    if (!atBottom) heights = blurs.map((el) => getComputedStyle(el).height);
+    heights = blurs.map(measure);
     update();
   }
 
