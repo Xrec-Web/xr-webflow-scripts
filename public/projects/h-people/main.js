@@ -99,46 +99,146 @@ function runPageOnceAnimation(next) {
   const tl = gsap.timeline();
 
   tl.call(() => {
-    resetPage(next)
+    resetPage(next);
   }, null, 0);
 
   return tl;
 }
 
 function runPageLeaveAnimation(current, next) {
+  const transitionWrap = document.querySelector("[data-transition-wrap]");
+  const transitionPanel = transitionWrap.querySelector("[data-transition-panel]");
+  const transitionPanelTop = transitionWrap.querySelector("[data-transition-panel-top]");
+  const transitionPanelBottom = transitionWrap.querySelector("[data-transition-panel-bottom]");
+  const transitionLogo = transitionWrap.querySelector("[data-transition-logo]");
+  const transitionLogoPath = transitionWrap.querySelectorAll("path");
+  
   const tl = gsap.timeline({
     onComplete: () => { current.remove() }
   });
-
+  
   if (reducedMotion) {
     // Immediate swap behavior if user prefers reduced motion
     return tl.set(current, { autoAlpha: 0 });
   }
-
-  tl.to(current, { autoAlpha: 0, duration: 0.4 });
-
-  return tl;
+  
+  tl.set(transitionPanel, {
+    autoAlpha: 1
+  }, 0);
+  
+  tl.set(transitionPanelTop, {
+    scaleY: 0,
+    height: "15vw"
+  }, 0);
+  
+  tl.set(transitionPanelBottom, {
+    scaleY: 1,
+    height: "20vw"
+  }, 0);
+  
+  tl.set(transitionLogo, {
+    autoAlpha: 1
+  });
+  
+  tl.set(transitionLogoPath, {
+    yPercent: 105
+  });
+  
+  tl.set(next,{
+    autoAlpha: 0
+  }, 0);
+  
+  tl.fromTo(transitionPanel,{
+    yPercent: 0
+  },{
+    yPercent: -100,
+    duration: 1,
+  }, 0);
+  
+  tl.fromTo(transitionPanelTop,{
+    scaleY: 0
+  },{
+    scaleY: 1,
+    duration: 1,
+  }, "<");
+  
+  tl.fromTo(transitionLogoPath, {
+    yPercent: 105
+  },{
+    yPercent: 0,
+    duration: 0.8,
+    ease: "expo.out",
+    stagger: {
+      amount: 0.06
+    }
+  }, "<+=0.4");
+  
+  tl.fromTo(current,{
+    y: "0vh"
+  },{
+    y: "-15dvh",
+    duration: 1,
+  }, 0);
 }
 
 function runPageEnterAnimation(next){
+  const transitionWrap = document.querySelector("[data-transition-wrap]");
+  const transitionPanel = transitionWrap.querySelector("[data-transition-panel]");
+  const transitionPanelTop = transitionWrap.querySelector("[data-transition-panel-top]");
+  const transitionPanelBottom = transitionWrap.querySelector("[data-transition-panel-bottom]");
+  const transitionLogo = transitionWrap.querySelector("[data-transition-logo]");
+  const transitionLogoPath = transitionWrap.querySelectorAll("path");
+  
   const tl = gsap.timeline();
-
+  
   if (reducedMotion) {
     // Immediate swap behavior if user prefers reduced motion
     tl.set(next, { autoAlpha: 1 });
     tl.add("pageReady")
     tl.call(resetPage, [next], "pageReady");
     return new Promise(resolve => tl.call(resolve, null, "pageReady"));
-  }
-
-  tl.add("startEnter", 0.6);
-
-  tl.fromTo(next, {
-    autoAlpha: 0,
-  },{
+  }  
+  
+  tl.add("startEnter", 1.35);
+  
+  tl.set(next, {
     autoAlpha: 1,
   }, "startEnter");
-
+  
+  tl.fromTo(transitionPanel, {
+    yPercent: -100,
+  },{
+    yPercent: -200,
+    duration: 1,
+    overwrite: "auto",
+    immediateRender: false
+  }, "startEnter");
+  
+  tl.fromTo(transitionPanelBottom,{
+    scaleY: 1
+  },{
+    scaleY: 0,
+    duration: 1,
+  }, "<");
+  
+  tl.set(transitionPanel, {
+    autoAlpha: 0
+  }, ">");
+  
+  tl.to(transitionLogoPath, {
+    yPercent: -130,
+    duration: 1.2,
+    ease: "expo.inOut",
+    stagger: {
+      amount: -0.06
+    }
+  }, "startEnter-=0.4");
+  
+  tl.from(next, {
+    y: "25dvh",
+    duration: 1,
+  }, "startEnter");
+  
   tl.add("pageReady");
   tl.call(resetPage, [next], "pageReady");
 
