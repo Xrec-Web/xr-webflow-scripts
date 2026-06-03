@@ -836,29 +836,31 @@ function initModalBasic() {
     return iframe;
   }
 
-  function getPlayer(name) {
-    if (players[name]) return players[name];
-    const modal = document.querySelector(`[data-modal-name="${name}"]`);
-    if (!modal || !window.Vimeo || !window.Vimeo.Player) return null;
-    const iframe = ensureVimeoIframe(modal);
-    if (!iframe) return null;
-    players[name] = new window.Vimeo.Player(iframe);
-    return players[name];
-  }
-
   function playModal(name) {
     loadVimeoAPI().then(() => {
-      const player = getPlayer(name);
-      if (player) player.play().catch(() => {});
+      const modal = document.querySelector(`[data-modal-name="${name}"]`);
+      if (!modal || !window.Vimeo || !window.Vimeo.Player) return;
+      const iframe = ensureVimeoIframe(modal);
+      if (!iframe) return;
+      if (!players[name]) players[name] = new window.Vimeo.Player(iframe);
+      players[name].play().catch(() => {});
     });
   }
 
   function stopAllVideos() {
-    Object.keys(players).forEach((name) => {
-      const player = players[name];
-      if (!player) return;
-      player.pause().catch(() => {});
-      player.setCurrentTime(0).catch(() => {});
+    document.querySelectorAll('[data-modal-name]').forEach((modal) => {
+      const name = modal.getAttribute('data-modal-name');
+      const iframe = modal.querySelector('iframe');
+      if (!iframe || iframe.src.indexOf('player.vimeo.com') === -1) return;
+
+      // Try a graceful SDK pause first (no flash if it's ready)…
+      if (players[name]) {
+        try { players[name].pause().catch(() => {}); } catch (_) {}
+      }
+      // …then hard-reset the iframe so playback fully stops in every state.
+      const src = iframe.src;
+      iframe.src = src;
+      delete players[name]; // stale after reload — recreate on next open
     });
   }
 
