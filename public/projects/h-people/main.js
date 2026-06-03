@@ -52,8 +52,8 @@ function initOnceFunctions() {
   if (onceFunctionsInitialized) return;
   onceFunctionsInitialized = true;
 
-  // Runs once on first load
-  // if (has('[data-something]')) initSomething();
+  // Runs once on first load (these persist outside the Barba container)
+  if (document.querySelector('.progressive-blur')) initProgressiveBlurScroll();
 }
 
 function initBeforeEnterFunctions(next) {
@@ -1378,4 +1378,55 @@ function initModalBasic() {
     // Resume background scroll
     if (lenis && typeof lenis.start === 'function') lenis.start();
   }
+}
+
+// PROGRESSIVE BLUR AT PAGE BOTTOM //
+// Always-active (bound once): the .progressive-blur lives outside the Barba
+// container, so we use a scroll listener rather than a ScrollTrigger (those get
+// killed on every page transition). At the bottom of the page the blur collapses
+// to 0em / 0 opacity; scrolling back up restores it.
+function initProgressiveBlurScroll() {
+  const blurs = Array.from(document.querySelectorAll('.progressive-blur'));
+  if (!blurs.length) return;
+
+  // Capture each element's natural (CSS) height so we can animate back to it.
+  let heights = blurs.map((el) => getComputedStyle(el).height);
+
+  const threshold = 4; // px tolerance for "at the bottom"
+  let atBottom = null;  // unknown until first check
+
+  function update() {
+    const scrollPos = window.scrollY + window.innerHeight;
+    const docHeight = document.documentElement.scrollHeight;
+    const nowAtBottom = scrollPos >= docHeight - threshold;
+
+    if (nowAtBottom === atBottom) return; // no state change
+    atBottom = nowAtBottom;
+
+    blurs.forEach((el, i) => {
+      gsap.to(el, {
+        height: nowAtBottom ? '0em' : heights[i],
+        opacity: nowAtBottom ? 0 : 1,
+        duration: 0.5,
+        ease: 'osmo',
+        overwrite: true
+      });
+    });
+  }
+
+  function onResize() {
+    // Re-measure natural heights while expanded so the restore target stays correct.
+    if (!atBottom) heights = blurs.map((el) => getComputedStyle(el).height);
+    update();
+  }
+
+  // Lenis drives scrolling; fall back to native scroll if it isn't present.
+  if (lenis && typeof lenis.on === 'function') {
+    lenis.on('scroll', update);
+  } else {
+    window.addEventListener('scroll', update, { passive: true });
+  }
+  window.addEventListener('resize', onResize);
+
+  update(); // set the correct initial state
 }
