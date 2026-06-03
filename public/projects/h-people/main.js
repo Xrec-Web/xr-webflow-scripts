@@ -54,6 +54,7 @@ function initOnceFunctions() {
 
   // Runs once on first load (these persist outside the Barba container)
   if (document.querySelector('.progressive-blur')) initProgressiveBlurScroll();
+  if (document.querySelector('[data-slideshow="wrap"]')) initParallaxImageGallery();
 }
 
 function initBeforeEnterFunctions(next) {
