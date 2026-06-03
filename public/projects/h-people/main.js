@@ -2,8 +2,30 @@
 // Project: [Project Name]
 // Description: [Description]
 
-// Register GSAP Plugins
+// -----------------------------------------
+// OSMO PAGE TRANSITION BOILERPLATE
+// -----------------------------------------
+
 gsap.registerPlugin(ScrollTrigger, SplitText, CustomEase, Flip);
+
+history.scrollRestoration = "manual";
+
+let lenis = null;
+let nextPage = document;
+let onceFunctionsInitialized = false;
+
+const hasLenis = typeof window.Lenis !== "undefined";
+const hasScrollTrigger = typeof window.ScrollTrigger !== "undefined";
+
+const rmMQ = window.matchMedia("(prefers-reduced-motion: reduce)");
+let reducedMotion = rmMQ.matches;
+rmMQ.addEventListener?.("change", e => (reducedMotion = e.matches));
+rmMQ.addListener?.(e => (reducedMotion = e.matches));
+
+const has = (s) => !!nextPage.querySelector(s);
+
+let staggerDefault = 0.05;
+let durationDefault = 0.6;
 
 // Custom Eases
 CustomEase.create("slideshow-wipe", "0.6, 0.08, 0.02, 0.99");
@@ -17,32 +39,296 @@ CustomEase.create('expo.inOut', 'M0,0 C0.87,0 0.13,1 1,1');
 CustomEase.create('jump', 'M0,0 C0.35,1.5 0.6,1 1,1');
 CustomEase.create('pop', 'M0,0 C0.17,0.67 0.3,1.33 1,1');
 
-// Lenis — Smooth Scrolling
-const lenis = new Lenis();
-lenis.on('scroll', ScrollTrigger.update);
-gsap.ticker.add((time) => {
-  lenis.raf(time * 1000);
+gsap.defaults({ ease: "osmo", duration: durationDefault });
+
+
+
+// -----------------------------------------
+// FUNCTION REGISTRY
+// -----------------------------------------
+
+function initOnceFunctions() {
+  initLenis();
+  if (onceFunctionsInitialized) return;
+  onceFunctionsInitialized = true;
+
+  // Runs once on first load
+  // if (has('[data-something]')) initSomething();
+}
+
+function initBeforeEnterFunctions(next) {
+  nextPage = next || document;
+
+  // Runs before the enter animation
+  // if (has('[data-something]')) initSomething();
+}
+
+function initAfterEnterFunctions(next) {
+  nextPage = next || document;
+
+  // Runs after enter animation completes
+  if (has('[data-slideshow="wrap"]')) initParallaxImageGallery();
+  if (has('[data-accordion-css-init]')) initAccordionCSS();
+  if (has('[data-reveal], [data-reveal-clip]')) initReveal();
+  if (has('.img:not(.no-para)')) initImageScrollEffect();
+  if (has('[data-current-year]')) initDynamicCurrentYear();
+  if (has('.faq_toggle_inner')) initFAQToggle();
+  if (has('[data-hero-parallax], [data-footer-parallax]')) initParallax();
+  if (has('[data-form-validate]')) initBasicFormValidation();
+  if (has('.swiper.is-gallery')) initGallerySlider();
+  if (has('[data-mini-showreel-open]')) initMiniShowreelPlayer();
+  if (has('[data-video="playpause"]')) initPlayPauseVideoScroll();
+  if (has('[data-modal-target]')) initModalBasic();
+
+  if (hasLenis) {
+    lenis.resize();
+  }
+
+  if (hasScrollTrigger) {
+    ScrollTrigger.refresh();
+  }
+}
+
+
+
+// -----------------------------------------
+// PAGE TRANSITIONS
+// -----------------------------------------
+
+function runPageOnceAnimation(next) {
+  const tl = gsap.timeline();
+
+  tl.call(() => {
+    resetPage(next)
+  }, null, 0);
+
+  return tl;
+}
+
+function runPageLeaveAnimation(current, next) {
+  const tl = gsap.timeline({
+    onComplete: () => { current.remove() }
+  });
+
+  if (reducedMotion) {
+    // Immediate swap behavior if user prefers reduced motion
+    return tl.set(current, { autoAlpha: 0 });
+  }
+
+  tl.to(current, { autoAlpha: 0, duration: 0.4 });
+
+  return tl;
+}
+
+function runPageEnterAnimation(next){
+  const tl = gsap.timeline();
+
+  if (reducedMotion) {
+    // Immediate swap behavior if user prefers reduced motion
+    tl.set(next, { autoAlpha: 1 });
+    tl.add("pageReady")
+    tl.call(resetPage, [next], "pageReady");
+    return new Promise(resolve => tl.call(resolve, null, "pageReady"));
+  }
+
+  tl.add("startEnter", 0.6);
+
+  tl.fromTo(next, {
+    autoAlpha: 0,
+  },{
+    autoAlpha: 1,
+  }, "startEnter");
+
+  tl.add("pageReady");
+  tl.call(resetPage, [next], "pageReady");
+
+  return new Promise(resolve => {
+    tl.call(resolve, null, "pageReady");
+  });
+}
+
+
+// -----------------------------------------
+// BARBA HOOKS + INIT
+// -----------------------------------------
+
+barba.hooks.beforeEnter(data => {
+  // Position new container on top
+  gsap.set(data.next.container, {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+  });
+
+  if (lenis && typeof lenis.stop === "function") {
+    lenis.stop();
+  }
+
+  initBeforeEnterFunctions(data.next.container);
+  applyThemeFrom(data.next.container);
 });
-gsap.ticker.lagSmoothing(0);
 
-// Initialize all functions on DOMContentLoaded
-document.addEventListener('DOMContentLoaded', () => {
-  if (document.querySelector('[data-slideshow="wrap"]'))    initParallaxImageGallery();
-  if (document.querySelector('[data-accordion-css-init]')) initAccordionCSS();
-  if (document.querySelector('[data-reveal], [data-reveal-clip]')) initReveal();
-  if (document.querySelector('.img:not(.no-para)')) initImageScrollEffect();
-  if (document.querySelector('[data-current-year]')) initDynamicCurrentYear();
-  if (document.querySelector('.faq_toggle_inner')) initFAQToggle();
-  if (document.querySelector('[data-hero-parallax], [data-footer-parallax]')) initParallax();
-  if (document.querySelector('[data-form-validate]')) initBasicFormValidation();
-  if (document.querySelector('.swiper.is-gallery')) initGallerySlider();
-  if (document.querySelector('[data-mini-showreel-open]')) initMiniShowreelPlayer();
-  if (document.querySelector('[data-video="playpause"]')) initPlayPauseVideoScroll();
-  if (document.querySelector('[data-modal-target]')) initModalBasic();
+barba.hooks.afterLeave(() => {
+  if(hasScrollTrigger){
+    ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+  }
+});
+
+barba.hooks.enter(data => {
+  initBarbaNavUpdate(data);
+})
+
+barba.hooks.afterEnter(data => {
+  // Run page functions
+  initAfterEnterFunctions(data.next.container);
+
+  // Settle
+  if(hasLenis){
+    lenis.resize();
+    lenis.start();
+  }
+
+  if(hasScrollTrigger){
+    ScrollTrigger.refresh();
+  }
+});
+
+barba.init({
+  debug: true, // Set to 'false' in production
+  timeout: 7000,
+  preventRunning: true,
+  transitions: [
+    {
+      name: "default",
+      sync: true,
+
+      // First load
+      async once(data) {
+        initOnceFunctions();
+
+        return runPageOnceAnimation(data.next.container);
+      },
+
+      // Current page leaves
+      async leave(data) {
+        return runPageLeaveAnimation(data.current.container, data.next.container);
+      },
+
+      // New page enters
+      async enter(data) {
+        return runPageEnterAnimation(data.next.container);
+      }
+    }
+  ],
 });
 
 
-// ─── Functions ─── //
+
+// -----------------------------------------
+// GENERIC + HELPERS
+// -----------------------------------------
+
+const themeConfig = {
+  light: {
+    nav: "dark",
+    transition: "light"
+  },
+  dark: {
+    nav: "light",
+    transition: "dark"
+  }
+};
+
+function applyThemeFrom(container) {
+  const pageTheme = container?.dataset?.pageTheme || "light";
+  const config = themeConfig[pageTheme] || themeConfig.light;
+
+  document.body.dataset.pageTheme = pageTheme;
+  const transitionEl = document.querySelector('[data-theme-transition]');
+  if (transitionEl) {
+    transitionEl.dataset.themeTransition = config.transition;
+  }
+
+  const nav = document.querySelector('[data-theme-nav]');
+  if (nav) {
+    nav.dataset.themeNav = config.nav;
+  }
+}
+
+function initLenis() {
+  if (lenis) return; // already created
+  if (!hasLenis) return;
+
+  lenis = new Lenis({
+    lerp: 0.165,
+    wheelMultiplier: 1.25,
+  });
+
+  if (hasScrollTrigger) {
+    lenis.on("scroll", ScrollTrigger.update);
+  }
+
+  gsap.ticker.add((time) => {
+    lenis.raf(time * 1000);
+  });
+
+  gsap.ticker.lagSmoothing(0);
+}
+
+function resetPage(container){
+  window.scrollTo(0, 0);
+  gsap.set(container, { clearProps: "position,top,left,right" });
+
+  if(hasLenis){
+    lenis.resize();
+    lenis.start();
+  }
+}
+
+function debounceOnWidthChange(fn, ms) {
+  let last = innerWidth,
+    timer;
+  return function (...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (innerWidth !== last) {
+        last = innerWidth;
+        fn.apply(this, args);
+      }
+    }, ms);
+  };
+}
+
+function initBarbaNavUpdate(data) {
+  var tpl = document.createElement('template');
+  tpl.innerHTML = data.next.html.trim();
+  var nextNodes = tpl.content.querySelectorAll('[data-barba-update]');
+  var currentNodes = document.querySelectorAll('nav [data-barba-update]');
+
+  currentNodes.forEach(function (curr, index) {
+    var next = nextNodes[index];
+    if (!next) return;
+
+    // Aria-current sync
+    var newStatus = next.getAttribute('aria-current');
+    if (newStatus !== null) {
+      curr.setAttribute('aria-current', newStatus);
+    } else {
+      curr.removeAttribute('aria-current');
+    }
+
+    // Class list sync
+    var newClassList = next.getAttribute('class') || '';
+    curr.setAttribute('class', newClassList);
+  });
+}
+
+
+
+// -----------------------------------------
+// YOUR FUNCTIONS GO BELOW HERE
+// -----------------------------------------
 
 
 // SLIDESHOW FUNCTION 1 //
@@ -353,7 +639,7 @@ function initReveal() {
 }
 
 // COPYRIGHT YEAR //
-function initDynamicCurrentYear() {  
+function initDynamicCurrentYear() {
   const currentYear = new Date().getFullYear();
   const currentYearElements = document.querySelectorAll('[data-current-year]');
   currentYearElements.forEach(currentYearElement => {
@@ -780,26 +1066,12 @@ function initModalBasic() {
   const modalTargets = document.querySelectorAll('[data-modal-target]');
 
   // ── Vimeo control ──
-  // Loads the official Vimeo Player SDK once, then attaches a player to each
-  // modal's Vimeo iframe (Webflow's Video element). Players are cached by name.
-  const players = {};
-  let apiPromise;
+  // Webflow embeds Vimeo through an embedly wrapper iframe. We pull the real
+  // player.vimeo.com URL out of it once, then drive play/stop purely through the
+  // iframe's `autoplay` param: reload with autoplay=1 on open, without it on
+  // close. This avoids the SDK's async handshake (which loses the click gesture).
 
-  function loadVimeoAPI() {
-    if (window.Vimeo && window.Vimeo.Player) return Promise.resolve();
-    if (apiPromise) return apiPromise;
-    apiPromise = new Promise((resolve) => {
-      const s = document.createElement('script');
-      s.src = 'https://player.vimeo.com/api/player.js';
-      s.onload = resolve;
-      s.onerror = resolve;
-      document.head.appendChild(s);
-    });
-    return apiPromise;
-  }
-
-  // Webflow embeds Vimeo through an embedly wrapper iframe, which the Vimeo
-  // SDK can't control. Pull the real player.vimeo.com URL out of its `src`.
+  // Pull the real player.vimeo.com URL out of an embedly (or direct) iframe.
   function vimeoSrcFromIframe(iframe) {
     let raw = iframe.getAttribute('src') || '';
     if (raw.indexOf('//') === 0) raw = 'https:' + raw;
@@ -812,17 +1084,31 @@ function initModalBasic() {
     return null;
   }
 
-  // Replace the embedly iframe with a native Vimeo iframe so the SDK can drive it.
-  function ensureVimeoIframe(modal) {
+  function withAutoplay(url, on) {
+    try {
+      const u = new URL(url, location.href);
+      if (on) u.searchParams.set('autoplay', '1');
+      else u.searchParams.delete('autoplay');
+      return u.toString();
+    } catch (_) {
+      return url;
+    }
+  }
+
+  // Get the modal's Vimeo iframe, converting the embedly wrapper to a native
+  // Vimeo iframe the first time. The base URL is cached on a data attribute.
+  function getVimeoIframe(modal) {
     const existing = modal.querySelector('iframe');
     if (!existing) return null;
-    if (existing.src.indexOf('player.vimeo.com') !== -1) return existing;
+    if (existing.dataset.vimeoBase) return existing;
 
     const vsrc = vimeoSrcFromIframe(existing);
     if (!vsrc) return null;
+    const base = withAutoplay(vsrc, false); // normalize: never autoplay by default
 
     const iframe = document.createElement('iframe');
-    iframe.src = vsrc;
+    iframe.src = base;
+    iframe.dataset.vimeoBase = base;
     iframe.title = existing.title || '';
     iframe.setAttribute('frameborder', '0');
     iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
@@ -837,30 +1123,18 @@ function initModalBasic() {
   }
 
   function playModal(name) {
-    loadVimeoAPI().then(() => {
-      const modal = document.querySelector(`[data-modal-name="${name}"]`);
-      if (!modal || !window.Vimeo || !window.Vimeo.Player) return;
-      const iframe = ensureVimeoIframe(modal);
-      if (!iframe) return;
-      if (!players[name]) players[name] = new window.Vimeo.Player(iframe);
-      players[name].play().catch(() => {});
-    });
+    const modal = document.querySelector(`[data-modal-name="${name}"]`);
+    if (!modal) return;
+    const iframe = getVimeoIframe(modal);
+    if (!iframe) return;
+    iframe.src = withAutoplay(iframe.dataset.vimeoBase, true); // reload + autoplay
   }
 
   function stopAllVideos() {
     document.querySelectorAll('[data-modal-name]').forEach((modal) => {
-      const name = modal.getAttribute('data-modal-name');
       const iframe = modal.querySelector('iframe');
-      if (!iframe || iframe.src.indexOf('player.vimeo.com') === -1) return;
-
-      // Try a graceful SDK pause first (no flash if it's ready)…
-      if (players[name]) {
-        try { players[name].pause().catch(() => {}); } catch (_) {}
-      }
-      // …then hard-reset the iframe so playback fully stops in every state.
-      const src = iframe.src;
-      iframe.src = src;
-      delete players[name]; // stale after reload — recreate on next open
+      if (!iframe || !iframe.dataset.vimeoBase) return;
+      iframe.src = iframe.dataset.vimeoBase; // reload without autoplay → fully stops
     });
   }
 
