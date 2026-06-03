@@ -63,8 +63,19 @@ function initBeforeEnterFunctions(next) {
   // if (has('[data-something]')) initSomething();
 }
 
+let lastInitializedContainer = null;
+
 function initAfterEnterFunctions(next) {
   nextPage = next || document;
+
+  // First load can fire both afterOnce and afterEnter, which would init (and
+  // double-bind event listeners) twice. Guard so each container inits only once.
+  if (nextPage === lastInitializedContainer) {
+    if (hasLenis) lenis.resize();
+    if (hasScrollTrigger) ScrollTrigger.refresh();
+    return;
+  }
+  lastInitializedContainer = nextPage;
 
   // Runs after enter animation completes
   if (has('[data-slideshow="wrap"]')) initParallaxImageGallery();
