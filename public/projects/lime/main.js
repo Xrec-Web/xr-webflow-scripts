@@ -614,6 +614,17 @@ function initTeamInteractions() {
   const panelBioBody   = panel?.querySelector('[data-team-panel-bio-body]');
   const panelClose     = panel?.querySelector('[data-team-panel-close]');
 
+  console.group('[Team] Init');
+  console.log('members found:', members.length);
+  console.log('preview el:', preview);
+  console.log('previewImgEl:', previewImgEl, '→ resolved img:', previewImg);
+  console.log('previewName:', previewName, '| previewRole:', previewRole);
+  console.log('panel:', panel, '| panelBg:', panelBg, '| panelInner:', panelInner);
+  console.log('panelImg:', panelImg, '| panelName:', panelName, '| panelRole:', panelRole);
+  console.log('panelBioHead:', panelBioHead, '| panelBioBody:', panelBioBody);
+  console.log('panelClose:', panelClose);
+  console.groupEnd();
+
   let hoverActive = null;
   let panelTl     = null;
   let isOpen      = false;
@@ -631,6 +642,8 @@ function initTeamInteractions() {
         const imgSrc = member.querySelector('img')?.src || '';
         const targets = [previewImgEl, previewName, previewRole].filter(Boolean);
 
+        console.log('[Team] Hover →', { name, role, imgSrc, targets: targets.length });
+
         gsap.timeline()
           .to(targets, { scale: 0.92, opacity: 0, duration: 0.22, ease: 'osmo' })
           .call(() => {
@@ -641,6 +654,8 @@ function initTeamInteractions() {
           .to(targets, { scale: 1, opacity: 1, duration: 0.4, ease: 'osmo' });
       });
     });
+  } else {
+    console.warn('[Team] No [data-team-preview] found — hover block skipped');
   }
 
   // ── OPEN ───────────────────────────────────────────────────────────────────
@@ -649,6 +664,8 @@ function initTeamInteractions() {
     members.forEach(member => {
       member.addEventListener('click', () => {
         const { name, role, bioHeading, bio } = member.dataset;
+        console.log('[Team] Click →', { name, role, bioHeading, bio });
+
         if (panelImg)     panelImg.src             = member.querySelector('img')?.src || '';
         if (panelName)    panelName.textContent     = name       || '';
         if (panelRole)    panelRole.textContent     = role       || '';
@@ -660,7 +677,7 @@ function initTeamInteractions() {
     });
 
     function openPanel() {
-      if (isOpen) return;
+      if (isOpen) { console.log('[Team] openPanel blocked — already open'); return; }
       isOpen = true;
       const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
       document.body.style.paddingRight = `${scrollbarWidth}px`;
@@ -668,6 +685,7 @@ function initTeamInteractions() {
       lenis.stop();
 
       const innerEls = [panelImg, panelName, panelRole, panelBioHead, panelBioBody].filter(Boolean);
+      console.log('[Team] openPanel — innerEls:', innerEls.length, '| panelBg:', !!panelBg, '| panelInner:', !!panelInner);
 
       panelTl = gsap.timeline({ onReverseComplete: () => gsap.set(panel, { display: 'none' }) })
         .set(panel, { display: 'flex' });
@@ -680,8 +698,9 @@ function initTeamInteractions() {
     // ── CLOSE ────────────────────────────────────────────────────────────────
 
     function closePanel() {
-      if (!isOpen) return;
+      if (!isOpen) { console.log('[Team] closePanel blocked — already closed'); return; }
       isOpen = false;
+      console.log('[Team] closePanel');
       document.body.classList.remove('panel-open');
       document.body.style.paddingRight = '';
       lenis.start();
@@ -695,6 +714,8 @@ function initTeamInteractions() {
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && isOpen) closePanel();
     });
+  } else {
+    console.warn('[Team] No [data-team-panel] found — open/close block skipped');
   }
 }
 
