@@ -656,13 +656,14 @@ function initTeamInteractions() {
         console.log('[Team] Hover →', { name, role, imgSrc, targets: targets.length });
 
         gsap.timeline()
-          .to(targets, { scale: 0.92, opacity: 0, duration: 0.22, ease: 'osmo' })
+          .to(targets, { y: 10, opacity: 0, duration: 0.22, ease: 'osmo' })
           .call(() => {
             if (previewImg) { previewImg.srcset = ''; previewImg.src = imgSrc; }
             if (previewName) previewName.textContent = name || '';
             if (previewRole) previewRole.textContent = role || '';
+            gsap.set(targets, { y: 24 });
           }, [], '-=0.04')
-          .to(targets, { scale: 1, opacity: 1, duration: 0.4, ease: 'osmo' });
+          .to(targets, { y: 0, opacity: 1, duration: 0.4, ease: 'osmo' });
       });
     });
   } else {
