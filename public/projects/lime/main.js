@@ -650,7 +650,7 @@ function initTeamInteractions() {
         hoverActive = member;
 
         const { name, role } = member.dataset;
-        const imgSrc = member.querySelector('img')?.src || '';
+        const imgSrc = member.querySelector('[data-team-member-img]')?.src || '';
         const targets = [previewImgEl, previewName, previewRole].filter(Boolean);
 
         console.log('[Team] Hover →', { name, role, imgSrc, targets: targets.length });
@@ -678,7 +678,7 @@ function initTeamInteractions() {
         const { name, role, bioHeading, bio } = member.dataset;
         console.log('[Team] Click →', { name, role, bioHeading, bio });
 
-        if (panelImg)     panelImg.src             = member.querySelector('img')?.src || '';
+        if (panelImg)     { panelImg.srcset = ''; panelImg.src = member.querySelector('[data-team-member-img]')?.src || ''; }
         if (panelName)    panelName.textContent     = name       || '';
         if (panelRole)    panelRole.textContent     = role       || '';
         if (panelBioHead) panelBioHead.textContent  = bioHeading || '';
