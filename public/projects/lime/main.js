@@ -25,8 +25,14 @@ document.addEventListener('change', (e) => {
 
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
+console.log('[Lime] Script loaded ✓');
+
 // Each init is guarded — only runs if its trigger element exists on the page.
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('[Lime] DOMContentLoaded fired');
+  console.log('[Lime] [data-team-member] found:', document.querySelectorAll('[data-team-member]').length);
+  console.log('[Lime] [data-team-panel] found:', !!document.querySelector('[data-team-panel]'));
+
   if (document.querySelector('[filter-list="categories"]')) initFilters('categories');
   if (document.querySelector('[filter-list="contract"]')) initFilters('contract');
   if (document.querySelector('[data-reveal], [data-reveal-clip]')) initMaskTextScrollReveal();
@@ -39,7 +45,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-popup]')) initPopupForm();
   if (document.querySelector('[data-current-year]')) initDynamicCurrentYear();
   if (document.querySelector('[data-swiper-group]')) initSwiperSlider();
-  if (document.querySelector('[data-team-member]')) initTeamInteractions();
+  if (document.querySelector('[data-team-member]')) {
+    initTeamInteractions();
+  } else {
+    console.warn('[Lime] [data-team-member] not found — initTeamInteractions skipped');
+  }
   if (document.querySelector('[data-cursor-text-target]')) initScrambleTextCursor();
 });
 
