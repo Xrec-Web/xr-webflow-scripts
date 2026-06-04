@@ -623,7 +623,7 @@ function initTeamInteractions() {
   const panelRole      = panel?.querySelector('[data-team-panel-role]');
   const panelBioHead   = panel?.querySelector('[data-team-panel-bio-title]');
   const panelBioBody   = panel?.querySelector('[data-team-panel-bio-body]');
-  const panelClose     = panel?.querySelector('[data-team-panel-close]');
+  const panelCloseEls  = panel ? [...panel.querySelectorAll('[data-team-panel-close]')] : [];
 
   console.group('[Team] Init');
   console.log('members found:', members.length);
@@ -633,7 +633,7 @@ function initTeamInteractions() {
   console.log('panel:', panel, '| panelBg:', panelBg, '| panelInner:', panelInner);
   console.log('panelImg:', panelImg, '| panelName:', panelName, '| panelRole:', panelRole);
   console.log('panelBioHead:', panelBioHead, '| panelBioBody:', panelBioBody);
-  console.log('panelClose:', panelClose);
+  console.log('panelCloseEls:', panelCloseEls.length, panelCloseEls);
   console.groupEnd();
 
   let hoverActive = null;
@@ -720,7 +720,7 @@ function initTeamInteractions() {
       if (panelTl) panelTl.timeScale(1.2).reverse();
     }
 
-    panelClose?.addEventListener('click', closePanel);
+    panelCloseEls.forEach(el => el.addEventListener('click', closePanel));
     panelBg?.addEventListener('click', closePanel);
 
     document.addEventListener('keydown', e => {
