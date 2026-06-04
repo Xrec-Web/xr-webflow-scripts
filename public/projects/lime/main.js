@@ -678,14 +678,15 @@ function initTeamInteractions() {
   if (panel) {
     members.forEach(member => {
       member.addEventListener('click', () => {
-        const { name, role, bioHeading, bio, email, phone, linkedin } = member.dataset;
-        console.log('[Team] Click →', { name, role, bioHeading, bio, email, phone, linkedin });
+        const { name, role, bioHeading, email, phone, linkedin } = member.dataset;
+        const richText = member.querySelector('[data-rich-text]')?.innerHTML || '';
+        console.log('[Team] Click →', { name, role, bioHeading, email, phone, linkedin, richText: !!richText });
 
         if (panelImg)      { panelImg.srcset = ''; panelImg.src = member.querySelector('[data-team-member-img]')?.src || ''; }
         if (panelName)     panelName.textContent    = name       || '';
         if (panelRole)     panelRole.textContent    = role       || '';
         if (panelBioHead)  panelBioHead.textContent = bioHeading || '';
-        if (panelBioBody)  panelBioBody.textContent = bio        || '';
+        if (panelBioBody)  panelBioBody.innerHTML   = richText;
         if (panelEmail)    panelEmail.href           = email    ? `mailto:${email}`    : '';
         if (panelPhone)    panelPhone.href           = phone    ? `tel:${phone}`       : '';
         if (panelLinkedin) panelLinkedin.href        = linkedin || '';
