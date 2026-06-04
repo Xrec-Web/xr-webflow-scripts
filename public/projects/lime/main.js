@@ -679,14 +679,18 @@ function initTeamInteractions() {
     members.forEach(member => {
       member.addEventListener('click', () => {
         const { name, role, bioHeading, email, phone, linkedin } = member.dataset;
-        const richText = member.querySelector('[data-rich-text]')?.innerHTML || '';
-        console.log('[Team] Click →', { name, role, bioHeading, email, phone, linkedin, richText: !!richText });
+        const richTextEl = member.querySelector('[data-rich-text]');
+        const richText   = richTextEl?.innerHTML || '';
+        console.log('[Team] Click →', { name, role, bioHeading, email, phone, linkedin });
+        console.log('[Team] Rich text el:', richTextEl);
+        console.log('[Team] Rich text innerHTML:', richText || '(empty)');
+        console.log('[Team] panelBioBody el:', panelBioBody);
 
         if (panelImg)      { panelImg.srcset = ''; panelImg.src = member.querySelector('[data-team-member-img]')?.src || ''; }
         if (panelName)     panelName.textContent    = name       || '';
         if (panelRole)     panelRole.textContent    = role       || '';
         if (panelBioHead)  panelBioHead.textContent = bioHeading || '';
-        if (panelBioBody)  panelBioBody.innerHTML   = richText;
+        if (panelBioBody)  { panelBioBody.innerHTML = richText; console.log('[Team] panelBioBody after set:', panelBioBody.innerHTML); }
         if (panelEmail)    panelEmail.href           = email    ? `mailto:${email}`    : '';
         if (panelPhone)    panelPhone.href           = phone    ? `tel:${phone}`       : '';
         if (panelLinkedin) panelLinkedin.href        = linkedin || '';
