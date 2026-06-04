@@ -623,6 +623,9 @@ function initTeamInteractions() {
   const panelRole      = panel?.querySelector('[data-team-panel-role]');
   const panelBioHead   = panel?.querySelector('[data-team-panel-bio-title]');
   const panelBioBody   = panel?.querySelector('[data-team-panel-bio-body]');
+  const panelEmail     = panel?.querySelector('[data-team-panel-email]');
+  const panelPhone     = panel?.querySelector('[data-team-panel-phone]');
+  const panelLinkedin  = panel?.querySelector('[data-team-panel-linkedin]');
   const panelCloseEls  = panel ? [...panel.querySelectorAll('[data-team-panel-close]')] : [];
 
   console.group('[Team] Init');
@@ -675,14 +678,17 @@ function initTeamInteractions() {
   if (panel) {
     members.forEach(member => {
       member.addEventListener('click', () => {
-        const { name, role, bioHeading, bio } = member.dataset;
-        console.log('[Team] Click →', { name, role, bioHeading, bio });
+        const { name, role, bioHeading, bio, email, phone, linkedin } = member.dataset;
+        console.log('[Team] Click →', { name, role, bioHeading, bio, email, phone, linkedin });
 
-        if (panelImg)     { panelImg.srcset = ''; panelImg.src = member.querySelector('[data-team-member-img]')?.src || ''; }
-        if (panelName)    panelName.textContent     = name       || '';
-        if (panelRole)    panelRole.textContent     = role       || '';
-        if (panelBioHead) panelBioHead.textContent  = bioHeading || '';
-        if (panelBioBody) panelBioBody.textContent  = bio        || '';
+        if (panelImg)      { panelImg.srcset = ''; panelImg.src = member.querySelector('[data-team-member-img]')?.src || ''; }
+        if (panelName)     panelName.textContent    = name       || '';
+        if (panelRole)     panelRole.textContent    = role       || '';
+        if (panelBioHead)  panelBioHead.textContent = bioHeading || '';
+        if (panelBioBody)  panelBioBody.textContent = bio        || '';
+        if (panelEmail)    panelEmail.href           = email    ? `mailto:${email}`    : '';
+        if (panelPhone)    panelPhone.href           = phone    ? `tel:${phone}`       : '';
+        if (panelLinkedin) panelLinkedin.href        = linkedin || '';
 
         openPanel();
       });
