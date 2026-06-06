@@ -29,6 +29,7 @@ gsap.ticker.lagSmoothing(0);
 
 document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-example]')) initExample();
+  if (document.querySelector('[data-reveal], [data-reveal-load]')) initReveal();
 });
 
 
@@ -37,4 +38,32 @@ document.addEventListener('DOMContentLoaded', () => {
 // EXAMPLE //
 function initExample() {
   // ...
+}
+
+// TEXT REVEAL //
+function initReveal() {
+  const FROM = { y: '1em', opacity: 0 };
+  const TO   = { y: '0em', opacity: 1, ease: 'reveal' };
+
+  // Scroll-triggered
+  document.querySelectorAll('[data-reveal]:not([data-reveal-load])').forEach(el => {
+    gsap.fromTo(el, FROM, {
+      ...TO,
+      duration: 0.9,
+      scrollTrigger: {
+        trigger: el,
+        start: 'clamp(top 85%)',
+        once: true
+      }
+    });
+  });
+
+  // Load (hero elements — no ScrollTrigger)
+  document.querySelectorAll('[data-reveal-load]').forEach((el, i) => {
+    gsap.fromTo(el, FROM, {
+      ...TO,
+      duration: 0.9,
+      delay: 0.1 + i * 0.08
+    });
+  });
 }
