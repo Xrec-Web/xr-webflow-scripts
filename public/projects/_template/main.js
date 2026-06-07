@@ -42,8 +42,8 @@ function initExample() {
 
 // TEXT REVEAL //
 function initReveal() {
-  const FROM = { y: '1em', opacity: 0 };
-  const TO   = { y: '0em', opacity: 1, ease: 'reveal' };
+  const FROM = { y: '1rem', opacity: 0 };
+  const TO   = { y: '0rem', opacity: 1, ease: 'reveal' };
 
   // Scroll-triggered
   document.querySelectorAll('[data-reveal]:not([data-reveal-load])').forEach(el => {

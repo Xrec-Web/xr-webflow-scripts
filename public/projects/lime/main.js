@@ -645,6 +645,21 @@ function initTeamInteractions() {
 
   // ── HOVER ──────────────────────────────────────────────────────────────────
 
+  members.forEach(member => {
+    const teamImg    = member.querySelector('.team-img');
+    const memberIcon = member.querySelector('.member-icon');
+
+    member.addEventListener('mouseenter', () => {
+      if (teamImg)    gsap.to(teamImg,    { scale: 1.05, duration: 0.4, ease: 'osmo' });
+      if (memberIcon) gsap.to(memberIcon, { rotate: -45,  duration: 0.4, ease: 'osmo' });
+    });
+
+    member.addEventListener('mouseleave', () => {
+      if (teamImg)    gsap.to(teamImg,    { scale: 1, duration: 0.4, ease: 'osmo' });
+      if (memberIcon) gsap.to(memberIcon, { rotate: 0,   duration: 0.4, ease: 'osmo' });
+    });
+  });
+
   if (preview) {
     members.forEach(member => {
       member.addEventListener('mouseenter', () => {
@@ -668,6 +683,10 @@ function initTeamInteractions() {
           }, [], '-=0.04')
           .to(targets, { y: 0, opacity: 1, duration: 0.4, ease: 'osmo' });
       });
+    });
+
+    preview.addEventListener('click', () => {
+      if (hoverActive) hoverActive.click();
     });
   } else {
     console.warn('[Team] No [data-team-preview] found — hover block skipped');
