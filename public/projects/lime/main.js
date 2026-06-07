@@ -649,6 +649,8 @@ function initTeamInteractions() {
     const teamImg    = member.querySelector('.team-img');
     const memberIcon = member.querySelector('.member-icon');
 
+    console.log('[Team] Member els →', { member, teamImg, memberIcon });
+
     member.addEventListener('mouseenter', () => {
       if (teamImg)    gsap.to(teamImg,    { scale: 1.05, duration: 0.4, ease: 'osmo' });
       if (memberIcon) gsap.to(memberIcon, { rotate: -45,  duration: 0.4, ease: 'osmo' });
