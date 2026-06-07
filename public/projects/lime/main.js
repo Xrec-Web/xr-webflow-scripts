@@ -646,8 +646,8 @@ function initTeamInteractions() {
   // ── HOVER ──────────────────────────────────────────────────────────────────
 
   members.forEach(member => {
-    const teamImg    = member.querySelector('.team-img');
-    const memberIcon = member.querySelector('.member-icon');
+    const teamImg    = member.querySelector('[data-team-member-img]');
+    const memberIcon = member.querySelector('[data-team-member-icon]');
 
     console.log('[Team] Member els →', { member, teamImg, memberIcon });
 
