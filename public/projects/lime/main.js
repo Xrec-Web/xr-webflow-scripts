@@ -25,15 +25,9 @@ document.addEventListener('change', (e) => {
 
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
-console.log('[Lime] Script loaded ✓');
 
 // Each init is guarded — only runs if its trigger element exists on the page.
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('[Lime] DOMContentLoaded fired');
-  initPageAlert();
-  console.log('[Lime] [data-team-member] found:', document.querySelectorAll('[data-team-member]').length);
-  console.log('[Lime] [data-team-panel] found:', !!document.querySelector('[data-team-panel]'));
-
   if (document.querySelector('[filter-list="categories"]')) initFilters('categories');
   if (document.querySelector('[filter-list="contract"]')) initFilters('contract');
   if (document.querySelector('[data-reveal], [data-reveal-clip]')) initMaskTextScrollReveal();
@@ -46,11 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-popup]')) initPopupForm();
   if (document.querySelector('[data-current-year]')) initDynamicCurrentYear();
   if (document.querySelector('[data-swiper-group]')) initSwiperSlider();
-  if (document.querySelector('[data-team-member]')) {
-    initTeamInteractions();
-  } else {
-    console.warn('[Lime] [data-team-member] not found — initTeamInteractions skipped');
-  }
+  if (document.querySelector('[data-team-member]')) initTeamInteractions();
   if (document.querySelector('[data-cursor-text-target]')) initScrambleTextCursor();
   if (document.querySelector('[data-parallax-init]')) initParallaxImageSlider();
 });
@@ -276,9 +266,7 @@ function initPlayVideoHover() {
         video.setAttribute('src', src);
       }
       wrapper.dataset.videoOnHover = 'active';
-      video.play().catch(err => {
-        console.warn('play on hover is blocked:', err);
-      });
+      video.play().catch(() => {});
     });
 
     wrapper.addEventListener('mouseleave', () => {
@@ -630,17 +618,6 @@ function initTeamInteractions() {
   const panelLinkedin  = panel?.querySelector('[data-team-panel-linkedin]');
   const panelCloseEls  = panel ? [...panel.querySelectorAll('[data-team-panel-close]')] : [];
 
-  console.group('[Team] Init');
-  console.log('members found:', members.length);
-  console.log('preview el:', preview);
-  console.log('previewImgEl:', previewImgEl, '→ resolved img:', previewImg);
-  console.log('previewName:', previewName, '| previewRole:', previewRole);
-  console.log('panel:', panel, '| panelBg:', panelBg, '| panelInner:', panelInner);
-  console.log('panelImg:', panelImg, '| panelName:', panelName, '| panelRole:', panelRole);
-  console.log('panelBioHead:', panelBioHead, '| panelBioBody:', panelBioBody);
-  console.log('panelCloseEls:', panelCloseEls.length, panelCloseEls);
-  console.groupEnd();
-
   let hoverActive = null;
   let panelTl     = null;
   let isOpen      = false;
@@ -650,8 +627,6 @@ function initTeamInteractions() {
   members.forEach(member => {
     const teamImg    = member.querySelector('[data-team-member-img]');
     const memberIcon = member.querySelector('[data-team-member-icon]');
-
-    console.log('[Team] Member els →', { member, teamImg, memberIcon });
 
     member.addEventListener('mouseenter', () => {
       if (teamImg)    gsap.to(teamImg,    { scale: 1.05, duration: 0.4, ease: 'osmo' });
@@ -675,8 +650,6 @@ function initTeamInteractions() {
         const imgSrc = member.querySelector('[data-team-member-img]')?.src || '';
         const targets = [previewImgEl, previewName, previewRole].filter(Boolean);
 
-        console.log('[Team] Hover →', { name, role, imgSrc, targets: targets.length });
-
         gsap.timeline()
           .to(targets, { y: 10, opacity: 0, duration: 0.22, ease: 'osmo' })
           .call(() => {
@@ -692,8 +665,6 @@ function initTeamInteractions() {
     preview.addEventListener('click', () => {
       if (hoverActive) hoverActive.click();
     });
-  } else {
-    console.warn('[Team] No [data-team-preview] found — hover block skipped');
   }
 
   // ── OPEN ───────────────────────────────────────────────────────────────────
@@ -704,16 +675,12 @@ function initTeamInteractions() {
         const { name, role, bioHeading, email, phone, linkedin } = member.dataset;
         const richTextEl = member.querySelector('[data-rich-text]');
         const richText   = richTextEl?.innerHTML || '';
-        console.log('[Team] Click →', { name, role, bioHeading, email, phone, linkedin });
-        console.log('[Team] Rich text el:', richTextEl);
-        console.log('[Team] Rich text innerHTML:', richText || '(empty)');
-        console.log('[Team] panelBioBody el:', panelBioBody);
 
         if (panelImg)      { panelImg.srcset = ''; panelImg.src = member.querySelector('[data-team-member-img]')?.src || ''; }
         if (panelName)     panelName.textContent    = name       || '';
         if (panelRole)     panelRole.textContent    = role       || '';
         if (panelBioHead)  panelBioHead.textContent = bioHeading || '';
-        if (panelBioBody)  { panelBioBody.innerHTML = richText; console.log('[Team] panelBioBody after set:', panelBioBody.innerHTML); }
+        if (panelBioBody)  panelBioBody.innerHTML = richText;
         if (panelEmail)    panelEmail.href           = email    ? `mailto:${email}`    : '';
         if (panelPhone)    panelPhone.href           = phone    ? `tel:${phone}`       : '';
         if (panelLinkedin) panelLinkedin.href        = linkedin || '';
@@ -723,7 +690,7 @@ function initTeamInteractions() {
     });
 
     function openPanel() {
-      if (isOpen) { console.log('[Team] openPanel blocked — already open'); return; }
+      if (isOpen) return;
       isOpen = true;
       const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
       document.body.style.paddingRight = `${scrollbarWidth}px`;
@@ -731,7 +698,6 @@ function initTeamInteractions() {
       lenis.stop();
 
       const innerEls = [panelImg, panelName, panelRole, panelBioHead, panelBioBody].filter(Boolean);
-      console.log('[Team] openPanel — innerEls:', innerEls.length, '| panelBg:', !!panelBg, '| panelInner:', !!panelInner);
 
       panelTl = gsap.timeline({ onReverseComplete: () => gsap.set(panel, { display: 'none' }) })
         .set(panel, { display: 'flex' });
@@ -744,9 +710,8 @@ function initTeamInteractions() {
     // ── CLOSE ────────────────────────────────────────────────────────────────
 
     function closePanel() {
-      if (!isOpen) { console.log('[Team] closePanel blocked — already closed'); return; }
+      if (!isOpen) return;
       isOpen = false;
-      console.log('[Team] closePanel');
       document.body.classList.remove('panel-open');
       document.body.style.paddingRight = '';
       lenis.start();
@@ -760,8 +725,6 @@ function initTeamInteractions() {
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && isOpen) closePanel();
     });
-  } else {
-    console.warn('[Team] No [data-team-panel] found — open/close block skipped');
   }
 }
 
@@ -872,11 +835,6 @@ function initScrambleTextCursor() {
     if (!hasMouseMoved) return;
     requestAnimationFrame(updateCursor);
   }, { passive: true });
-}
-
-// PAGE ALERT (runs on every page) //
-function initPageAlert() {
-  alert('Hello from Lime!');
 }
 
 // PARALLAX IMAGE SLIDER (Smooothy) //
