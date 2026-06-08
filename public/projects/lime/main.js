@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.warn('[Lime] [data-team-member] not found — initTeamInteractions skipped');
   }
   if (document.querySelector('[data-cursor-text-target]')) initScrambleTextCursor();
+  if (document.querySelector('[data-parallax-init]')) initParallaxImageSlider();
 });
 
 // ─── FUNCTIONS ───────────────────────────────────────────────────────────────
@@ -870,4 +871,47 @@ function initScrambleTextCursor() {
     if (!hasMouseMoved) return;
     requestAnimationFrame(updateCursor);
   }, { passive: true });
+}
+
+// PARALLAX IMAGE SLIDER (Smooothy) //
+function initParallaxImageSlider() {
+  document.querySelectorAll("[data-parallax-init]").forEach((root) => {
+    // The smooothy list
+    const wrapper = root.querySelector("[data-parallax-slider]");
+    if (!wrapper) return;
+
+    // One parallax layer per slide (optional)
+    const parallaxItems = [...wrapper.children].map((slide) => slide.querySelector("[data-parallax-inner]"));
+
+    // Parallax amount
+    const amountAttr = wrapper.getAttribute("data-parallax-amount");
+    const amount = amountAttr !== null ? parseFloat(amountAttr) : 12;
+
+    // Snap to a slide
+    const snap = wrapper.getAttribute("data-parallax-snap") !== "false";
+
+    // Loop
+    const infinite = wrapper.getAttribute("data-parallax-infinite") !== "false";
+
+    // Slide smoothing
+    const lerpAttr = wrapper.getAttribute("data-parallax-lerp");
+    const lerp = lerpAttr !== null ? parseFloat(lerpAttr) : 0.3;
+
+    const maxOffset = 25;
+
+    const slider = new Smooothy(wrapper, {
+      infinite,
+      snap,
+      lerpFactor: lerp,
+      onUpdate: ({ parallaxValues }) => {
+        parallaxItems.forEach((item, i) => {
+          if (!item) return;
+          const offset = gsap.utils.clamp(-maxOffset, maxOffset, parallaxValues[i] * amount);
+          item.style.transform = `translateX(${offset}%)`;
+        });
+      },
+    });
+
+    gsap.ticker.add(() => slider.update());
+  });
 }
