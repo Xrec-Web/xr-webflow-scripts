@@ -30,6 +30,7 @@ console.log('[Lime] Script loaded ✓');
 // Each init is guarded — only runs if its trigger element exists on the page.
 document.addEventListener('DOMContentLoaded', () => {
   console.log('[Lime] DOMContentLoaded fired');
+  initPageAlert();
   console.log('[Lime] [data-team-member] found:', document.querySelectorAll('[data-team-member]').length);
   console.log('[Lime] [data-team-panel] found:', !!document.querySelector('[data-team-panel]'));
 
@@ -871,6 +872,11 @@ function initScrambleTextCursor() {
     if (!hasMouseMoved) return;
     requestAnimationFrame(updateCursor);
   }, { passive: true });
+}
+
+// PAGE ALERT (runs on every page) //
+function initPageAlert() {
+  alert('Hello from Lime!');
 }
 
 // PARALLAX IMAGE SLIDER (Smooothy) //
