@@ -95,6 +95,7 @@ function initAfterEnterFunctions(next) {
   if (has('[data-depth-tiles-init]')) initDepthTiles();
   if (has('[data-swiper-group]')) initSwiperSlider();
   if (has('[data-filter-group]')) initFilterBasic();
+  if (has('[resource-item]')) initResourceHover();
 
   if (hasLenis) {
     lenis.resize();
@@ -1729,5 +1730,25 @@ function initFilterBasic() {
         handleFilter(target);
       });
     });
+  });
+}
+
+// RESOURCE ITEM HOVER //
+function initResourceHover() {
+  document.querySelectorAll('[resource-item]').forEach((item) => {
+    const img = item.querySelector('[resource-img]');
+    const line = item.querySelector('[resource-line]');
+
+    // 'osmo' === cubic-bezier(0.625, 0.05, 0, 1); 0.735s matches the source timing.
+    const tl = gsap.timeline({
+      paused: true,
+      defaults: { duration: 0.735, ease: 'osmo' }
+    });
+
+    if (img) tl.to(img, { scale: 1.05 }, 0);
+    if (line) tl.fromTo(line, { width: '0%' }, { width: '100%' }, 0);
+
+    item.addEventListener('mouseenter', () => tl.play());
+    item.addEventListener('mouseleave', () => tl.reverse());
   });
 }
