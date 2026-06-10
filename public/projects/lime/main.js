@@ -744,6 +744,7 @@ function initSwiperSlider() {
       speed: 600,
       loop: true,
       loopAdditionalSlides: 4, // buffer for fractional slidesPerView (max 3.5) so the wrap has no gap
+      centeredSlides: true, // active card centered so slides show on both sides from the start
       mousewheel: false,
       grabCursor: true,
       breakpoints: {
