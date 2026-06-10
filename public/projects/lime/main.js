@@ -742,6 +742,7 @@ function initSwiperSlider() {
     const swiper = new Swiper(swiperSliderWrap, {
       slidesPerView: 1.25,
       speed: 600,
+      loop: true,
       mousewheel: false,
       grabCursor: true,
       breakpoints: {
