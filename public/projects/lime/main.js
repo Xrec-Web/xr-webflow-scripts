@@ -743,6 +743,7 @@ function initSwiperSlider() {
       slidesPerView: 1.25,
       speed: 600,
       loop: true,
+      loopAdditionalSlides: 4, // buffer for fractional slidesPerView (max 3.5) so the wrap has no gap
       mousewheel: false,
       grabCursor: true,
       breakpoints: {
