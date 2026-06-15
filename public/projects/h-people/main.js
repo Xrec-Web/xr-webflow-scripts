@@ -6,7 +6,7 @@
 // OSMO PAGE TRANSITION BOILERPLATE
 // -----------------------------------------
 
-gsap.registerPlugin(ScrollTrigger, SplitText, CustomEase, Flip);
+gsap.registerPlugin(ScrollTrigger, SplitText, CustomEase, Flip, Observer);
 
 history.scrollRestoration = "manual";
 
@@ -38,7 +38,6 @@ CustomEase.create('relaxed', 'M0,0 C0.7,0 0.3,1 1,1');
 CustomEase.create('expo.inOut', 'M0,0 C0.87,0 0.13,1 1,1');
 CustomEase.create('jump', 'M0,0 C0.35,1.5 0.6,1 1,1');
 CustomEase.create('pop', 'M0,0 C0.17,0.67 0.3,1.33 1,1');
-CustomEase.create('depth', 'M0,0 C0.6,0 0,1 1,1');
 
 gsap.defaults({ ease: "osmo", duration: durationDefault });
 
@@ -92,7 +91,7 @@ function initAfterEnterFunctions(next) {
   if (has('[data-mini-showreel-open]')) initMiniShowreelPlayer();
   if (has('[data-video="playpause"]')) initPlayPauseVideoScroll();
   if (has('[data-modal-target]')) initModalBasic();
-  if (has('[data-depth-tiles-init]')) initDepthTiles();
+  if (has('[data-draggable-marquee-init]')) initDraggableMarquee();
   if (has('[data-swiper-group]')) initSwiperSlider();
   if (has('[data-filter-group]')) initFilterBasic();
   if (has('[resource-item]')) initResourceHover();
@@ -1457,178 +1456,104 @@ function initProgressiveBlurScroll() {
   update(); // set the correct initial state
 }
 
-// DEPTH TILES INFINITE LOOP //
-function initDepthTiles() {
-  document.querySelectorAll("[data-depth-tiles-init]").forEach((container) => {
-    const list = container.querySelector("[data-depth-tiles-list]");
-    const tiles = container.querySelectorAll("[data-depth-tiles-item]");
-    const tileCount = tiles.length;
-    if (tileCount < 2) return;
+// DRAGGABLE MARQUEE (DIRECTIONAL) //
+function initDraggableMarquee() {
+  const wrappers = document.querySelectorAll("[data-draggable-marquee-init]");
 
-    const xMultiplier = 0.65;
-    const backScale = 0.5;
-    const backOpacity = 1;
-    const backDarkness = 1;
-    const sideRotateY = 5;
-    const perspective = 75;
+  const getNumberAttr = (el, name, fallback) => {
+    const value = parseFloat(el.getAttribute(name));
+    return Number.isFinite(value) ? value : fallback;
+  };
 
-    const moveDuration = 1.5;
-    const startDelay = 0.5;
-    const pauseDuration = 0.125;
+  wrappers.forEach((wrapper) => {
+    if (wrapper.getAttribute("data-draggable-marquee-init") === "initialized") return;
 
-    const state = { progress: 0 };
+    const collection = wrapper.querySelector("[data-draggable-marquee-collection]");
+    const list = wrapper.querySelector("[data-draggable-marquee-list]");
+    if (!collection || !list) return;
 
-    let isActive = false;
-    let isHovering = false;
-    let hasStarted = false;
-    let stepTimeline;
-    let delayedCall;
-    let startDelayedCall;
-    let activeTileIndex = -1;
+    const duration = getNumberAttr(wrapper, "data-duration", 20);
+    const multiplier = getNumberAttr(wrapper, "data-multiplier", 40);
+    const sensitivity = getNumberAttr(wrapper, "data-sensitivity", 0.01);
 
-    gsap.set(list, { perspective: `${perspective}em` });
-    gsap.set(tiles, {
-      transformStyle: "preserve-3d",
-      transformPerspective: perspective * 16
+    const wrapperWidth = wrapper.getBoundingClientRect().width;
+    const listWidth = list.scrollWidth || list.getBoundingClientRect().width;
+    if (!wrapperWidth || !listWidth) return;
+
+    // Make enough duplicates to cover screen
+    const minRequiredWidth = wrapperWidth + listWidth + 2;
+    while (collection.scrollWidth < minRequiredWidth) {
+      const listClone = list.cloneNode(true);
+      listClone.setAttribute("data-draggable-marquee-clone", "");
+      listClone.setAttribute("aria-hidden", "true");
+      collection.appendChild(listClone);
+    }
+
+    const wrapX = gsap.utils.wrap(-listWidth, 0);
+
+    gsap.set(collection, { x: 0 });
+
+    const marqueeLoop = gsap.to(collection, {
+      x: -listWidth,
+      duration,
+      ease: "none",
+      repeat: -1,
+      onReverseComplete: () => marqueeLoop.progress(1),
+      modifiers: {
+        x: (x) => wrapX(parseFloat(x)) + "px"
+      },
     });
 
-    function getRelativeIndex(index) {
-      let relative = index - state.progress;
-      relative = ((relative + tileCount / 2) % tileCount + tileCount) % tileCount - tileCount / 2;
-      return gsap.utils.clamp(-2, 2, relative);
+    // Direction can be used for css + set initial direction on load
+    const initialDirectionAttr = (wrapper.getAttribute("data-direction") || "left").toLowerCase();
+    const baseDirection = initialDirectionAttr === "right" ? -1 : 1;
+
+    const timeScale = { value: 1 };
+
+    timeScale.value = baseDirection;
+    wrapper.setAttribute("data-direction", baseDirection < 0 ? "right" : "left");
+
+    if (baseDirection < 0) marqueeLoop.progress(1);
+
+    function applyTimeScale() {
+      marqueeLoop.timeScale(timeScale.value);
+      wrapper.setAttribute("data-direction", timeScale.value < 0 ? "right" : "left");
     }
 
-    function getActiveIndex() {
-      return ((Math.round(state.progress) % tileCount) + tileCount) % tileCount;
-    }
+    applyTimeScale();
 
-    function updateTileStatus() {
-      const currentActiveIndex = getActiveIndex();
-      if (currentActiveIndex === activeTileIndex) return;
+    // Drag observer
+    const marqueeObserver = Observer.create({
+      target: wrapper,
+      type: "pointer,touch",
+      preventDefault: true,
+      debounce: false,
+      onChangeX: (observerEvent) => {
+        let velocityTimeScale = observerEvent.velocityX * -sensitivity;
+        velocityTimeScale = gsap.utils.clamp(-multiplier, multiplier, velocityTimeScale);
 
-      activeTileIndex = currentActiveIndex;
+        gsap.killTweensOf(timeScale);
 
-      tiles.forEach((tile, index) => {
-        tile.setAttribute("data-depth-tiles-item-status", index === activeTileIndex ? "active" : "not-active");
-      });
-    }
+        const restingDirection = velocityTimeScale < 0 ? -1 : 1;
 
-    function renderDepth() {
-      const tileWidth = tiles[0].offsetWidth;
-      const radiusX = tileWidth * xMultiplier;
-
-      updateTileStatus();
-
-      tiles.forEach((tile, index) => {
-        const relative = getRelativeIndex(index);
-        const angle = (relative / 2) * Math.PI;
-
-        const orbitX = Math.sin(angle) * radiusX;
-        const orbitDepth = (Math.cos(angle) + 1) / 2;
-
-        const x = relative <= -2 || relative >= 2 ? 0 : orbitX;
-        const scale = gsap.utils.interpolate(backScale, 1, orbitDepth);
-        const opacity = gsap.utils.interpolate(backOpacity, 1, orbitDepth);
-        const brightness = gsap.utils.interpolate(backDarkness, 1, orbitDepth);
-        const rotateY = Math.sin(angle) * -sideRotateY;
-        const zIndex = Math.round(gsap.utils.interpolate(1, 1000, orbitDepth));
-
-        gsap.set(tile, {
-          x,
-          scale,
-          opacity,
-          rotateY,
-          filter: `brightness(${brightness})`,
-          zIndex
-        });
-      });
-    }
-
-    function goToNextTile() {
-      if (!isActive || isHovering) return;
-
-      stepTimeline = gsap.timeline({
-        paused: true,
-        onComplete: () => {
-          if (isActive && !isHovering) {
-            delayedCall = gsap.delayedCall(pauseDuration, goToNextTile);
-          }
-        }
-      });
-
-      stepTimeline.to(state, {
-        progress: state.progress + 1,
-        duration: moveDuration,
-        ease: "depth",
-        onUpdate: renderDepth
-      });
-
-      stepTimeline.play();
-    }
-
-    function pauseDepth() {
-      isActive = false;
-      if (stepTimeline) stepTimeline.pause();
-      if (delayedCall) delayedCall.pause();
-      if (startDelayedCall) startDelayedCall.pause();
-    }
-
-    function playDepth() {
-      isActive = true;
-      if (isHovering) return;
-
-      if (!hasStarted) {
-        hasStarted = true;
-        startDelayedCall = gsap.delayedCall(startDelay, goToNextTile);
-        return;
+        gsap.timeline({ onUpdate: applyTimeScale })
+          .to(timeScale, { value: velocityTimeScale, duration: 0.1, overwrite: true })
+          .to(timeScale, { value: restingDirection, duration: 1.0 });
       }
-
-      if (stepTimeline && stepTimeline.progress() < 1) {
-        stepTimeline.play();
-      } else {
-        goToNextTile();
-      }
-    }
-
-    function handleHoverStart() {
-      isHovering = true;
-      if (delayedCall) delayedCall.pause();
-      if (startDelayedCall) startDelayedCall.pause();
-    }
-
-    function handleHoverEnd() {
-      isHovering = false;
-      if (!isActive) return;
-
-      if (!hasStarted) {
-        playDepth();
-        return;
-      }
-
-      if (stepTimeline && stepTimeline.progress() < 1) {
-        stepTimeline.play();
-      } else {
-        goToNextTile();
-      }
-    }
-
-    list.addEventListener("pointerover", (event) => {
-      if (!event.target.closest("[data-depth-tiles-item]")) return;
-      handleHoverStart();
     });
 
-    list.addEventListener("pointerleave", () => {
-      handleHoverEnd();
-    });
-
-    renderDepth();
-
+    // Pause marquee when scrolled out of view
     ScrollTrigger.create({
-      trigger: container,
+      trigger: wrapper,
       start: "top bottom",
       end: "bottom top",
-      onToggle: (self) => self.isActive ? playDepth() : pauseDepth()
+      onEnter: () => { marqueeLoop.resume(); applyTimeScale(); marqueeObserver.enable(); },
+      onEnterBack: () => { marqueeLoop.resume(); applyTimeScale(); marqueeObserver.enable(); },
+      onLeave: () => { marqueeLoop.pause(); marqueeObserver.disable(); },
+      onLeaveBack: () => { marqueeLoop.pause(); marqueeObserver.disable(); }
     });
+
+    wrapper.setAttribute("data-draggable-marquee-init", "initialized");
   });
 }
 
