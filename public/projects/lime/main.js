@@ -53,6 +53,9 @@ const splitConfig = {
   chars: { duration: 0.6, stagger: 0.01 }
 };
 
+// On mobile, skip line/word/char splitting and reveal the whole text block as one unit
+const isMobileReveal = () => window.matchMedia('(max-width: 767px)').matches;
+
 // Returns true if any ancestor also carries a reveal attribute
 function hasRevealAncestor(el) {
   let parent = el.parentElement;
@@ -86,6 +89,23 @@ function initMaskTextScrollReveal() {
 
   document.querySelectorAll('[data-reveal]:not([data-reveal-load])').forEach((el) => {
     const isChild = hasRevealAncestor(el);
+
+    // Mobile: reveal the whole block instead of split lines/words/chars
+    if (isMobileReveal()) {
+      gsap.fromTo(el,
+        { opacity: 0, yPercent: 10 },
+        {
+          opacity: 1,
+          yPercent: 0,
+          duration: 1.0,
+          ease: 'reveal',
+          delay: isChild ? 0.2 : 0,
+          scrollTrigger: { trigger: el, start: 'clamp(top 80%)', once: true }
+        }
+      );
+      return;
+    }
+
     const type = (el.dataset.reveal || 'lines').toLowerCase();
     const safeType = ['lines', 'words', 'chars'].includes(type) ? type : 'lines';
 
@@ -143,6 +163,17 @@ function initLoadReveal() {
   // Text: [data-reveal-load][data-reveal]
   document.querySelectorAll('[data-reveal-load][data-reveal]').forEach((el) => {
     const isChild  = hasRevealAncestor(el);
+
+    // Mobile: reveal the whole block instead of split lines/words/chars
+    if (isMobileReveal()) {
+      const delay = BASE_DELAY + (isChild ? 0.2 : 0);
+      gsap.fromTo(el,
+        { opacity: 0, yPercent: 10 },
+        { opacity: 1, yPercent: 0, duration: 1.0, ease: 'reveal', delay }
+      );
+      return;
+    }
+
     const type     = (el.dataset.reveal || 'lines').toLowerCase();
     const safeType = ['lines', 'words', 'chars'].includes(type) ? type : 'lines';
     const typesToSplit = safeType === 'lines' ? ['lines'] : safeType === 'words' ? ['lines', 'words'] : ['lines', 'words', 'chars'];
