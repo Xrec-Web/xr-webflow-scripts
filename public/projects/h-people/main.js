@@ -114,6 +114,13 @@ function initAfterEnterFunctions(next) {
 // PAGE TRANSITIONS
 // -----------------------------------------
 
+// Phones can't run the desktop "curtain": its panels are sized in vw, so on a
+// tall portrait viewport they can't cover the screen, and the per-call
+// getBoundingClientRect logo measurement is unreliable there — which left the
+// enter wedged mid-transition on mobile. Mobile falls back to the simple,
+// proven crossfade (the base boilerplate). Desktop keeps the curtain.
+const isMobileTransition = () => window.matchMedia("(max-width: 767px)").matches;
+
 function runPageOnceAnimation(next) {
   const transitionWrap = document.querySelector("[data-transition-wrap]");
   const transitionPanel = transitionWrap.querySelector("[data-transition-panel]");
@@ -133,6 +140,12 @@ function runPageOnceAnimation(next) {
     tl.add("pageReady")
     tl.call(resetPage, [next], "pageReady");
     return new Promise(resolve => tl.call(resolve, null, "pageReady"));
+  }
+
+  if (isMobileTransition()) {
+    // Mobile: no curtain on first load, just show the page.
+    tl.call(() => resetPage(next), null, 0);
+    return tl;
   }
 
   // Start mid-transition: panel already covering the screen, logo shown.
@@ -205,6 +218,11 @@ function runPageLeaveAnimation(current, next) {
   if (reducedMotion) {
     // Immediate swap behavior if user prefers reduced motion
     return tl.set(current, { autoAlpha: 0 });
+  }
+
+  if (isMobileTransition()) {
+    // Mobile: simple crossfade out (no curtain).
+    return tl.to(current, { autoAlpha: 0, duration: 0.4 });
   }
 
   tl.set(transitionPanel, {
@@ -283,6 +301,15 @@ function runPageEnterAnimation(next){
     // Immediate swap behavior if user prefers reduced motion
     tl.set(next, { autoAlpha: 1 });
     tl.add("pageReady")
+    tl.call(resetPage, [next], "pageReady");
+    return new Promise(resolve => tl.call(resolve, null, "pageReady"));
+  }
+
+  if (isMobileTransition()) {
+    // Mobile: simple crossfade in (no curtain). Mirrors the base boilerplate.
+    tl.add("startEnter", 0.6);
+    tl.fromTo(next, { autoAlpha: 0 }, { autoAlpha: 1 }, "startEnter");
+    tl.add("pageReady");
     tl.call(resetPage, [next], "pageReady");
     return new Promise(resolve => tl.call(resolve, null, "pageReady"));
   }
