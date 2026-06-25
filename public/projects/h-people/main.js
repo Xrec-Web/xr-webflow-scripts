@@ -176,7 +176,7 @@ function runPageOnceAnimation(next) {
   }, "startEnter-=0.4");
 
   tl.from(next, {
-    y: "25dvh",
+    y: "25vh", // vh, not dvh: avoids mobile URL-bar recompute mid-transition
     duration: 1,
   }, "startEnter");
 
@@ -261,7 +261,7 @@ function runPageLeaveAnimation(current, next) {
   tl.fromTo(current,{
     y: "0vh"
   },{
-    y: "-15dvh",
+    y: "-15vh", // vh, not dvh: mobile Safari recomputes dvh as the URL bar moves, jolting the transition
     duration: 1,
   }, 0);
 }
@@ -323,7 +323,7 @@ function runPageEnterAnimation(next){
   }, "startEnter-=0.4");
 
   tl.from(next, {
-    y: "25dvh",
+    y: "25vh", // vh, not dvh: avoids mobile URL-bar recompute mid-transition
     duration: 1,
   }, "startEnter");
 
@@ -1852,4 +1852,12 @@ function initMobileMenu() {
   // Dedicated close buttons + backdrop.
   document.querySelectorAll('[form-close]').forEach((el) => el.addEventListener('click', () => closeMenu()));
   if (bg) bg.addEventListener('click', () => closeMenu());
+
+  // Close the menu the INSTANT a link inside it is tapped. Barba's beforeLeave
+  // only fires after the next page is fetched (~1s on mobile), which left the
+  // menu hanging open. Capture phase runs before Barba's own click handler, so
+  // the clip-out starts immediately and overlaps the page fetch + transition.
+  menu.addEventListener('click', (e) => {
+    if (open && e.target.closest('a[href]')) closeMenu();
+  }, true);
 }
