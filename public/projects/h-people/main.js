@@ -650,38 +650,49 @@ function initAccordionCSS() {
 
 // FAQ TOGGLE //
 function initFAQToggle() {
-  const toggles = {
-    employer: document.querySelector('.faq_toggle_inner.employer'),
-    candidate: document.querySelector('.faq_toggle_inner.candidate'),
-  };
+  // Discover every toggle/panel pair by the shared "key" class (employer,
+  // candidate, recruiter, …) so new tabs work with no code changes — just add
+  // a matching .faq_toggle_inner.KEY and .accordion-css.KEY in Webflow.
+  const toggleEls = Array.from(document.querySelectorAll('.faq_toggle_inner'));
 
-  const panels = {
-    employer: document.querySelector('.accordion-css.employer'),
-    candidate: document.querySelector('.accordion-css.candidate'),
-  };
+  const keys = [];
+  const toggles = {};
+  const panels = {};
 
-  if (!toggles.employer || !toggles.candidate || !panels.employer || !panels.candidate) return;
+  toggleEls.forEach((toggleEl) => {
+    // The key is whichever class on the toggle has a matching .accordion-css panel.
+    Array.from(toggleEl.classList).some((cls) => {
+      if (cls === 'faq_toggle_inner' || cls === 'is-active') return false;
+      const panel = document.querySelector(`.accordion-css.${cls}`);
+      if (!panel) return false;
+      keys.push(cls);
+      toggles[cls] = toggleEl;
+      panels[cls] = panel;
+      return true; // stop at the first matching class
+    });
+  });
+
+  // Need at least two tabs for a toggle to be meaningful.
+  if (keys.length < 2) return;
 
   const getItems = (panel) => Array.from(panel.querySelectorAll(':scope > *'));
 
-  let activeKey =
-    toggles.employer.classList.contains('is-active') ? 'employer' :
-    toggles.candidate.classList.contains('is-active') ? 'candidate' :
-    'employer';
+  let activeKey = keys.find((k) => toggles[k].classList.contains('is-active')) || keys[0];
 
   let isAnimating = false;
 
-  function setInitialState(key) {
-    const showPanel = panels[key];
-    const hidePanel = panels[key === 'employer' ? 'candidate' : 'employer'];
+  function setInitialState(activeK) {
+    keys.forEach((key) => {
+      const isActive = key === activeK;
+      const panel = panels[key];
 
-    gsap.set(showPanel, { display: 'block', autoAlpha: 1, height: 'auto' });
-    gsap.set(hidePanel, { display: 'none', autoAlpha: 0 });
-    gsap.set(getItems(showPanel), { autoAlpha: 1, y: 0 });
-    gsap.set(getItems(hidePanel), { autoAlpha: 0, y: 12 });
+      gsap.set(panel, isActive
+        ? { display: 'block', autoAlpha: 1, height: 'auto' }
+        : { display: 'none', autoAlpha: 0 });
+      gsap.set(getItems(panel), isActive ? { autoAlpha: 1, y: 0 } : { autoAlpha: 0, y: 12 });
 
-    toggles.employer.classList.toggle('is-active', key === 'employer');
-    toggles.candidate.classList.toggle('is-active', key === 'candidate');
+      toggles[key].classList.toggle('is-active', isActive);
+    });
   }
 
   setInitialState(activeKey);
@@ -710,8 +721,9 @@ function initFAQToggle() {
       .to(nextItems, { autoAlpha: 1, y: 0, duration: 0.3, stagger: 0.04 }, '+=0.02');
   }
 
-  toggles.employer.addEventListener('click', () => switchTo('employer'));
-  toggles.candidate.addEventListener('click', () => switchTo('candidate'));
+  keys.forEach((key) => {
+    toggles[key].addEventListener('click', () => switchTo(key));
+  });
 }
 
 // IMAGE SCROLL EFFECT //
