@@ -340,13 +340,12 @@ function runPageEnterAnimation(next){
 // BARBA HOOKS + INIT
 // -----------------------------------------
 
-barba.hooks.before(async () => {
-  // If a link is clicked while the nav is open, finish clipping [form-inner-menu]
-  // back out (and reset the hamburger) BEFORE the page transition starts. Barba
-  // awaits this hook, so the transition waits for the menu animation to complete
-  // instead of running concurrently (which wedged the transition on mobile).
-  // No-op (resolved promise) when the menu is already closed.
-  if (closeMobileMenu) await closeMobileMenu();
+barba.hooks.beforeLeave(() => {
+  // If a link is clicked while the nav is open, clip [form-inner-menu] back out
+  // (and reset the hamburger) as the transition starts. Fire-and-forget so it
+  // runs concurrently and beforeEnter can immediately fix the next container —
+  // matching the proven Quaglio setup. No-op when the menu is already closed.
+  if (closeMobileMenu) closeMobileMenu();
 });
 
 barba.hooks.beforeEnter(data => {
@@ -1817,37 +1816,31 @@ function initMobileMenu() {
     syncIcon(true);
   }
 
-  // Returns a Promise that resolves once the clip-out finishes, so a page
-  // transition can await it and only start once the menu is fully closed.
+  // Fire-and-forget: the page transition triggers this from Barba's beforeLeave
+  // and runs CONCURRENTLY (matching the proven Quaglio setup). lockScroll(false)
+  // restarts lenis; beforeEnter then stops it for the transition and resetPage
+  // restarts it on the new page.
   function closeMenu() {
-    if (!open) return Promise.resolve();
+    if (!open) return;
     open = false;
     lockScroll(false);
     if (bg) gsap.to(bg, { autoAlpha: 0, duration: 0.4, ease: 'osmo' });
     syncIcon(false);
-
-    return new Promise((resolve) => {
-      gsap.to(menu, {
-        clipPath: CLIP_HIDDEN,
-        duration: 0.45,
-        ease: 'osmo',
-        onComplete: () => {
-          if (!open) gsap.set(wrap, { autoAlpha: 0, pointerEvents: 'none' }); // guard against a quick re-open
-          resolve();
-        }
-      });
+    gsap.to(menu, {
+      clipPath: CLIP_HIDDEN,
+      duration: 0.45,
+      ease: 'osmo',
+      onComplete: () => {
+        if (!open) gsap.set(wrap, { autoAlpha: 0, pointerEvents: 'none' }); // guard against a quick re-open
+      }
     });
   }
 
   const toggle = () => (open ? closeMenu() : openMenu());
 
-  // Exposed so Barba can clip the menu out when a link triggers a page transition.
-  // Restore scroll (lenis.start) on close so we hand off to the transition with
-  // lenis RUNNING — just like a normal scrolled-page nav. The transition's
-  // beforeEnter then stops it and resetPage restarts it. (Leaving lenis stopped
-  // here kept overflow:hidden through the whole transition, so resetPage's
-  // scrollTo(0,0) didn't stick and the page flashed back to the old scroll.)
-  closeMobileMenu = () => closeMenu();
+  // Exposed so Barba's beforeLeave can clip the menu out when a link triggers a
+  // page transition (fire-and-forget, concurrent — see closeMenu).
+  closeMobileMenu = closeMenu;
 
   buttons.forEach(({ btn }) => {
     // A toggle inside [form-close] already closes via the closer handler below —
