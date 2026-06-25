@@ -13,6 +13,7 @@ history.scrollRestoration = "manual";
 let lenis = null;
 let nextPage = document;
 let onceFunctionsInitialized = false;
+let closeMobileMenu = null; // set by initMobileMenu so page transitions can clip the menu out
 
 const hasLenis = typeof window.Lenis !== "undefined";
 const hasScrollTrigger = typeof window.ScrollTrigger !== "undefined";
@@ -338,6 +339,12 @@ function runPageEnterAnimation(next){
 // -----------------------------------------
 // BARBA HOOKS + INIT
 // -----------------------------------------
+
+barba.hooks.before(() => {
+  // If a link is clicked while the nav is open, clip [form-inner-menu] back out
+  // as the page transition begins. No-op when the menu is already closed.
+  if (closeMobileMenu) closeMobileMenu();
+});
 
 barba.hooks.beforeEnter(data => {
   // Position new container on top
@@ -1824,6 +1831,9 @@ function initMobileMenu() {
   }
 
   const toggle = () => (open ? closeMenu() : openMenu());
+
+  // Exposed so Barba can clip the menu out when a link triggers a page transition.
+  closeMobileMenu = closeMenu;
 
   buttons.forEach(({ btn }) => {
     // A toggle inside [form-close] already closes via the closer handler below —
