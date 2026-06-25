@@ -95,6 +95,7 @@ function initAfterEnterFunctions(next) {
   if (has('[data-swiper-group]')) initSwiperSlider();
   if (has('[data-filter-group]')) initFilterBasic();
   if (has('[resource-item]')) initResourceHover();
+  if (has('[card-sticky]')) initStickyCardStack();
 
   if (hasLenis) {
     lenis.resize();
@@ -1675,5 +1676,40 @@ function initResourceHover() {
 
     item.addEventListener('mouseenter', () => tl.play());
     item.addEventListener('mouseleave', () => tl.reverse());
+  });
+}
+
+// STICKY CARD STACK //
+// Each [card-sticky] is position: sticky; top: 27vh. As a card reaches that
+// sticky point and the next card stacks over it, it recedes — scale 0.9,
+// opacity drop, and blur — so the active (top) card always reads as foreground.
+function initStickyCardStack() {
+  const cards = gsap.utils.toArray('[card-sticky]');
+
+  cards.forEach((card, i) => {
+    const next = cards[i + 1];
+
+    // No card stacks over the last one, so it never needs to recede.
+    if (!next) return;
+
+    if (reducedMotion) return;
+
+    gsap.fromTo(
+      card,
+      { scale: 1, opacity: 1, filter: 'blur(0px)' },
+      {
+        scale: 0.9,
+        opacity: 0.6,
+        filter: 'blur(6px)',
+        ease: 'none', // scrub drives the progress; keep the mapping linear
+        scrollTrigger: {
+          trigger: card,
+          start: 'top 27%',      // card hits its sticky point (27vh)
+          endTrigger: next,
+          end: 'top 27%',        // next card has reached the sticky point on top
+          scrub: true
+        }
+      }
+    );
   });
 }
