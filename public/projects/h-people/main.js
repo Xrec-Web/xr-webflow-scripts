@@ -1819,13 +1819,10 @@ function initMobileMenu() {
 
   // Returns a Promise that resolves once the clip-out finishes, so a page
   // transition can await it and only start once the menu is fully closed.
-  // restoreScroll:false when a page transition is closing the menu — Barba's
-  // beforeEnter/afterEnter own the lenis stop/start there, and letting closeMenu
-  // also start lenis causes a start→stop toggle that jumps scroll mid-transition.
-  function closeMenu({ restoreScroll = true } = {}) {
+  function closeMenu() {
     if (!open) return Promise.resolve();
     open = false;
-    if (restoreScroll) lockScroll(false);
+    lockScroll(false);
     if (bg) gsap.to(bg, { autoAlpha: 0, duration: 0.4, ease: 'osmo' });
     syncIcon(false);
 
@@ -1845,8 +1842,12 @@ function initMobileMenu() {
   const toggle = () => (open ? closeMenu() : openMenu());
 
   // Exposed so Barba can clip the menu out when a link triggers a page transition.
-  // Skip scroll restore — the transition's beforeEnter/afterEnter manage lenis.
-  closeMobileMenu = () => closeMenu({ restoreScroll: false });
+  // Restore scroll (lenis.start) on close so we hand off to the transition with
+  // lenis RUNNING — just like a normal scrolled-page nav. The transition's
+  // beforeEnter then stops it and resetPage restarts it. (Leaving lenis stopped
+  // here kept overflow:hidden through the whole transition, so resetPage's
+  // scrollTo(0,0) didn't stick and the page flashed back to the old scroll.)
+  closeMobileMenu = () => closeMenu();
 
   buttons.forEach(({ btn }) => {
     // A toggle inside [form-close] already closes via the closer handler below —
