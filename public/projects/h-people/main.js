@@ -1814,10 +1814,13 @@ function initMobileMenu() {
     syncIcon(true);
   }
 
-  function closeMenu() {
+  // restoreScroll:false when a page transition is closing the menu — Barba's
+  // beforeEnter/afterEnter own the lenis stop/start there, and letting closeMenu
+  // also start lenis causes a start→stop toggle that jumps scroll mid-transition.
+  function closeMenu({ restoreScroll = true } = {}) {
     if (!open) return;
     open = false;
-    lockScroll(false);
+    if (restoreScroll) lockScroll(false);
     if (bg) gsap.to(bg, { autoAlpha: 0, duration: 0.4, ease: 'osmo' });
     gsap.to(menu, {
       clipPath: CLIP_HIDDEN,
@@ -1833,7 +1836,8 @@ function initMobileMenu() {
   const toggle = () => (open ? closeMenu() : openMenu());
 
   // Exposed so Barba can clip the menu out when a link triggers a page transition.
-  closeMobileMenu = closeMenu;
+  // Skip scroll restore — the transition's beforeEnter/afterEnter manage lenis.
+  closeMobileMenu = () => closeMenu({ restoreScroll: false });
 
   buttons.forEach(({ btn }) => {
     // A toggle inside [form-close] already closes via the closer handler below —
@@ -1843,6 +1847,6 @@ function initMobileMenu() {
   });
 
   // Dedicated close buttons + backdrop.
-  document.querySelectorAll('[form-close]').forEach((el) => el.addEventListener('click', closeMenu));
-  if (bg) bg.addEventListener('click', closeMenu);
+  document.querySelectorAll('[form-close]').forEach((el) => el.addEventListener('click', () => closeMenu()));
+  if (bg) bg.addEventListener('click', () => closeMenu());
 }
