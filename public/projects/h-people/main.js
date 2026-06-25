@@ -55,6 +55,7 @@ function initOnceFunctions() {
   // Runs once on first load (these persist outside the Barba container)
   if (document.querySelector('.progressive-blur')) initProgressiveBlurScroll();
   if (document.querySelector('[data-slideshow="wrap"]')) initParallaxImageGallery();
+  if (document.querySelector('[data-underlay-nav-toggle]')) initMobileMenu();
 }
 
 function initBeforeEnterFunctions(next) {
@@ -1726,4 +1727,103 @@ function initStickyCardStack() {
       }
     );
   });
+}
+
+// MOBILE MENU TOGGLE //
+// Hamburger ([data-underlay-nav-toggle]) animates its bars + labels and, at the
+// same time, wipes the [form-inner-menu] panel in/out with a clip-path width
+// reveal (0% → 100%). There can be MORE THAN ONE toggle (the nav opener + a
+// close button inside the panel); each has its own bars/labels and all stay in
+// sync because the icon reflects the panel's open state, not its own. A
+// [form-close] click or a backdrop ([form-bg]) click also closes. Binds once.
+function initMobileMenu() {
+  const menu = document.querySelector('[form-inner-menu]');
+  if (!menu) return;
+
+  // The overlay container, if there is one; otherwise treat the panel as its own.
+  const wrap = document.querySelector('[form-wrap]') || menu;
+  const bg   = document.querySelector('[form-bg]');
+
+  // Collect every toggle's bars + labels and zero them out.
+  const buttons = [];
+  document.querySelectorAll('[data-underlay-nav-toggle]').forEach((btn) => {
+    const bars = btn.querySelectorAll('.underlay-nav__toggle-bar');
+    if (bars.length < 2) return;
+    const labels = btn.querySelectorAll('.underlay-nav__toggle-label');
+    gsap.set(bars, { y: 0, rotation: 0 });
+    gsap.set(labels, { yPercent: 0 });
+    buttons.push({ btn, bars, labels });
+  });
+  if (!buttons.length) return;
+
+  const CLIP_HIDDEN = 'inset(0% 0% 0% 100%)'; // width 0, anchored right
+  const CLIP_SHOWN  = 'inset(0% 0% 0% 0%)';   // full width
+
+  if (wrap !== menu) gsap.set(wrap, { display: 'flex', autoAlpha: 0, pointerEvents: 'none' });
+  if (bg) gsap.set(bg, { autoAlpha: 0 });
+  gsap.set(menu, { clipPath: CLIP_HIDDEN });
+
+  let open = false;
+
+  // lenis.stop() adds .lenis-stopped (overflow:hidden), locking touch scroll too.
+  const lockScroll = (lock) => {
+    if (!lenis) return;
+    if (lock) lenis.stop();
+    else lenis.start();
+  };
+
+  // Drive every toggle's icon to match the panel state.
+  const syncIcon = (isOpen) => {
+    buttons.forEach(({ btn, bars, labels }) => {
+      btn.setAttribute('aria-expanded', String(isOpen));
+      btn.setAttribute('aria-label', isOpen ? 'close menu' : 'open menu');
+      if (isOpen) {
+        gsap.to(bars[0], { y: '0.25em', rotation: 45, duration: 0.35, ease: 'pop', overwrite: 'auto' });
+        gsap.to(bars[1], { y: '-0.25em', rotation: -45, duration: 0.35, ease: 'pop', overwrite: 'auto' });
+        gsap.to(labels, { yPercent: -100, duration: 0.4, ease: 'energy', overwrite: 'auto' });
+      } else {
+        gsap.to(bars, { y: 0, rotation: 0, duration: 0.25, ease: 'osmo', overwrite: 'auto' });
+        gsap.to(labels, { yPercent: 0, duration: 0.25, ease: 'osmo', overwrite: 'auto' });
+      }
+    });
+  };
+
+  function openMenu() {
+    if (open) return;
+    open = true;
+    if (wrap !== menu) gsap.set(wrap, { autoAlpha: 1, pointerEvents: 'auto' });
+    if (bg) gsap.to(bg, { autoAlpha: 1, duration: 0.4, ease: 'osmo' });
+    gsap.fromTo(menu, { clipPath: CLIP_HIDDEN }, { clipPath: CLIP_SHOWN, duration: 0.6, ease: 'osmo' });
+    lockScroll(true);
+    syncIcon(true);
+  }
+
+  function closeMenu() {
+    if (!open) return;
+    open = false;
+    lockScroll(false);
+    if (bg) gsap.to(bg, { autoAlpha: 0, duration: 0.4, ease: 'osmo' });
+    gsap.to(menu, {
+      clipPath: CLIP_HIDDEN,
+      duration: 0.45,
+      ease: 'osmo',
+      onComplete: () => { // guard against a quick re-open
+        if (!open && wrap !== menu) gsap.set(wrap, { autoAlpha: 0, pointerEvents: 'none' });
+      }
+    });
+    syncIcon(false);
+  }
+
+  const toggle = () => (open ? closeMenu() : openMenu());
+
+  buttons.forEach(({ btn }) => {
+    // A toggle inside [form-close] already closes via the closer handler below —
+    // binding the toggle here too would close then instantly re-open.
+    if (btn.closest('[form-close]')) return;
+    btn.addEventListener('click', toggle);
+  });
+
+  // Dedicated close buttons + backdrop.
+  document.querySelectorAll('[form-close]').forEach((el) => el.addEventListener('click', closeMenu));
+  if (bg) bg.addEventListener('click', closeMenu);
 }
