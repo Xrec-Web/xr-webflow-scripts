@@ -1742,7 +1742,8 @@ function initMobileMenu() {
 
   // The overlay container, if there is one; otherwise treat the panel as its own.
   const wrap = document.querySelector('[form-wrap]') || menu;
-  const bg   = document.querySelector('[form-bg]');
+  // Backdrop: this project uses .dark-bg (no [form-bg]).
+  const bg   = document.querySelector('[form-bg]') || document.querySelector('.dark-bg');
 
   // Collect every toggle's bars + labels and zero them out.
   const buttons = [];
@@ -1759,7 +1760,10 @@ function initMobileMenu() {
   const CLIP_HIDDEN = 'inset(0% 0% 0% 100%)'; // width 0, anchored right
   const CLIP_SHOWN  = 'inset(0% 0% 0% 0%)';   // full width
 
-  if (wrap !== menu) gsap.set(wrap, { display: 'flex', autoAlpha: 0, pointerEvents: 'none' });
+  // Make the overlay renderable but hidden. When there's no separate [form-wrap],
+  // `wrap` IS the menu, so this also overrides any display:none / opacity:0 that
+  // Webflow set on it — otherwise the clip would animate on an invisible element.
+  gsap.set(wrap, { display: 'flex', autoAlpha: 0, pointerEvents: 'none' });
   if (bg) gsap.set(bg, { autoAlpha: 0 });
   gsap.set(menu, { clipPath: CLIP_HIDDEN });
 
@@ -1791,7 +1795,7 @@ function initMobileMenu() {
   function openMenu() {
     if (open) return;
     open = true;
-    if (wrap !== menu) gsap.set(wrap, { autoAlpha: 1, pointerEvents: 'auto' });
+    gsap.set(wrap, { autoAlpha: 1, pointerEvents: 'auto' });
     if (bg) gsap.to(bg, { autoAlpha: 1, duration: 0.4, ease: 'osmo' });
     gsap.fromTo(menu, { clipPath: CLIP_HIDDEN }, { clipPath: CLIP_SHOWN, duration: 0.6, ease: 'osmo' });
     lockScroll(true);
@@ -1808,7 +1812,7 @@ function initMobileMenu() {
       duration: 0.45,
       ease: 'osmo',
       onComplete: () => { // guard against a quick re-open
-        if (!open && wrap !== menu) gsap.set(wrap, { autoAlpha: 0, pointerEvents: 'none' });
+        if (!open) gsap.set(wrap, { autoAlpha: 0, pointerEvents: 'none' });
       }
     });
     syncIcon(false);
