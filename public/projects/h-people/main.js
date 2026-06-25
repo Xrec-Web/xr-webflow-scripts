@@ -340,10 +340,13 @@ function runPageEnterAnimation(next){
 // BARBA HOOKS + INIT
 // -----------------------------------------
 
-barba.hooks.before(() => {
-  // If a link is clicked while the nav is open, clip [form-inner-menu] back out
-  // as the page transition begins. No-op when the menu is already closed.
-  if (closeMobileMenu) closeMobileMenu();
+barba.hooks.before(async () => {
+  // If a link is clicked while the nav is open, finish clipping [form-inner-menu]
+  // back out (and reset the hamburger) BEFORE the page transition starts. Barba
+  // awaits this hook, so the transition waits for the menu animation to complete
+  // instead of running concurrently (which wedged the transition on mobile).
+  // No-op (resolved promise) when the menu is already closed.
+  if (closeMobileMenu) await closeMobileMenu();
 });
 
 barba.hooks.beforeEnter(data => {
@@ -1814,23 +1817,29 @@ function initMobileMenu() {
     syncIcon(true);
   }
 
+  // Returns a Promise that resolves once the clip-out finishes, so a page
+  // transition can await it and only start once the menu is fully closed.
   // restoreScroll:false when a page transition is closing the menu — Barba's
   // beforeEnter/afterEnter own the lenis stop/start there, and letting closeMenu
   // also start lenis causes a start→stop toggle that jumps scroll mid-transition.
   function closeMenu({ restoreScroll = true } = {}) {
-    if (!open) return;
+    if (!open) return Promise.resolve();
     open = false;
     if (restoreScroll) lockScroll(false);
     if (bg) gsap.to(bg, { autoAlpha: 0, duration: 0.4, ease: 'osmo' });
-    gsap.to(menu, {
-      clipPath: CLIP_HIDDEN,
-      duration: 0.45,
-      ease: 'osmo',
-      onComplete: () => { // guard against a quick re-open
-        if (!open) gsap.set(wrap, { autoAlpha: 0, pointerEvents: 'none' });
-      }
-    });
     syncIcon(false);
+
+    return new Promise((resolve) => {
+      gsap.to(menu, {
+        clipPath: CLIP_HIDDEN,
+        duration: 0.45,
+        ease: 'osmo',
+        onComplete: () => {
+          if (!open) gsap.set(wrap, { autoAlpha: 0, pointerEvents: 'none' }); // guard against a quick re-open
+          resolve();
+        }
+      });
+    });
   }
 
   const toggle = () => (open ? closeMenu() : openMenu());
