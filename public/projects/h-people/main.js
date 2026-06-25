@@ -954,21 +954,26 @@ function initDynamicCustomTextCursor() {
 
 // HERO + FOOTER PARALLAX //
 function initParallax() {
-  document.querySelectorAll('[data-hero-parallax]').forEach(el => {
-    const inner = el.querySelector('[data-hero-parallax-inner]');
-    const dark  = el.querySelector('[data-hero-parallax-dark]');
+  // Hero parallax runs on tablet+ only. gsap.matchMedia builds the ScrollTriggers
+  // when the query matches and reverts them (kills triggers + clears inline
+  // transforms) below 768px, so mobile gets a static hero.
+  gsap.matchMedia().add('(min-width: 768px)', () => {
+    document.querySelectorAll('[data-hero-parallax]').forEach(el => {
+      const inner = el.querySelector('[data-hero-parallax-inner]');
+      const dark  = el.querySelector('[data-hero-parallax-dark]');
 
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: el,
-        start: 'top top',
-        end: 'bottom top',
-        scrub: 1
-      }
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: el,
+          start: 'top top',
+          end: 'bottom top',
+          scrub: 1
+        }
+      });
+
+      if (inner) tl.to(inner, { yPercent: 25, ease: 'linear' });
+      if (dark)  tl.to(dark,  { opacity: 0.7, ease: 'linear' }, '<');
     });
-
-    if (inner) tl.to(inner, { yPercent: 25, ease: 'linear' });
-    if (dark)  tl.to(dark,  { opacity: 0.7, ease: 'linear' }, '<');
   });
 
   document.querySelectorAll('[data-footer-parallax]').forEach(el => {
