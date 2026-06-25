@@ -786,7 +786,9 @@ function animateClipBatch(els, baseDelay) {
   const STAGGER  = 0.1;
   els.forEach((el, i) => {
     const offset = i * STAGGER;
-    gsap.to(el, { clipPath: 'inset(0% 0% 0% 0%)', duration: DURATION - offset, ease: 'reveal', delay: baseDelay + offset });
+    // Constant duration; the stagger comes from delay alone. (Previously
+    // duration shrank per item, so later reveals snapped in near-instantly.)
+    gsap.to(el, { clipPath: 'inset(0% 0% 0% 0%)', duration: DURATION, ease: 'reveal', delay: baseDelay + offset });
   });
 }
 
