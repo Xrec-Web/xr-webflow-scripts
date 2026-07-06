@@ -20,6 +20,11 @@ rmMQ.addListener?.(e => (reducedMotion = e.matches));
 
 const has = (s) => !!nextPage.querySelector(s);
 
+// Phone breakpoint (below Webflow's 768px tablet). Some effects are too heavy
+// for mobile CPUs (SplitText/clip reveals) or don't suit small screens (sticky
+// card stack), so they fall back or switch off below this.
+const isMobile = () => window.matchMedia("(max-width: 767px)").matches;
+
 let staggerDefault = 0.05;
 let durationDefault = 0.6;
 
@@ -793,13 +798,38 @@ function hasRevealAncestor(el) {
 }
 
 // TEXT + ELEMENT REVEAL - 2 //
-// Both [data-reveal] (text) and [data-reveal-clip] (elements) share ONE cheap
-// reveal: fade up 1rem into place with a slight blur that resolves. No SplitText
-// and no clip-path — those forced big synchronous reflows that froze the main
-// thread on page enter; this is just transform + opacity + filter tweens.
+// Per-mode split-text stagger config (desktop only).
+const splitConfig = {
+  lines: { duration: 1.0, stagger: 0.08 },
+  words: { duration: 0.8, stagger: 0.06 },
+  chars: { duration: 0.6, stagger: 0.01 }
+};
+
+// Small helper: run `fn` over roots first, then nested reveals a beat later, so
+// an outer reveal always leads its children. Used by both desktop reveal paths.
+function revealByDepth(els, fn, childDelay = 0.2) {
+  const roots    = els.filter(el => !hasRevealAncestor(el));
+  const children = els.filter(el =>  hasRevealAncestor(el));
+  if (roots.length)    fn(roots, 0);
+  if (children.length) fn(children, childDelay);
+}
+
+// TEXT + ELEMENT REVEAL - 3 //
+// Dispatch: phones get the cheap whole-element reveal; tablet+ gets the richer
+// clip-path (elements) and SplitText line/word/char (text) reveals. The heavy
+// SplitText + clip work froze the transition on mobile CPUs, so it's desktop-only.
 //   data-load  → play immediately on enter (above the fold)
 //   otherwise  → play once when scrolled into view
 function initReveal() {
+  if (isMobile()) { initRevealSimple(); return; }
+  initRevealClip();
+  initRevealSplit();
+}
+
+// MOBILE — both [data-reveal] and [data-reveal-clip] animate as one element:
+// fade up 1rem into place with a slight blur that resolves. Cheap transform +
+// opacity + filter tweens, no SplitText / clip-path.
+function initRevealSimple() {
   const els = [...document.querySelectorAll('[data-reveal], [data-reveal-clip]')];
   if (!els.length) return;
 
@@ -814,22 +844,13 @@ function initReveal() {
     // containing block that can break position:fixed descendants) behind.
     clearProps: 'filter,transform'
   };
-
   const reveal = (targets, extra) => gsap.fromTo(targets, FROM, { ...TO, ...extra });
 
   const loadEls   = els.filter(el =>  el.hasAttribute('data-load'));
   const scrollEls = els.filter(el => !el.hasAttribute('data-load'));
 
-  // On-load reveals: run now, staggered; nested reveals trail their ancestor.
-  if (loadEls.length) {
-    const roots    = loadEls.filter(el => !hasRevealAncestor(el));
-    const children = loadEls.filter(el =>  hasRevealAncestor(el));
-    if (roots.length)    reveal(roots,    { delay: 0,   stagger: 0.08 });
-    if (children.length) reveal(children, { delay: 0.2, stagger: 0.08 });
-  }
+  if (loadEls.length) revealByDepth(loadEls, (group, delay) => reveal(group, { delay, stagger: 0.08 }));
 
-  // On-scroll reveals: hide up front, then batch so items entering together
-  // stagger in, once each.
   if (scrollEls.length) {
     gsap.set(scrollEls, FROM);
     ScrollTrigger.batch(scrollEls, {
@@ -838,6 +859,82 @@ function initReveal() {
       onEnter: batch => reveal(batch, { stagger: 0.08, overwrite: true })
     });
   }
+}
+
+// DESKTOP — [data-reveal-clip] elements wipe open via clip-path. Webflow hides
+// them with opacity:0 and no clip, so set autoAlpha:1 and drive the clip from a
+// bottom-clipped state to fully open ourselves.
+function initRevealClip() {
+  const els = [...document.querySelectorAll('[data-reveal-clip]')];
+  if (!els.length) return;
+
+  const CLIPPED = 'inset(0% 0% 100% 0%)'; // hidden — clipped up from the bottom
+  const OPEN    = 'inset(0% 0% 0% 0%)';   // fully revealed
+  const DURATION = 0.9, STAGGER = 0.1;
+
+  const wipe = (batch, baseDelay) => {
+    batch.forEach((el, i) => {
+      gsap.fromTo(el,
+        { autoAlpha: 1, clipPath: CLIPPED },
+        { clipPath: OPEN, duration: DURATION, ease: 'reveal', delay: baseDelay + i * STAGGER, clearProps: 'clipPath' }
+      );
+    });
+  };
+
+  const loadEls   = els.filter(el =>  el.hasAttribute('data-load'));
+  const scrollEls = els.filter(el => !el.hasAttribute('data-load'));
+
+  if (loadEls.length) revealByDepth(loadEls, wipe);
+
+  if (scrollEls.length) {
+    gsap.set(scrollEls, { autoAlpha: 1, clipPath: CLIPPED });
+    ScrollTrigger.batch(scrollEls, {
+      start: 'clamp(top 80%)',
+      once: true,
+      onEnter: batch => revealByDepth(batch, wipe)
+    });
+  }
+}
+
+// DESKTOP — [data-reveal] text splits into lines/words/chars (data-reveal value)
+// and each piece rises out of a per-line mask.
+function initRevealSplit() {
+  document.querySelectorAll('[data-reveal]').forEach((el) => {
+    const isLoad   = el.hasAttribute('data-load');
+    const isChild  = hasRevealAncestor(el);
+    const type     = (el.dataset.reveal || 'lines').toLowerCase();
+    const safeType = ['lines', 'words', 'chars'].includes(type) ? type : 'lines';
+
+    const typesToSplit =
+      safeType === 'lines' ? ['lines'] :
+      safeType === 'words' ? ['lines', 'words'] :
+      ['lines', 'words', 'chars'];
+
+    SplitText.create(el, {
+      type: typesToSplit.join(','),
+      mask: 'lines',
+      autoSplit: true,
+      linesClass: 'line',
+      wordsClass: 'word',
+      charsClass: 'letter',
+      onSplit: (instance) => {
+        gsap.set(el, { opacity: 1 });
+        const targets   = instance[safeType];
+        const config    = splitConfig[safeType];
+        const baseDelay = isChild ? 0.2 : 0;
+        targets.forEach((target, i) => {
+          const offset = i * config.stagger;
+          gsap.from(target, {
+            yPercent: 110,
+            duration: config.duration - offset,
+            ease: 'reveal',
+            delay: baseDelay + offset,
+            ...(isLoad ? {} : { scrollTrigger: { trigger: el, start: 'clamp(top 80%)', once: true } })
+          });
+        });
+      }
+    });
+  });
 }
 
 // COPYRIGHT YEAR //
@@ -1685,6 +1782,10 @@ function initResourceHover() {
 // sticky point and the next card stacks over it, it recedes — scale 0.9,
 // opacity drop, and blur — so the active (top) card always reads as foreground.
 function initStickyCardStack() {
+  // Phones don't run the stacking effect (cramped, and the scrubbed blur/scale
+  // is heavy on mobile) — cards just stack normally via CSS.
+  if (isMobile()) return;
+
   const cards = gsap.utils.toArray('[card-sticky]');
 
   cards.forEach((card, i) => {
