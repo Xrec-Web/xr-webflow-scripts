@@ -114,12 +114,22 @@ function initAfterEnterFunctions(next) {
 // PAGE TRANSITIONS
 // -----------------------------------------
 
-// Phones can't run the desktop "curtain": its panels are sized in vw, so on a
-// tall portrait viewport they can't cover the screen, and the per-call
-// getBoundingClientRect logo measurement is unreliable there — which left the
-// enter wedged mid-transition on mobile. Mobile falls back to the simple,
-// proven crossfade (the base boilerplate). Desktop keeps the curtain.
-const isMobileTransition = () => window.matchMedia("(max-width: 767px)").matches;
+// The curtain runs on ALL devices. Two past mobile failure modes (which used
+// to wedge the transition and forced a crossfade fallback) are guarded here:
+// 1. The Webflow panel is vw-sized, so on tall portrait viewports it couldn't
+//    cover the screen. A min-height of 100lvh (largest viewport — stable while
+//    the mobile URL bar shows/hides, unlike dvh) guarantees coverage and is a
+//    no-op on desktop, where the panel already spans the screen.
+// 2. The per-call logo measurement could come back 0/tiny mid-render, leaving
+//    the logo stuck over the page. Travel is floored instead — overshoot is
+//    invisible behind the mask.
+const curtainMinHeight = (window.CSS && CSS.supports("min-height", "100lvh")) ? "100lvh" : "100vh";
+const LOGO_TRAVEL_MIN = 300; // px floor so the paths always clear the mask
+
+function measureLogoTravel(logo) {
+  const h = logo ? logo.getBoundingClientRect().height : 0;
+  return Math.max(h, LOGO_TRAVEL_MIN) * 1.2;
+}
 
 function runPageOnceAnimation(next) {
   const transitionWrap = document.querySelector("[data-transition-wrap]");
@@ -130,7 +140,8 @@ function runPageOnceAnimation(next) {
   const transitionLogoPath = transitionWrap.querySelectorAll("path");
 
   // Absolute travel distance (px) so every path clears the mask uniformly.
-  const logoTravel = (transitionLogo.getBoundingClientRect().height || 300) * 1.2;
+  const logoTravel = measureLogoTravel(transitionLogo);
+  gsap.set(transitionPanel, { minHeight: curtainMinHeight });
 
   const tl = gsap.timeline();
 
@@ -140,12 +151,6 @@ function runPageOnceAnimation(next) {
     tl.add("pageReady")
     tl.call(resetPage, [next], "pageReady");
     return new Promise(resolve => tl.call(resolve, null, "pageReady"));
-  }
-
-  if (isMobileTransition()) {
-    // Mobile: no curtain on first load, just show the page.
-    tl.call(() => resetPage(next), null, 0);
-    return tl;
   }
 
   // Start mid-transition: panel already covering the screen, logo shown.
@@ -209,7 +214,8 @@ function runPageLeaveAnimation(current, next) {
 
   // Absolute travel distance (px) so every path moves the same amount,
   // regardless of its individual height. Moving by the mask height clears all.
-  const logoTravel = (transitionLogo.getBoundingClientRect().height || 300) * 1.2;
+  const logoTravel = measureLogoTravel(transitionLogo);
+  gsap.set(transitionPanel, { minHeight: curtainMinHeight });
 
   const tl = gsap.timeline({
     onComplete: () => { current.remove() }
@@ -218,11 +224,6 @@ function runPageLeaveAnimation(current, next) {
   if (reducedMotion) {
     // Immediate swap behavior if user prefers reduced motion
     return tl.set(current, { autoAlpha: 0 });
-  }
-
-  if (isMobileTransition()) {
-    // Mobile: simple crossfade out (no curtain).
-    return tl.to(current, { autoAlpha: 0, duration: 0.4 });
   }
 
   tl.set(transitionPanel, {
@@ -293,7 +294,8 @@ function runPageEnterAnimation(next){
   const transitionLogoPath = transitionWrap.querySelectorAll("path");
 
   // Absolute travel distance (px) so every path clears the mask uniformly.
-  const logoTravel = (transitionLogo.getBoundingClientRect().height || 300) * 1.2;
+  const logoTravel = measureLogoTravel(transitionLogo);
+  gsap.set(transitionPanel, { minHeight: curtainMinHeight });
 
   const tl = gsap.timeline();
 
@@ -301,15 +303,6 @@ function runPageEnterAnimation(next){
     // Immediate swap behavior if user prefers reduced motion
     tl.set(next, { autoAlpha: 1 });
     tl.add("pageReady")
-    tl.call(resetPage, [next], "pageReady");
-    return new Promise(resolve => tl.call(resolve, null, "pageReady"));
-  }
-
-  if (isMobileTransition()) {
-    // Mobile: simple crossfade in (no curtain). Mirrors the base boilerplate.
-    tl.add("startEnter", 0.6);
-    tl.fromTo(next, { autoAlpha: 0 }, { autoAlpha: 1 }, "startEnter");
-    tl.add("pageReady");
     tl.call(resetPage, [next], "pageReady");
     return new Promise(resolve => tl.call(resolve, null, "pageReady"));
   }
