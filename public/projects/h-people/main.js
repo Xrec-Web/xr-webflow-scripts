@@ -14,6 +14,7 @@ let lenis = null;
 let nextPage = document;
 let onceFunctionsInitialized = false;
 let closeMobileMenu = null; // set by initMobileMenu so page transitions can clip the menu out
+let activeTransitionTl = null; // enter/once timeline — outlives its Barba hook (resolves at full cover)
 
 const hasLenis = typeof window.Lenis !== "undefined";
 const hasScrollTrigger = typeof window.ScrollTrigger !== "undefined";
@@ -153,6 +154,8 @@ function runPageOnceAnimation(next) {
     return new Promise(resolve => tl.call(resolve, null, "pageReady"));
   }
 
+  activeTransitionTl = tl;
+
   // Start mid-transition: panel already covering the screen, logo shown.
   tl.set(transitionPanel, { autoAlpha: 1, yPercent: -100 }, 0);
   tl.set(transitionPanelTop, { scaleY: 1, height: "15vw" }, 0);
@@ -163,6 +166,13 @@ function runPageOnceAnimation(next) {
 
   // Short hold so the logo is briefly visible, then play the reveal (end) half.
   tl.add("startEnter", 0.6);
+
+  // Hand the page over at FULL COVER, not after the exit: afterOnce (SplitText,
+  // ScrollTriggers, load reveals) runs while the panel still hides the page, so
+  // the heavy-init jank is invisible and the hero reveals play as the curtain
+  // exits — instead of the curtain unveiling a blank page that pops in late.
+  tl.add("pageReady", "startEnter");
+  tl.call(resetPage, [next], "pageReady");
 
   tl.fromTo(transitionPanel, {
     yPercent: -100,
@@ -193,15 +203,7 @@ function runPageOnceAnimation(next) {
     }
   }, "startEnter-=0.4");
 
-  tl.from(next, {
-    y: "25vh", // vh, not dvh: avoids mobile URL-bar recompute mid-transition
-    duration: 1,
-  }, "startEnter");
-
-  tl.add("pageReady");
-  tl.call(resetPage, [next], "pageReady");
-
-  return tl;
+  return new Promise(resolve => tl.call(resolve, null, "pageReady"));
 }
 
 function runPageLeaveAnimation(current, next) {
@@ -216,6 +218,14 @@ function runPageLeaveAnimation(current, next) {
   // regardless of its individual height. Moving by the mask height clears all.
   const logoTravel = measureLogoTravel(transitionLogo);
   gsap.set(transitionPanel, { minHeight: curtainMinHeight });
+
+  // The enter resolves at full cover, so its exit tweens (and the deferred
+  // panel autoAlpha:0 set) can still be pending if a new navigation starts
+  // quickly — kill them so a stale tween can't hide or move the panel mid-leave.
+  if (activeTransitionTl) {
+    activeTransitionTl.kill();
+    activeTransitionTl = null;
+  }
 
   const tl = gsap.timeline({
     onComplete: () => { current.remove() }
@@ -257,6 +267,7 @@ function runPageLeaveAnimation(current, next) {
   },{
     yPercent: -100,
     duration: 1,
+    overwrite: "auto",
   }, 0);
 
   tl.fromTo(transitionPanelTop,{
@@ -264,6 +275,7 @@ function runPageLeaveAnimation(current, next) {
   },{
     scaleY: 1,
     duration: 1,
+    overwrite: "auto",
   }, "<");
 
   tl.fromTo(transitionLogoPath, {
@@ -272,6 +284,7 @@ function runPageLeaveAnimation(current, next) {
     y: 0,
     duration: 0.8,
     ease: "expo.out",
+    overwrite: "auto",
     stagger: {
       amount: 0.06
     }
@@ -307,12 +320,21 @@ function runPageEnterAnimation(next){
     return new Promise(resolve => tl.call(resolve, null, "pageReady"));
   }
 
+  activeTransitionTl = tl;
+
   tl.add("startEnter", 1.35);
-  
+
   tl.set(next, {
     autoAlpha: 1,
   }, "startEnter");
-  
+
+  // Hand the page over at FULL COVER, not after the exit: afterEnter (SplitText,
+  // ScrollTriggers, load reveals) runs while the panel still hides the page, so
+  // the heavy-init jank is invisible and the hero reveals play as the curtain
+  // exits — instead of the curtain unveiling a blank page that pops in late.
+  tl.add("pageReady", "startEnter");
+  tl.call(resetPage, [next], "pageReady");
+
   tl.fromTo(transitionPanel, {
     yPercent: -100,
   },{
@@ -321,18 +343,18 @@ function runPageEnterAnimation(next){
     overwrite: "auto",
     immediateRender: false
   }, "startEnter");
-  
+
   tl.fromTo(transitionPanelBottom,{
     scaleY: 1
   },{
     scaleY: 0,
     duration: 1,
   }, "<");
-  
+
   tl.set(transitionPanel, {
     autoAlpha: 0
   }, ">");
-  
+
   tl.to(transitionLogoPath, {
     y: -logoTravel,
     duration: 1.2,
@@ -341,14 +363,6 @@ function runPageEnterAnimation(next){
       amount: -0.06
     }
   }, "startEnter-=0.4");
-
-  tl.from(next, {
-    y: "25vh", // vh, not dvh: avoids mobile URL-bar recompute mid-transition
-    duration: 1,
-  }, "startEnter");
-
-  tl.add("pageReady");
-  tl.call(resetPage, [next], "pageReady");
 
   return new Promise(resolve => {
     tl.call(resolve, null, "pageReady");
