@@ -2,7 +2,7 @@
 // OSMO PAGE TRANSITION BOILERPLATE
 // -----------------------------------------
 
-gsap.registerPlugin(CustomEase);
+gsap.registerPlugin(ScrollTrigger, SplitText, CustomEase, Flip, Observer);
 
 history.scrollRestoration = "manual";
 
