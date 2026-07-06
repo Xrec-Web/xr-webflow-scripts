@@ -124,18 +124,101 @@ function initAfterEnterFunctions(next) {
 // 2. The per-call logo measurement could come back 0/tiny mid-render, leaving
 //    the logo stuck over the page. Travel is floored instead — overshoot is
 //    invisible behind the mask.
-// -----------------------------------------
-// PAGE TRANSITIONS
-// -----------------------------------------
+const curtainMinHeight = (window.CSS && CSS.supports("min-height", "100lvh")) ? "100lvh" : "100vh";
+const LOGO_TRAVEL_MIN = 300; // px floor so the paths always clear the mask
+
+function measureLogoTravel(logo) {
+  const h = logo ? logo.getBoundingClientRect().height : 0;
+  return Math.max(h, LOGO_TRAVEL_MIN) * 1.2;
+}
 
 function runPageOnceAnimation(next) {
+  const transitionWrap = document.querySelector("[data-transition-wrap]");
+  const transitionPanel = transitionWrap.querySelector("[data-transition-panel]");
+  const transitionPanelTop = transitionWrap.querySelector("[data-transition-panel-top]");
+  const transitionPanelBottom = transitionWrap.querySelector("[data-transition-panel-bottom]");
+  const transitionLogo = transitionWrap.querySelector("[data-transition-logo]");
+  const transitionLogoPath = transitionWrap.querySelectorAll("path");
+
+  // Absolute travel distance (px) so every path clears the mask uniformly.
+  const logoTravel = measureLogoTravel(transitionLogo);
+  gsap.set(transitionPanel, { minHeight: curtainMinHeight });
+
   const tl = gsap.timeline();
 
-  tl.call(() => {
-    resetPage(next);
-  }, null, 0);
+  if (reducedMotion) {
+    // Immediate swap behavior if user prefers reduced motion
+    tl.set(next, { autoAlpha: 1 });
+    tl.add("pageReady")
+    tl.call(resetPage, [next], "pageReady");
+    return new Promise(resolve => tl.call(resolve, null, "pageReady"));
+  }
 
-  return tl;
+  activeTransitionTl = tl;
+
+  // Start mid-transition: panel already covering the screen, logo shown.
+  tl.set(transitionPanel, { autoAlpha: 1, yPercent: -100 }, 0);
+  tl.set(transitionPanelTop, { scaleY: 1, height: "15vw" }, 0);
+  tl.set(transitionPanelBottom, { scaleY: 1, height: "20vw" }, 0);
+  tl.set(transitionLogo, { autoAlpha: 1 }, 0);
+  tl.set(transitionLogoPath, { y: 0 }, 0);
+  tl.set(next, { autoAlpha: 1 }, 0);
+
+  // Short hold so the logo is briefly visible, then play the reveal (end) half.
+  tl.add("startEnter", 0.6);
+
+  // Hand the page over at FULL COVER, not after the exit: afterOnce (SplitText,
+  // ScrollTriggers, load reveals) runs while the panel still hides the page, so
+  // the heavy-init jank is invisible and the hero reveals play as the curtain
+  // exits — instead of the curtain unveiling a blank page that pops in late.
+  tl.add("pageReady", "startEnter");
+  tl.call(resetPage, [next], "pageReady");
+
+  tl.fromTo(transitionPanel, {
+    yPercent: -100,
+  },{
+    yPercent: -200,
+    duration: 1,
+    overwrite: "auto",
+    immediateRender: false
+  }, "startEnter");
+
+  tl.fromTo(transitionPanelBottom,{
+    scaleY: 1
+  },{
+    scaleY: 0,
+    duration: 1,
+  }, "<");
+
+  tl.set(transitionPanel, {
+    autoAlpha: 0
+  }, ">");
+
+  tl.to(transitionLogoPath, {
+    y: -logoTravel,
+    duration: 1.2,
+    ease: "expo.inOut",
+    stagger: {
+      amount: -0.06
+    }
+  }, "startEnter-=0.4");
+
+  return new Promise(resolve => {
+    tl.call(() => pauseForHandover(tl, resolve), null, "pageReady");
+  });
+}
+
+// Freeze the timeline while Barba's after-hooks re-init the page (SplitText,
+// ScrollTrigger.refresh — several hundred ms on phones). The clock is paused at
+// full cover and the exit resumes on a painted frame, so the stall reads as a
+// slightly longer hold. Without this the time-based exit tweens jump forward by
+// the stall length and the curtain visibly skips ("freezes then flashes").
+function pauseForHandover(tl, resolve) {
+  tl.pause();
+  resolve(); // barba after-hooks (the heavy init) run in this microtask chain
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (activeTransitionTl === tl) tl.resume(); // skip if a new leave killed it
+  }));
 }
 
 function runPageLeaveAnimation(current, next) {
@@ -145,62 +228,78 @@ function runPageLeaveAnimation(current, next) {
   const transitionPanelBottom = transitionWrap.querySelector("[data-transition-panel-bottom]");
   const transitionLogo = transitionWrap.querySelector("[data-transition-logo]");
   const transitionLogoPath = transitionWrap.querySelectorAll("path");
-  
+
+  // Absolute travel distance (px) so every path moves the same amount,
+  // regardless of its individual height. Moving by the mask height clears all.
+  const logoTravel = measureLogoTravel(transitionLogo);
+  gsap.set(transitionPanel, { minHeight: curtainMinHeight });
+
+  // The enter resolves at full cover, so its exit tweens (and the deferred
+  // panel autoAlpha:0 set) can still be pending if a new navigation starts
+  // quickly — kill them so a stale tween can't hide or move the panel mid-leave.
+  if (activeTransitionTl) {
+    activeTransitionTl.kill();
+    activeTransitionTl = null;
+  }
+
   const tl = gsap.timeline({
     onComplete: () => { current.remove() }
   });
-  
+
   if (reducedMotion) {
     // Immediate swap behavior if user prefers reduced motion
     return tl.set(current, { autoAlpha: 0 });
   }
-  
+
   tl.set(transitionPanel, {
     autoAlpha: 1
   }, 0);
-  
+
   tl.set(transitionPanelTop, {
     scaleY: 0,
     height: "15vw"
   }, 0);
-  
+
   tl.set(transitionPanelBottom, {
     scaleY: 1,
     height: "20vw"
   }, 0);
-  
+
   tl.set(transitionLogo, {
     autoAlpha: 1
   });
-  
+
   tl.set(transitionLogoPath, {
-    yPercent: 105
+    y: logoTravel
   });
-  
+
   tl.set(next,{
     autoAlpha: 0
   }, 0);
-  
+
   tl.fromTo(transitionPanel,{
     yPercent: 0
   },{
     yPercent: -100,
     duration: 1,
+    overwrite: "auto",
   }, 0);
-  
+
   tl.fromTo(transitionPanelTop,{
     scaleY: 0
   },{
     scaleY: 1,
     duration: 1,
+    overwrite: "auto",
   }, "<");
-  
+
   tl.fromTo(transitionLogoPath, {
-    yPercent: 105
+    y: logoTravel
   },{
-    yPercent: 0,
+    y: 0,
     duration: 0.8,
     ease: "expo.out",
+    overwrite: "auto",
     stagger: {
       amount: 0.06
     }
@@ -209,7 +308,7 @@ function runPageLeaveAnimation(current, next) {
   tl.fromTo(current,{
     y: "0vh"
   },{
-    y: "-15dvh",
+    y: "-15vh", // vh, not dvh: mobile Safari recomputes dvh as the URL bar moves, jolting the transition
     duration: 1,
   }, 0);
 }
@@ -221,23 +320,36 @@ function runPageEnterAnimation(next){
   const transitionPanelBottom = transitionWrap.querySelector("[data-transition-panel-bottom]");
   const transitionLogo = transitionWrap.querySelector("[data-transition-logo]");
   const transitionLogoPath = transitionWrap.querySelectorAll("path");
-  
+
+  // Absolute travel distance (px) so every path clears the mask uniformly.
+  const logoTravel = measureLogoTravel(transitionLogo);
+  gsap.set(transitionPanel, { minHeight: curtainMinHeight });
+
   const tl = gsap.timeline();
-  
+
   if (reducedMotion) {
     // Immediate swap behavior if user prefers reduced motion
     tl.set(next, { autoAlpha: 1 });
     tl.add("pageReady")
     tl.call(resetPage, [next], "pageReady");
     return new Promise(resolve => tl.call(resolve, null, "pageReady"));
-  }  
-  
+  }
+
+  activeTransitionTl = tl;
+
   tl.add("startEnter", 1.35);
-  
+
   tl.set(next, {
     autoAlpha: 1,
   }, "startEnter");
-  
+
+  // Hand the page over at FULL COVER, not after the exit: afterEnter (SplitText,
+  // ScrollTriggers, load reveals) runs while the panel still hides the page, so
+  // the heavy-init jank is invisible and the hero reveals play as the curtain
+  // exits — instead of the curtain unveiling a blank page that pops in late.
+  tl.add("pageReady", "startEnter");
+  tl.call(resetPage, [next], "pageReady");
+
   tl.fromTo(transitionPanel, {
     yPercent: -100,
   },{
@@ -246,37 +358,29 @@ function runPageEnterAnimation(next){
     overwrite: "auto",
     immediateRender: false
   }, "startEnter");
-  
+
   tl.fromTo(transitionPanelBottom,{
     scaleY: 1
   },{
     scaleY: 0,
     duration: 1,
   }, "<");
-  
+
   tl.set(transitionPanel, {
     autoAlpha: 0
   }, ">");
-  
+
   tl.to(transitionLogoPath, {
-    yPercent: -130,
+    y: -logoTravel,
     duration: 1.2,
     ease: "expo.inOut",
     stagger: {
       amount: -0.06
     }
   }, "startEnter-=0.4");
-  
-  tl.from(next, {
-    y: "25dvh",
-    duration: 1,
-  }, "startEnter");
-  
-  tl.add("pageReady");
-  tl.call(resetPage, [next], "pageReady");
 
   return new Promise(resolve => {
-    tl.call(resolve, null, "pageReady");
+    tl.call(() => pauseForHandover(tl, resolve), null, "pageReady");
   });
 }
 
