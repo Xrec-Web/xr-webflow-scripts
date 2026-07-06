@@ -73,9 +73,15 @@ function initAfterEnterFunctions(next) {
 // PAGE TRANSITIONS
 // -----------------------------------------
 
-// -----------------------------------------
-// PAGE TRANSITIONS
-// -----------------------------------------
+// Logo paths travel an absolute pixel distance (measured from the logo height,
+// floored) so every path clears the mask uniformly regardless of its own height.
+// Overshoot is invisible behind the mask. Kept in sync with `main copy.js`.
+const LOGO_TRAVEL_MIN = 300; // px floor so the paths always clear the mask
+
+function measureLogoTravel(logo) {
+  const h = logo ? logo.getBoundingClientRect().height : 0;
+  return Math.max(h, LOGO_TRAVEL_MIN) * 1.2;
+}
 
 function runPageOnceAnimation(next) {
   const tl = gsap.timeline();
@@ -94,7 +100,10 @@ function runPageLeaveAnimation(current, next) {
   const transitionPanelBottom = transitionWrap.querySelector("[data-transition-panel-bottom]");
   const transitionLogo = transitionWrap.querySelector("[data-transition-logo]");
   const transitionLogoPath = transitionWrap.querySelectorAll("path");
-  
+
+  // Absolute travel distance (px) so every path moves the same amount.
+  const logoTravel = measureLogoTravel(transitionLogo);
+
   const tl = gsap.timeline({
     onComplete: () => { current.remove() }
   });
@@ -123,9 +132,9 @@ function runPageLeaveAnimation(current, next) {
   });
   
   tl.set(transitionLogoPath, {
-    yPercent: 105
+    y: logoTravel
   });
-  
+
   tl.set(next,{
     autoAlpha: 0
   }, 0);
@@ -145,9 +154,9 @@ function runPageLeaveAnimation(current, next) {
   }, "<");
   
   tl.fromTo(transitionLogoPath, {
-    yPercent: 105
+    y: logoTravel
   },{
-    yPercent: 0,
+    y: 0,
     duration: 0.8,
     ease: "expo.out",
     stagger: {
@@ -170,9 +179,12 @@ function runPageEnterAnimation(next){
   const transitionPanelBottom = transitionWrap.querySelector("[data-transition-panel-bottom]");
   const transitionLogo = transitionWrap.querySelector("[data-transition-logo]");
   const transitionLogoPath = transitionWrap.querySelectorAll("path");
-  
+
+  // Absolute travel distance (px) so every path clears the mask uniformly.
+  const logoTravel = measureLogoTravel(transitionLogo);
+
   const tl = gsap.timeline();
-  
+
   if (reducedMotion) {
     // Immediate swap behavior if user prefers reduced motion
     tl.set(next, { autoAlpha: 1 });
@@ -208,7 +220,7 @@ function runPageEnterAnimation(next){
   }, ">");
   
   tl.to(transitionLogoPath, {
-    yPercent: -130,
+    y: -logoTravel,
     duration: 1.2,
     ease: "expo.inOut",
     stagger: {
