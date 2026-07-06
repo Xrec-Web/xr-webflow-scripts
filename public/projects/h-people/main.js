@@ -53,6 +53,13 @@ function initBeforeEnterFunctions(next) {
 
 function initAfterEnterFunctions(next) {
   nextPage = next || document;
+
+    if (nextPage === lastInitializedContainer) {
+    if (hasLenis) lenis.resize();
+    if (hasScrollTrigger) ScrollTrigger.refresh();
+    return;
+  }
+  lastInitializedContainer = nextPage;
   
   // Runs after enter animation completes
   // if (has('[data-something]')) initSomething();
