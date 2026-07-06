@@ -60,6 +60,7 @@ function initAfterEnterFunctions(next) {
   // if (has('[data-something]')) initSomething();
   if (has('[data-slideshow="wrap"]')) initParallaxImageGallery();
   if (has('[data-accordion-css-init]')) initAccordionCSS();
+  if (has('[data-reveal], [data-reveal-clip]')) initReveal();
   if (has('.img:not(.no-para)')) initImageScrollEffect();
   if (has('[data-current-year]')) initDynamicCurrentYear();
   if (has('.faq_toggle_inner')) initFAQToggle();
@@ -780,13 +781,8 @@ function initImageScrollEffect() {
 }
 
 // TEXT + ELEMENT REVEAL - 1 //
-const splitConfig = {
-  lines: { duration: 1.0, stagger: 0.08 },
-  words: { duration: 0.8, stagger: 0.06 },
-  chars: { duration: 0.6, stagger: 0.01 }
-};
-
-// TEXT + ELEMENT REVEAL - 2 //
+// Walk up to see if this reveal sits inside another, so a nested reveal can
+// start a beat after its ancestor.
 function hasRevealAncestor(el) {
   let parent = el.parentElement;
   while (parent) {
@@ -796,82 +792,52 @@ function hasRevealAncestor(el) {
   return false;
 }
 
-// TEXT + ELEMENT REVEAL - 3 //
-function animateClipBatch(els, baseDelay) {
-  const DURATION = 0.9;
-  const STAGGER  = 0.1;
-  els.forEach((el, i) => {
-    const offset = i * STAGGER;
-    // Constant duration; the stagger comes from delay alone. (Previously
-    // duration shrank per item, so later reveals snapped in near-instantly.)
-    gsap.to(el, { clipPath: 'inset(0% 0% 0% 0%)', duration: DURATION, ease: 'reveal', delay: baseDelay + offset });
-  });
-}
-
-// TEXT + ELEMENT REVEAL - 4 //
+// TEXT + ELEMENT REVEAL - 2 //
+// Both [data-reveal] (text) and [data-reveal-clip] (elements) share ONE cheap
+// reveal: fade up 1rem into place with a slight blur that resolves. No SplitText
+// and no clip-path — those forced big synchronous reflows that froze the main
+// thread on page enter; this is just transform + opacity + filter tweens.
+//   data-load  → play immediately on enter (above the fold)
+//   otherwise  → play once when scrolled into view
 function initReveal() {
-  // Clip reveals
-  const allClipEls  = [...document.querySelectorAll('[data-reveal-clip]')];
-  const loadClips   = allClipEls.filter(el => el.hasAttribute('data-load'));
-  const scrollClips = allClipEls.filter(el => !el.hasAttribute('data-load'));
+  const els = [...document.querySelectorAll('[data-reveal], [data-reveal-clip]')];
+  if (!els.length) return;
 
-  if (loadClips.length) {
-    const roots    = loadClips.filter(el => !hasRevealAncestor(el));
-    const children = loadClips.filter(el =>  hasRevealAncestor(el));
-    animateClipBatch(roots, 0);
-    animateClipBatch(children, 0.2);
+  const FROM = { autoAlpha: 0, y: '1rem', filter: 'blur(8px)' }; // 8px ≈ 0.5rem; tweak to taste
+  const TO = {
+    autoAlpha: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    duration: 0.8,
+    ease: 'reveal',
+    // Don't leave an inline blur (ongoing repaint cost) or transform (creates a
+    // containing block that can break position:fixed descendants) behind.
+    clearProps: 'filter,transform'
+  };
+
+  const reveal = (targets, extra) => gsap.fromTo(targets, FROM, { ...TO, ...extra });
+
+  const loadEls   = els.filter(el =>  el.hasAttribute('data-load'));
+  const scrollEls = els.filter(el => !el.hasAttribute('data-load'));
+
+  // On-load reveals: run now, staggered; nested reveals trail their ancestor.
+  if (loadEls.length) {
+    const roots    = loadEls.filter(el => !hasRevealAncestor(el));
+    const children = loadEls.filter(el =>  hasRevealAncestor(el));
+    if (roots.length)    reveal(roots,    { delay: 0,   stagger: 0.08 });
+    if (children.length) reveal(children, { delay: 0.2, stagger: 0.08 });
   }
 
-  if (scrollClips.length) {
-    ScrollTrigger.batch(scrollClips, {
+  // On-scroll reveals: hide up front, then batch so items entering together
+  // stagger in, once each.
+  if (scrollEls.length) {
+    gsap.set(scrollEls, FROM);
+    ScrollTrigger.batch(scrollEls, {
       start: 'clamp(top 80%)',
       once: true,
-      onEnter: (batch) => {
-        const roots    = batch.filter(el => !hasRevealAncestor(el));
-        const children = batch.filter(el =>  hasRevealAncestor(el));
-        animateClipBatch(roots, 0);
-        animateClipBatch(children, 0.2);
-      }
+      onEnter: batch => reveal(batch, { stagger: 0.08, overwrite: true })
     });
   }
-
-  // Split text reveals
-  document.querySelectorAll('[data-reveal]').forEach((el) => {
-    const isLoad   = el.hasAttribute('data-load');
-    const isChild  = hasRevealAncestor(el);
-    const type     = (el.dataset.reveal || 'lines').toLowerCase();
-    const safeType = ['lines', 'words', 'chars'].includes(type) ? type : 'lines';
-
-    const typesToSplit =
-      safeType === 'lines' ? ['lines'] :
-      safeType === 'words' ? ['lines', 'words'] :
-      ['lines', 'words', 'chars'];
-
-    SplitText.create(el, {
-      type: typesToSplit.join(','),
-      mask: 'lines',
-      autoSplit: true,
-      linesClass: 'line',
-      wordsClass: 'word',
-      charsClass: 'letter',
-      onSplit: (instance) => {
-        gsap.set(el, { opacity: 1 });
-        const targets   = instance[safeType];
-        const config    = splitConfig[safeType];
-        const baseDelay = isChild ? 0.2 : 0;
-        targets.forEach((target, i) => {
-          const offset = i * config.stagger;
-          gsap.from(target, {
-            yPercent: 110,
-            duration: config.duration - offset,
-            ease: 'reveal',
-            delay: baseDelay + offset,
-            ...(isLoad ? {} : { scrollTrigger: { trigger: el, start: 'clamp(top 80%)', once: true } })
-          });
-        });
-      }
-    });
-  });
 }
 
 // COPYRIGHT YEAR //
