@@ -39,6 +39,7 @@ function initOnceFunctions() {
   
   // Runs once on first load
   // if (has('[data-something]')) initSomething();
+  if (has('[form-inner-menu]')) initMobileMenu();
 }
 
 function initBeforeEnterFunctions(next) {
@@ -408,3 +409,115 @@ function initBarbaNavUpdate(data) {
 // -----------------------------------------
 // YOUR FUNCTIONS GO BELOW HERE
 // -----------------------------------------
+
+function initMobileMenu() {
+  const menu = document.querySelector('[form-inner-menu]');
+  if (!menu) return;
+
+  // The overlay container, if there is one; otherwise treat the panel as its own.
+  const wrap = document.querySelector('[form-wrap]') || menu;
+  // Backdrop: this project uses .dark-bg (no [form-bg]).
+  const bg   = document.querySelector('[form-bg]') || document.querySelector('.dark-bg');
+
+  // Collect every toggle's bars + labels and zero them out.
+  const buttons = [];
+  document.querySelectorAll('[data-underlay-nav-toggle]').forEach((btn) => {
+    const bars = btn.querySelectorAll('.underlay-nav__toggle-bar');
+    if (bars.length < 2) return;
+    const labels = btn.querySelectorAll('.underlay-nav__toggle-label');
+    gsap.set(bars, { y: 0, rotation: 0 });
+    gsap.set(labels, { yPercent: 0 });
+    buttons.push({ btn, bars, labels });
+  });
+  if (!buttons.length) return;
+
+  const CLIP_HIDDEN = 'inset(0% 0% 0% 100%)'; // width 0, anchored right
+  const CLIP_SHOWN  = 'inset(0% 0% 0% 0%)';   // full width
+
+  // Make the overlay renderable but hidden. When there's no separate [form-wrap],
+  // `wrap` IS the menu, so this also overrides any display:none / opacity:0 that
+  // Webflow set on it — otherwise the clip would animate on an invisible element.
+  gsap.set(wrap, { display: 'flex', autoAlpha: 0, pointerEvents: 'none' });
+  if (bg) gsap.set(bg, { autoAlpha: 0 });
+  gsap.set(menu, { clipPath: CLIP_HIDDEN });
+
+  let open = false;
+
+  // lenis.stop() adds .lenis-stopped (overflow:hidden), locking touch scroll too.
+  const lockScroll = (lock) => {
+    if (!lenis) return;
+    if (lock) lenis.stop();
+    else lenis.start();
+  };
+
+  // Drive every toggle's icon to match the panel state.
+  const syncIcon = (isOpen) => {
+    buttons.forEach(({ btn, bars, labels }) => {
+      btn.setAttribute('aria-expanded', String(isOpen));
+      btn.setAttribute('aria-label', isOpen ? 'close menu' : 'open menu');
+      if (isOpen) {
+        gsap.to(bars[0], { y: '0.25em', rotation: 45, duration: 0.35, ease: 'pop', overwrite: 'auto' });
+        gsap.to(bars[1], { y: '-0.25em', rotation: -45, duration: 0.35, ease: 'pop', overwrite: 'auto' });
+        gsap.to(labels, { yPercent: -100, duration: 0.4, ease: 'energy', overwrite: 'auto' });
+      } else {
+        gsap.to(bars, { y: 0, rotation: 0, duration: 0.25, ease: 'osmo', overwrite: 'auto' });
+        gsap.to(labels, { yPercent: 0, duration: 0.25, ease: 'osmo', overwrite: 'auto' });
+      }
+    });
+  };
+
+  function openMenu() {
+    if (open) return;
+    open = true;
+    gsap.set(wrap, { autoAlpha: 1, pointerEvents: 'auto' });
+    if (bg) gsap.to(bg, { autoAlpha: 1, duration: 0.4, ease: 'osmo' });
+    gsap.fromTo(menu, { clipPath: CLIP_HIDDEN }, { clipPath: CLIP_SHOWN, duration: 0.6, ease: 'osmo' });
+    lockScroll(true);
+    syncIcon(true);
+  }
+
+  // Fire-and-forget: the page transition triggers this from Barba's beforeLeave
+  // and runs CONCURRENTLY (matching the proven Quaglio setup). lockScroll(false)
+  // restarts lenis; beforeEnter then stops it for the transition and resetPage
+  // restarts it on the new page.
+  function closeMenu() {
+    if (!open) return;
+    open = false;
+    lockScroll(false);
+    if (bg) gsap.to(bg, { autoAlpha: 0, duration: 0.4, ease: 'osmo' });
+    syncIcon(false);
+    gsap.to(menu, {
+      clipPath: CLIP_HIDDEN,
+      duration: 0.45,
+      ease: 'osmo',
+      onComplete: () => {
+        if (!open) gsap.set(wrap, { autoAlpha: 0, pointerEvents: 'none' }); // guard against a quick re-open
+      }
+    });
+  }
+
+  const toggle = () => (open ? closeMenu() : openMenu());
+
+  // Exposed so Barba's beforeLeave can clip the menu out when a link triggers a
+  // page transition (fire-and-forget, concurrent — see closeMenu).
+  closeMobileMenu = closeMenu;
+
+  buttons.forEach(({ btn }) => {
+    // A toggle inside [form-close] already closes via the closer handler below —
+    // binding the toggle here too would close then instantly re-open.
+    if (btn.closest('[form-close]')) return;
+    btn.addEventListener('click', toggle);
+  });
+
+  // Dedicated close buttons + backdrop.
+  document.querySelectorAll('[form-close]').forEach((el) => el.addEventListener('click', () => closeMenu()));
+  if (bg) bg.addEventListener('click', () => closeMenu());
+
+  // Close the menu the INSTANT a link inside it is tapped. Barba's beforeLeave
+  // only fires after the next page is fetched (~1s on mobile), which left the
+  // menu hanging open. Capture phase runs before Barba's own click handler, so
+  // the clip-out starts immediately and overlaps the page fetch + transition.
+  menu.addEventListener('click', (e) => {
+    if (open && e.target.closest('a[href]')) closeMenu();
+  }, true);
+}
