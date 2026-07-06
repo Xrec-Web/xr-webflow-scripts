@@ -203,7 +203,22 @@ function runPageOnceAnimation(next) {
     }
   }, "startEnter-=0.4");
 
-  return new Promise(resolve => tl.call(resolve, null, "pageReady"));
+  return new Promise(resolve => {
+    tl.call(() => pauseForHandover(tl, resolve), null, "pageReady");
+  });
+}
+
+// Freeze the timeline while Barba's after-hooks re-init the page (SplitText,
+// ScrollTrigger.refresh — several hundred ms on phones). The clock is paused at
+// full cover and the exit resumes on a painted frame, so the stall reads as a
+// slightly longer hold. Without this the time-based exit tweens jump forward by
+// the stall length and the curtain visibly skips ("freezes then flashes").
+function pauseForHandover(tl, resolve) {
+  tl.pause();
+  resolve(); // barba after-hooks (the heavy init) run in this microtask chain
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (activeTransitionTl === tl) tl.resume(); // skip if a new leave killed it
+  }));
 }
 
 function runPageLeaveAnimation(current, next) {
@@ -365,7 +380,7 @@ function runPageEnterAnimation(next){
   }, "startEnter-=0.4");
 
   return new Promise(resolve => {
-    tl.call(resolve, null, "pageReady");
+    tl.call(() => pauseForHandover(tl, resolve), null, "pageReady");
   });
 }
 
@@ -411,16 +426,11 @@ barba.hooks.beforeOnce(data => {
 
 barba.hooks.afterOnce(data => {
   // First load doesn't fire the enter hooks, so run page functions here too.
+  // initAfterEnterFunctions already ends with lenis.resize() + ScrollTrigger.refresh();
+  // repeating them here doubled the heaviest part of the handover stall on phones.
   initAfterEnterFunctions(data.next.container);
 
-  if(hasLenis){
-    lenis.resize();
-    lenis.start();
-  }
-
-  if(hasScrollTrigger){
-    ScrollTrigger.refresh();
-  }
+  if (hasLenis) lenis.start();
 });
 
 barba.hooks.enter(data => {
@@ -428,18 +438,11 @@ barba.hooks.enter(data => {
 })
 
 barba.hooks.afterEnter(data => {
-  // Run page functions
+  // Run page functions. initAfterEnterFunctions already ends with lenis.resize()
+  // + ScrollTrigger.refresh() — repeating them here doubled the handover stall.
   initAfterEnterFunctions(data.next.container);
 
-  // Settle
-  if(hasLenis){
-    lenis.resize();
-    lenis.start();
-  }
-
-  if(hasScrollTrigger){
-    ScrollTrigger.refresh();
-  }
+  if (hasLenis) lenis.start();
 });
 
 barba.init({
