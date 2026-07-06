@@ -37,9 +37,11 @@ function initOnceFunctions() {
   if (onceFunctionsInitialized) return;
   onceFunctionsInitialized = true;
   
-  // Runs once on first load
-  // if (has('[data-something]')) initSomething();
-  if (has('[data-underlay-nav-toggle]')) initMobileMenu();
+  // Runs once on first load. These live OUTSIDE the Barba container (they
+  // persist across page transitions), so query the whole document — `has()` is
+  // scoped to nextPage (the container) and would never find them.
+  // if (document.querySelector('[data-something]')) initSomething();
+  if (document.querySelector('[data-underlay-nav-toggle]')) initMobileMenu();
 }
 
 function initBeforeEnterFunctions(next) {
