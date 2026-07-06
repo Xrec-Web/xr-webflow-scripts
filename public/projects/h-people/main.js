@@ -39,7 +39,7 @@ function initOnceFunctions() {
   
   // Runs once on first load
   // if (has('[data-something]')) initSomething();
-  if (has('[form-inner-menu]')) initMobileMenu();
+  if (has('[data-underlay-nav-toggle]')) initMobileMenu();
 }
 
 function initBeforeEnterFunctions(next) {
