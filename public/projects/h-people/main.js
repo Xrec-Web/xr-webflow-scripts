@@ -41,6 +41,8 @@ function initOnceFunctions() {
   // persist across page transitions), so query the whole document — `has()` is
   // scoped to nextPage (the container) and would never find them.
   // if (document.querySelector('[data-something]')) initSomething();
+  if (document.querySelector('.progressive-blur')) initProgressiveBlurScroll();
+  if (document.querySelector('[data-slideshow="wrap"]')) initParallaxImageGallery();
   if (document.querySelector('[data-underlay-nav-toggle]')) initMobileMenu();
 }
 
@@ -54,25 +56,6 @@ function initBeforeEnterFunctions(next) {
 function initAfterEnterFunctions(next) {
   nextPage = next || document;
   
-  // Runs after enter animation completes
-  // if (has('[data-something]')) initSomething();
-  if (has('[data-slideshow="wrap"]')) initParallaxImageGallery();
-  if (has('[data-accordion-css-init]')) initAccordionCSS();
-  if (has('[data-reveal], [data-reveal-clip]')) initReveal();
-  if (has('.img:not(.no-para)')) initImageScrollEffect();
-  if (has('[data-current-year]')) initDynamicCurrentYear();
-  if (has('.faq_toggle_inner')) initFAQToggle();
-  if (has('[data-hero-parallax], [data-footer-parallax]')) initParallax();
-  if (has('[data-form-validate]')) initBasicFormValidation();
-  if (has('.swiper.is-gallery')) initGallerySlider();
-  if (has('[data-mini-showreel-open]')) initMiniShowreelPlayer();
-  if (has('[data-video="playpause"]')) initPlayPauseVideoScroll();
-  if (has('[data-modal-target]')) initModalBasic();
-  if (has('[data-draggable-marquee-init]')) initDraggableMarquee();
-  if (has('[data-swiper-group]')) initSwiperSlider();
-  if (has('[data-filter-group]')) initFilterBasic();
-  if (has('[resource-item]')) initResourceHover();
-  if (has('[card-sticky]')) initStickyCardStack();
   
   if(hasLenis){
     lenis.resize();
