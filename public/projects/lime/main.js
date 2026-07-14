@@ -14,23 +14,72 @@ gsap.ticker.add((time) => {
 });
 gsap.ticker.lagSmoothing(0);
 
-// Refresh ScrollTrigger after Finsweet List Filter updates the DOM
-let filterRefreshTimer;
-document.addEventListener('change', (e) => {
-  if (e.target.closest('[fs-list-element="filters"]')) {
-    clearTimeout(filterRefreshTimer);
-    filterRefreshTimer = setTimeout(() => ScrollTrigger.refresh(), 300);
-  }
-});
+// Refresh ScrollTrigger whenever the page height changes — CMS/Finsweet items,
+// "load more", filters, and late-loading images all shift trigger positions.
+let heightRefreshTimer;
+let lastDocHeight = 0;
+const queueScrollRefresh = () => {
+  clearTimeout(heightRefreshTimer);
+  heightRefreshTimer = setTimeout(() => ScrollTrigger.refresh(), 200);
+};
+
+new ResizeObserver(() => {
+  const h = document.documentElement.scrollHeight;
+  if (h === lastDocHeight) return;
+  lastDocHeight = h;
+  queueScrollRefresh();
+}).observe(document.body);
+
+// Images inside CMS items have no height until decoded
+window.addEventListener('load', () => ScrollTrigger.refresh());
 
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
+
+// CMS lists (jobs) render after DOMContentLoaded. Creating scroll reveals before
+// that means every trigger below the fold sits inside the viewport of a short
+// page, fires instantly, and — being `once: true` — is gone by the time the real
+// content arrives. Wait until the list stops mutating before building them.
+const LIST_SELECTOR = '[fs-list-element="list"], .w-dyn-items';
+
+function whenListSettled(callback) {
+  const list = document.querySelector(LIST_SELECTOR);
+  if (!list) return callback();
+
+  const SETTLE_MS  = 300;
+  const MAX_WAIT_MS = 3000;
+  let settleTimer;
+
+  const observer = new MutationObserver(() => {
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(done, SETTLE_MS);
+  });
+  observer.observe(list, { childList: true, subtree: true });
+
+  settleTimer = setTimeout(done, SETTLE_MS);
+  const bailTimer = setTimeout(done, MAX_WAIT_MS);
+
+  let fired = false;
+  function done() {
+    if (fired) return;
+    fired = true;
+    clearTimeout(settleTimer);
+    clearTimeout(bailTimer);
+    observer.disconnect();
+    callback();
+  }
+}
 
 // Each init is guarded — only runs if its trigger element exists on the page.
 document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[filter-list="categories"]')) initFilters('categories');
   if (document.querySelector('[filter-list="contract"]')) initFilters('contract');
-  if (document.querySelector('[data-reveal], [data-reveal-clip]')) initMaskTextScrollReveal();
+  if (document.querySelector('[data-reveal], [data-reveal-clip]')) {
+    whenListSettled(() => {
+      initMaskTextScrollReveal();
+      ScrollTrigger.refresh();
+    });
+  }
   if (document.querySelector('[data-reveal-load]')) initLoadReveal();
   if (document.querySelector('.cursor')) initDynamicCustomTextCursor();
   if (document.querySelector('[data-video-on-hover]')) initPlayVideoHover();
