@@ -1,6 +1,15 @@
 // ─── ALWAYS-ON SETUP ────────────────────────────────────────────────────────
-
+/*
 gsap.registerPlugin(SplitText, ScrollTrigger, InertiaPlugin, Observer, CustomEase, ScrambleTextPlugin);
+
+// Hide reveal text until SplitText has built the line masks — otherwise the raw
+// text paints, then the split yanks it out of the mask, reading as a flash.
+// Each reveal init sets an inline `opacity: 1` on its elements once split.
+// The failsafe un-hides everything if the animation code never gets that far.
+const revealFOUCStyle = document.createElement('style');
+revealFOUCStyle.textContent = '[data-reveal]{opacity:0}';
+document.head.appendChild(revealFOUCStyle);
+setTimeout(() => revealFOUCStyle.remove(), 4000);
 
 CustomEase.create('reveal', 'M0,0 C0.16,1 0.3,1 1,1');
 CustomEase.create('osmo',   'M0,0 C0.2,0 0,1 1,1');
@@ -962,3 +971,5 @@ function initParallaxImageSlider() {
     gsap.ticker.add(() => slider.update());
   });
 }
+  */
+ 
