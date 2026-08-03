@@ -367,6 +367,8 @@ function initGridReveal() {
   // Fallbacks — only used when no .grid-image-item is on the page
   const COLS = 10, RATIO = 1.15, GAP = '.5rem', CELL_RADIUS = '.3em';
   const RADIUS = 200, EASE = 0.14;
+  // Ghost defaults: wider pools of light, roaming further and faster than the cursor
+  const GHOST_SCALE = 1.8, GHOST_DRIFT = 280, GHOST_SPEED = 0.0007;
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // One pointer, tracked in viewport space. Each section converts to its own
@@ -456,18 +458,50 @@ function initGridReveal() {
       scan();
     }
 
+    // Deterministic pseudo-random from a seed, so a rebuild on resize doesn't
+    // teleport the ghosts the way Math.random() would
+    function hash(seed, n) {
+      const x = Math.sin(seed * 12.9898 + n * 78.233) * 43758.5453;
+      return x - Math.floor(x);
+    }
+
+    // Three sine terms per axis, each with its own frequency and phase, so the
+    // path is a wandering figure rather than a tidy ellipse. Independent x/y
+    // frequencies mean every ghost drifts in its own direction.
+    function motion(seed) {
+      const TAU = Math.PI * 2;
+      const terms = [];
+      let total = 0;
+
+      for (let k = 0; k < 3; k++) {
+        const amp = 1 / (k + 1.4);
+        total += amp;
+        terms.push({
+          amp,
+          fx: 0.5 + hash(seed, k * 4)     * 1.8,
+          fy: 0.5 + hash(seed, k * 4 + 1) * 1.8,
+          px: hash(seed, k * 4 + 2) * TAU,
+          py: hash(seed, k * 4 + 3) * TAU
+        });
+      }
+
+      terms.forEach(t => { t.amp /= total; });   // keep the wander inside `drift`
+      return terms;
+    }
+
     function scan() {
       const gb = layer.getBoundingClientRect();
       ghosts = Array.from(sec.querySelectorAll('[data-ghost-cursor]')).map((n, i) => {
         n.style.pointerEvents = 'none';
         const b = n.getBoundingClientRect();
+        const seed = i * 137.5 + 1;
         return {
           cx: b.left - gb.left + b.width / 2,
           cy: b.top - gb.top + b.height / 2,
-          r:     parseFloat(n.getAttribute('data-radius')) || baseR,
-          drift: parseFloat(n.getAttribute('data-drift'))  || 120,
-          speed: (parseFloat(n.getAttribute('data-speed')) || 1) * 0.00035,
-          seed:  i * 137.5
+          r:     parseFloat(n.getAttribute('data-radius')) || baseR * GHOST_SCALE,
+          drift: parseFloat(n.getAttribute('data-drift'))  || GHOST_DRIFT,
+          speed: (parseFloat(n.getAttribute('data-speed')) || 1) * GHOST_SPEED,
+          terms: motion(seed)
         };
       });
     }
@@ -505,12 +539,15 @@ function initGridReveal() {
       const layers = [];
       if (cursorR > 1) layers.push(lay(tx, ty, cursorR));
       ghosts.forEach(g => {
-        const s = t * g.speed, p = g.seed, D = g.drift;
-        layers.push(lay(
-          g.cx + D * (Math.sin(s + p) * 0.6 + Math.sin(s * 1.7 + p * 1.3) * 0.3 + Math.sin(s * 2.9 + p * 2.1) * 0.1),
-          g.cy + D * (Math.cos(s * 1.3 + p * 0.7) * 0.6 + Math.cos(s * 2.1 + p * 1.9) * 0.3 + Math.cos(s * 3.7 + p * 0.4) * 0.1),
-          g.r
-        ));
+        const s = t * g.speed;
+        let dx = 0, dy = 0;
+
+        g.terms.forEach(term => {
+          dx += term.amp * Math.sin(s * term.fx + term.px);
+          dy += term.amp * Math.sin(s * term.fy + term.py);
+        });
+
+        layers.push(lay(g.cx + g.drift * dx, g.cy + g.drift * dy, g.r));
       });
 
       // An empty list would clear the mask and expose the whole grid
