@@ -275,8 +275,12 @@ function initLogoWallCycle() {
 }
 
 // GRID REVEAL (cursor + drifting ghost spotlights) //
+// Cells match .grid-image-item: 10 cols, .5rem gap, 1.15 aspect, .3em radius.
 // Section: data-grid-reveal="green" | "white" | any CSS color
-//          data-grid-cell="90"    — approx cell size in px
+//          data-grid-cols="10"    — column count
+//          data-grid-ratio="1.15" — cell aspect ratio
+//          data-grid-gap=".5rem"  — gap between cells
+//          data-grid-cell="90"    — size by cell width instead of column count
 //          data-grid-radius="200" — default spotlight radius
 // Ghosts:  data-ghost-cursor inside the section
 //          data-radius / data-drift / data-speed per ghost
@@ -285,14 +289,19 @@ function initGridReveal() {
     green: 'rgba(45,168,113,.16)',
     white: 'rgba(255,255,255,.34)'
   };
-  const CELL = 90, RADIUS = 200, EASE = 0.14;
+  // Geometry mirrors .grid-image / .grid-image-item in the Webflow stylesheet
+  const COLS = 10, RATIO = 1.15, GAP = '.5rem', CELL_RADIUS = '.3em';
+  const RADIUS = 200, EASE = 0.14;
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   document.querySelectorAll('[data-grid-reveal]').forEach(sec => {
     const value    = (sec.getAttribute('data-grid-reveal') || '').trim();
     const color    = PALETTE[value] || value || PALETTE.green;
-    const cellSize = parseFloat(sec.getAttribute('data-grid-cell')) || CELL;
     const baseR    = parseFloat(sec.getAttribute('data-grid-radius')) || RADIUS;
+    const ratio    = parseFloat(sec.getAttribute('data-grid-ratio')) || RATIO;
+    const gap      = sec.getAttribute('data-grid-gap') || GAP;
+    const colsAttr = parseFloat(sec.getAttribute('data-grid-cols'));
+    const cellSize = parseFloat(sec.getAttribute('data-grid-cell'));
 
     if (getComputedStyle(sec).position === 'static') sec.style.position = 'relative';
 
@@ -309,17 +318,28 @@ function initGridReveal() {
       const w = layer.clientWidth, h = layer.clientHeight;
       if (!w || !h) return;
 
-      const cols = Math.max(1, Math.round(w / cellSize));
-      const size = w / cols;
-      const rows = Math.ceil(h / size);
+      layer.style.gap = gap;
+      const gapPx = parseFloat(getComputedStyle(layer).columnGap) || 0;
 
-      layer.style.gridTemplateColumns = `repeat(${cols}, ${size}px)`;
-      layer.style.gridAutoRows = `${size}px`;
+      // Fixed column count by default (matches .grid-image); data-grid-cell
+      // switches to sizing by approximate cell width instead.
+      const cols = colsAttr
+        ? Math.max(1, Math.round(colsAttr))
+        : cellSize
+          ? Math.max(1, Math.round((w + gapPx) / (cellSize + gapPx)))
+          : COLS;
+
+      const colW = (w - gapPx * (cols - 1)) / cols;
+      const rowH = colW / ratio;
+      const rows = Math.max(1, Math.ceil((h + gapPx) / (rowH + gapPx)));
+
+      layer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+      layer.style.gridAutoRows = `${rowH}px`;
       layer.innerHTML = '';
 
       for (let i = 0; i < cols * rows; i++) {
         const cell = document.createElement('div');
-        cell.style.cssText = `border:1px solid ${color};border-radius:10px;margin:4px`;
+        cell.style.cssText = `border:1px solid ${color};border-radius:${CELL_RADIUS}`;
         layer.appendChild(cell);
       }
       scan();
