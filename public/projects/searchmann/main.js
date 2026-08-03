@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-fade], [data-fade-text]')) initFadeIn();
   if (document.querySelector('[data-logo-wall-cycle-init]')) initLogoWallCycle();
   if (document.body.hasAttribute('data-reveal-grid')) initGridReveal();
+  if (document.querySelector('[data-grid-mask]')) initGridMask();
 });
 
 
@@ -314,14 +315,37 @@ function initLogoWallCycle() {
 //          data-grid-cell="90" — size by cell width instead of column count
 // Ghosts:  data-ghost-cursor inside the section
 //          data-radius / data-drift / data-speed per ghost
+// Shared cell geometry — read off a live .grid-image-item so the reveal grid
+// and the image masks always match the real one. Returns null if none exists.
+const GRID_MATCH = '.grid-image-item';
+
+function measureGridCell(scope, selector = GRID_MATCH) {
+  const sample = (scope && scope.querySelector(selector)) || document.querySelector(selector);
+  if (!sample) return null;
+
+  const b = sample.getBoundingClientRect();
+  if (!b.width || !b.height) return null;
+
+  const cs = getComputedStyle(sample);
+  const parentCs = sample.parentElement ? getComputedStyle(sample.parentElement) : null;
+  const colGap = parentCs ? parseFloat(parentCs.columnGap) || 0 : 0;
+
+  return {
+    w: b.width,
+    h: b.height,
+    colGap,
+    rowGap: parentCs ? parseFloat(parentCs.rowGap) || colGap : colGap,
+    radius: parseFloat(cs.borderTopLeftRadius) || 0,   // px, for SVG rx
+    radiusCss: cs.borderRadius                          // as authored, for CSS
+  };
+}
+
 function initGridReveal() {
   const PALETTE = {
     green: 'rgba(45,168,113,.16)',
     white: 'rgba(255,255,255,.34)'
   };
-  // Cells are measured off a live .grid-image-item so they track it exactly.
-  // These only apply when no such element is on the page.
-  const MATCH = '.grid-image-item';
+  // Fallbacks — only used when no .grid-image-item is on the page
   const COLS = 10, RATIO = 1.15, GAP = '.5rem', CELL_RADIUS = '.3em';
   const RADIUS = 200, EASE = 0.14;
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -344,10 +368,7 @@ function initGridReveal() {
     const gap      = sec.getAttribute('data-grid-gap') || GAP;
     const colsAttr = parseFloat(sec.getAttribute('data-grid-cols'));
     const cellSize = parseFloat(sec.getAttribute('data-grid-cell'));
-    const matchSel = sec.getAttribute('data-grid-match') || MATCH;
-
-    // Prefer a sample inside this section, else the first one anywhere
-    const sample = sec.querySelector(matchSel) || document.querySelector(matchSel);
+    const matchSel = sec.getAttribute('data-grid-match') || GRID_MATCH;
 
     if (getComputedStyle(sec).position === 'static') sec.style.position = 'relative';
 
@@ -360,38 +381,18 @@ function initGridReveal() {
     let tx = 0, ty = 0, primed = false;
     let ghosts = [];
 
-    // Read the live sample's rendered box, gaps and corner radius. Falls back
-    // to the constants above when the element isn't on the page.
-    function measure() {
-      if (!sample) return null;
-      const b = sample.getBoundingClientRect();
-      if (!b.width || !b.height) return null;
-
-      const cs = getComputedStyle(sample);
-      const parentCs = sample.parentElement ? getComputedStyle(sample.parentElement) : null;
-      const colGap = parentCs ? parseFloat(parentCs.columnGap) || 0 : 0;
-
-      return {
-        w: b.width,
-        h: b.height,
-        colGap,
-        rowGap: parentCs ? parseFloat(parentCs.rowGap) || colGap : colGap,
-        radius: cs.borderRadius
-      };
-    }
-
     function build() {
       const w = layer.clientWidth, h = layer.clientHeight;
       if (!w || !h) return;
 
-      const m = measure();
+      const m = measureGridCell(sec, matchSel);
       let cellW, cellH, colGap, rowGap, radius;
 
       if (m) {
         // Mirror the real item: fixed px box, same gaps, same corners
         cellW = m.w; cellH = m.h;
         colGap = m.colGap; rowGap = m.rowGap;
-        radius = m.radius;
+        radius = m.radiusCss;
       } else {
         layer.style.gap = gap;
         colGap = rowGap = parseFloat(getComputedStyle(layer).columnGap) || 0;
@@ -505,5 +506,127 @@ function initGridReveal() {
     // Only burn frames while the section is on screen
     new IntersectionObserver(([entry]) => entry.isIntersecting ? start() : stop())
       .observe(sec);
+  });
+}
+
+// GRID MASK (chop a full-bleed image into the page's squares) //
+// Put data-grid-mask on the image's container. The image shows only inside the
+// cell shapes; the page background shows through the gaps.
+//   data-grid-match=".grid-image-item" — mirror a live element, if one exists
+//   data-grid-mask-align="left|center" — how partial columns are distributed
+//   data-grid-rows="3"                 — exact row count, sets container height
+//   data-grid-rows-fit                 — with rows, keep the height, stretch cells
+// Standalone (no element to mirror), all optional:
+//   data-grid-cols="10" / data-grid-ratio="1.15" / data-grid-gap=".5rem"
+//   data-grid-cell="90"        — size by cell width instead of column count
+//   data-grid-cell-radius=".3em"
+function initGridMask() {
+  const COLS = 10, RATIO = 1.15, GAP = '.5rem', CELL_RADIUS = '.3em';
+
+  // Resolve any CSS length (rem, em, %, px) against the element's own context
+  function toPx(value, el) {
+    if (value === null || value === '') return null;
+    // <img> can't hold children, so measure in its parent — same font context
+    const host = el.parentElement || document.body;
+    const probe = document.createElement('div');
+    probe.style.cssText = `position:absolute;visibility:hidden;height:0;width:${value}`;
+    probe.style.font = getComputedStyle(el).font;
+    host.appendChild(probe);
+    const px = probe.getBoundingClientRect().width;
+    probe.remove();
+    return px;
+  }
+
+  document.querySelectorAll('[data-grid-mask]').forEach(box => {
+    const matchSel = box.getAttribute('data-grid-match') || GRID_MATCH;
+    const align    = (box.getAttribute('data-grid-mask-align') || 'left').trim();
+    const colsAttr = parseFloat(box.getAttribute('data-grid-cols'));
+    const rowsAttr = parseFloat(box.getAttribute('data-grid-rows'));
+    const fitRows  = box.hasAttribute('data-grid-rows-fit');
+    const cellSize = parseFloat(box.getAttribute('data-grid-cell'));
+    const ratio    = parseFloat(box.getAttribute('data-grid-ratio')) || RATIO;
+
+    // Derive cell geometry from the box itself when nothing on the page matches
+    function fallback(w) {
+      const gap = toPx(box.getAttribute('data-grid-gap') || GAP, box) || 0;
+      const cols = colsAttr
+        ? Math.max(1, Math.round(colsAttr))
+        : cellSize
+          ? Math.max(1, Math.round((w + gap) / (cellSize + gap)))
+          : COLS;
+
+      const cellW = (w - gap * (cols - 1)) / cols;
+      return {
+        w: cellW,
+        h: cellW / ratio,
+        colGap: gap,
+        rowGap: gap,
+        radius: toPx(box.getAttribute('data-grid-cell-radius') || CELL_RADIUS, box) || 0
+      };
+    }
+
+    function apply() {
+      const w = box.clientWidth;
+      if (!w) return;
+
+      const m = measureGridCell(box, matchSel) || fallback(w);
+
+      // data-grid-rows pins the row count so no row is ever clipped.
+      // Default: set the container height to fit them at their true aspect.
+      // data-grid-rows-fit: keep the container height, stretch cells instead.
+      if (rowsAttr) {
+        if (fitRows) {
+          m.h = (box.clientHeight - m.rowGap * (rowsAttr - 1)) / rowsAttr;
+        } else {
+          const target = rowsAttr * m.h + m.rowGap * (rowsAttr - 1);
+          if (Math.abs(box.clientHeight - target) > 0.5) box.style.height = `${target}px`;
+        }
+      }
+
+      const h = box.clientHeight;
+      if (!h || m.h <= 0) return;
+
+      const stepX = m.w + m.colGap;
+      const stepY = m.h + m.rowGap;
+
+      const cols = Math.max(1, Math.ceil((w + m.colGap) / stepX));
+      const rows = rowsAttr
+        ? Math.max(1, Math.round(rowsAttr))
+        : Math.max(1, Math.ceil((h + m.rowGap) / stepY));
+
+      // Centring splits the leftover width evenly instead of clipping the last column
+      const offsetX = align === 'center' ? -((cols * stepX - m.colGap) - w) / 2 : 0;
+
+      let rects = '';
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const x = offsetX + c * stepX;
+          const y = r * stepY;
+          rects += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" ` +
+                   `width="${m.w.toFixed(1)}" height="${m.h.toFixed(1)}" ` +
+                   `rx="${m.radius.toFixed(1)}" fill="#fff"/>`;
+        }
+      }
+
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" ` +
+                  `viewBox="0 0 ${w} ${h}">${rects}</svg>`;
+      const url = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+
+      box.style.webkitMaskImage = url;
+      box.style.maskImage = url;
+      box.style.webkitMaskRepeat = box.style.maskRepeat = 'no-repeat';
+      box.style.webkitMaskSize = box.style.maskSize = '100% 100%';
+    }
+
+    if (window.ResizeObserver) {
+      new ResizeObserver(apply).observe(box);
+    } else {
+      let to;
+      window.addEventListener('resize', () => {
+        clearTimeout(to);
+        to = setTimeout(apply, 150);
+      });
+      apply();
+    }
   });
 }
