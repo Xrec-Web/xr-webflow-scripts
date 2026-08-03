@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-reveal], [data-reveal-load]')) initReveal();
   if (document.querySelector('[data-fade], [data-fade-text]')) initFadeIn();
   if (document.querySelector('[data-logo-wall-cycle-init]')) initLogoWallCycle();
-  if (document.querySelector('[data-grid-reveal]')) initGridReveal();
+  if (document.body.hasAttribute('data-reveal-grid')) initGridReveal();
 });
 
 
@@ -275,13 +275,14 @@ function initLogoWallCycle() {
 }
 
 // GRID REVEAL (cursor + drifting ghost spotlights) //
-// Cells match .grid-image-item: 10 cols, .5rem gap, 1.15 aspect, .3em radius.
+// Gate:    data-reveal-grid="true" on <body>
+// Cells are measured off a live .grid-image-item and mirror its box exactly.
 // Section: data-grid-reveal="green" | "white" | any CSS color
-//          data-grid-cols="10"    — column count
-//          data-grid-ratio="1.15" — cell aspect ratio
-//          data-grid-gap=".5rem"  — gap between cells
-//          data-grid-cell="90"    — size by cell width instead of column count
-//          data-grid-radius="200" — default spotlight radius
+//          data-grid-match=".grid-image-item" — element to mirror
+//          data-grid-radius="200"             — spotlight radius
+// Fallbacks, used only when no matched element exists on the page:
+//          data-grid-cols="10" / data-grid-ratio="1.15" / data-grid-gap=".5rem"
+//          data-grid-cell="90" — size by cell width instead of column count
 // Ghosts:  data-ghost-cursor inside the section
 //          data-radius / data-drift / data-speed per ghost
 function initGridReveal() {
@@ -289,10 +290,22 @@ function initGridReveal() {
     green: 'rgba(45,168,113,.16)',
     white: 'rgba(255,255,255,.34)'
   };
-  // Geometry mirrors .grid-image / .grid-image-item in the Webflow stylesheet
+  // Cells are measured off a live .grid-image-item so they track it exactly.
+  // These only apply when no such element is on the page.
+  const MATCH = '.grid-image-item';
   const COLS = 10, RATIO = 1.15, GAP = '.5rem', CELL_RADIUS = '.3em';
   const RADIUS = 200, EASE = 0.14;
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // One pointer, tracked in viewport space. Each section converts to its own
+  // local coords every frame, so the light stays continuous across boundaries
+  // instead of easing out to a sentinel on mouseleave.
+  let pointerX = -9999, pointerY = -9999, hasPointer = false;
+  document.addEventListener('pointermove', e => {
+    pointerX = e.clientX;
+    pointerY = e.clientY;
+    hasPointer = true;
+  }, { passive: true });
 
   document.querySelectorAll('[data-grid-reveal]').forEach(sec => {
     const value    = (sec.getAttribute('data-grid-reveal') || '').trim();
@@ -302,6 +315,10 @@ function initGridReveal() {
     const gap      = sec.getAttribute('data-grid-gap') || GAP;
     const colsAttr = parseFloat(sec.getAttribute('data-grid-cols'));
     const cellSize = parseFloat(sec.getAttribute('data-grid-cell'));
+    const matchSel = sec.getAttribute('data-grid-match') || MATCH;
+
+    // Prefer a sample inside this section, else the first one anywhere
+    const sample = sec.querySelector(matchSel) || document.querySelector(matchSel);
 
     if (getComputedStyle(sec).position === 'static') sec.style.position = 'relative';
 
@@ -311,35 +328,68 @@ function initGridReveal() {
       'position:absolute;inset:0;display:grid;pointer-events:none;overflow:hidden;z-index:1';
     sec.appendChild(layer);
 
-    let mx = -9999, my = -9999, tx = -9999, ty = -9999;
+    let tx = 0, ty = 0, primed = false;
     let ghosts = [];
+
+    // Read the live sample's rendered box, gaps and corner radius. Falls back
+    // to the constants above when the element isn't on the page.
+    function measure() {
+      if (!sample) return null;
+      const b = sample.getBoundingClientRect();
+      if (!b.width || !b.height) return null;
+
+      const cs = getComputedStyle(sample);
+      const parentCs = sample.parentElement ? getComputedStyle(sample.parentElement) : null;
+      const colGap = parentCs ? parseFloat(parentCs.columnGap) || 0 : 0;
+
+      return {
+        w: b.width,
+        h: b.height,
+        colGap,
+        rowGap: parentCs ? parseFloat(parentCs.rowGap) || colGap : colGap,
+        radius: cs.borderRadius
+      };
+    }
 
     function build() {
       const w = layer.clientWidth, h = layer.clientHeight;
       if (!w || !h) return;
 
-      layer.style.gap = gap;
-      const gapPx = parseFloat(getComputedStyle(layer).columnGap) || 0;
+      const m = measure();
+      let cellW, cellH, colGap, rowGap, radius;
 
-      // Fixed column count by default (matches .grid-image); data-grid-cell
-      // switches to sizing by approximate cell width instead.
-      const cols = colsAttr
-        ? Math.max(1, Math.round(colsAttr))
-        : cellSize
-          ? Math.max(1, Math.round((w + gapPx) / (cellSize + gapPx)))
-          : COLS;
+      if (m) {
+        // Mirror the real item: fixed px box, same gaps, same corners
+        cellW = m.w; cellH = m.h;
+        colGap = m.colGap; rowGap = m.rowGap;
+        radius = m.radius;
+      } else {
+        layer.style.gap = gap;
+        colGap = rowGap = parseFloat(getComputedStyle(layer).columnGap) || 0;
 
-      const colW = (w - gapPx * (cols - 1)) / cols;
-      const rowH = colW / ratio;
-      const rows = Math.max(1, Math.ceil((h + gapPx) / (rowH + gapPx)));
+        const cols = colsAttr
+          ? Math.max(1, Math.round(colsAttr))
+          : cellSize
+            ? Math.max(1, Math.round((w + colGap) / (cellSize + colGap)))
+            : COLS;
 
-      layer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-      layer.style.gridAutoRows = `${rowH}px`;
+        cellW  = (w - colGap * (cols - 1)) / cols;
+        cellH  = cellW / ratio;
+        radius = CELL_RADIUS;
+      }
+
+      const cols = Math.max(1, Math.ceil((w + colGap) / (cellW + colGap)));
+      const rows = Math.max(1, Math.ceil((h + rowGap) / (cellH + rowGap)));
+
+      layer.style.columnGap = `${colGap}px`;
+      layer.style.rowGap = `${rowGap}px`;
+      layer.style.gridTemplateColumns = `repeat(${cols}, ${cellW}px)`;
+      layer.style.gridAutoRows = `${cellH}px`;
       layer.innerHTML = '';
 
       for (let i = 0; i < cols * rows; i++) {
         const cell = document.createElement('div');
-        cell.style.cssText = `border:1px solid ${color};border-radius:${CELL_RADIUS}`;
+        cell.style.cssText = `border:1px solid ${color};border-radius:${radius}`;
         layer.appendChild(cell);
       }
       scan();
@@ -368,8 +418,19 @@ function initGridReveal() {
 
     function loop(now) {
       const t = reducedMotion ? 0 : now;
-      tx += (mx - tx) * EASE;
-      ty += (my - ty) * EASE;
+
+      // Pointer in this section's local space — valid (and off-canvas) even
+      // when the cursor is over a neighbouring section.
+      const b = layer.getBoundingClientRect();
+      const mx = hasPointer ? pointerX - b.left : -9999;
+      const my = hasPointer ? pointerY - b.top  : -9999;
+
+      if (primed) {
+        tx += (mx - tx) * EASE;
+        ty += (my - ty) * EASE;
+      } else {
+        tx = mx; ty = my; primed = true;   // snap on first frame, never sweep in
+      }
 
       const layers = [lay(tx, ty, baseR)];
       ghosts.forEach(g => {
@@ -397,14 +458,8 @@ function initGridReveal() {
     function stop() {
       if (rafId !== null) cancelAnimationFrame(rafId);
       rafId = null;
+      primed = false;   // re-entering the viewport snaps rather than sweeps
     }
-
-    sec.addEventListener('mousemove', e => {
-      const b = layer.getBoundingClientRect();
-      mx = e.clientX - b.left;
-      my = e.clientY - b.top;
-    });
-    sec.addEventListener('mouseleave', () => { mx = -9999; my = -9999; });
 
     if (window.ResizeObserver) {
       new ResizeObserver(build).observe(sec);
