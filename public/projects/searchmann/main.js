@@ -340,6 +340,23 @@ function measureGridCell(scope, selector = GRID_MATCH) {
   };
 }
 
+// How far to shift an element's tiling so its cells land on the same lattice as
+// everything else. Origin is the nearest [data-grid-origin] ancestor — or the
+// element that attribute names as a selector — falling back to <body>, so the
+// whole page shares one grid by default.
+// Returns negative offsets: start tiling there and the grid lines up.
+function gridPhase(el, stepX, stepY) {
+  const holder = el.closest('[data-grid-origin]');
+  const selector = holder && holder.getAttribute('data-grid-origin').trim();
+  const origin = (selector && document.querySelector(selector)) || holder || document.body;
+
+  const o = origin.getBoundingClientRect();
+  const b = el.getBoundingClientRect();
+  const mod = (n, m) => (m > 0 ? ((n % m) + m) % m : 0);
+
+  return { x: -mod(b.left - o.left, stepX), y: -mod(b.top - o.top, stepY) };
+}
+
 function initGridReveal() {
   const PALETTE = {
     green: 'rgba(45,168,113,.16)',
@@ -375,8 +392,14 @@ function initGridReveal() {
     const layer = document.createElement('div');
     layer.className = 'reveal-grid';
     layer.style.cssText =
-      'position:absolute;inset:0;display:grid;pointer-events:none;overflow:hidden;z-index:1';
+      'position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:1';
     sec.appendChild(layer);
+
+    // Inner grid can sit at a negative offset to phase-align with the page
+    // lattice; the layer clips whatever hangs outside the section.
+    const inner = document.createElement('div');
+    inner.style.cssText = 'position:absolute;display:grid';
+    layer.appendChild(inner);
 
     let tx = 0, ty = 0, primed = false;
     let ghosts = [];
@@ -394,8 +417,8 @@ function initGridReveal() {
         colGap = m.colGap; rowGap = m.rowGap;
         radius = m.radiusCss;
       } else {
-        layer.style.gap = gap;
-        colGap = rowGap = parseFloat(getComputedStyle(layer).columnGap) || 0;
+        inner.style.gap = gap;
+        colGap = rowGap = parseFloat(getComputedStyle(inner).columnGap) || 0;
 
         const cols = colsAttr
           ? Math.max(1, Math.round(colsAttr))
@@ -408,19 +431,25 @@ function initGridReveal() {
         radius = CELL_RADIUS;
       }
 
-      const cols = Math.max(1, Math.ceil((w + colGap) / (cellW + colGap)));
-      const rows = Math.max(1, Math.ceil((h + rowGap) / (cellH + rowGap)));
+      // Phase-align to the shared lattice, then cover the shortfall
+      const stepX = cellW + colGap, stepY = cellH + rowGap;
+      const phase = gridPhase(layer, stepX, stepY);
 
-      layer.style.columnGap = `${colGap}px`;
-      layer.style.rowGap = `${rowGap}px`;
-      layer.style.gridTemplateColumns = `repeat(${cols}, ${cellW}px)`;
-      layer.style.gridAutoRows = `${cellH}px`;
-      layer.innerHTML = '';
+      const cols = Math.max(1, Math.ceil((w - phase.x + colGap) / stepX));
+      const rows = Math.max(1, Math.ceil((h - phase.y + rowGap) / stepY));
+
+      inner.style.left = `${phase.x}px`;
+      inner.style.top = `${phase.y}px`;
+      inner.style.columnGap = `${colGap}px`;
+      inner.style.rowGap = `${rowGap}px`;
+      inner.style.gridTemplateColumns = `repeat(${cols}, ${cellW}px)`;
+      inner.style.gridAutoRows = `${cellH}px`;
+      inner.innerHTML = '';
 
       for (let i = 0; i < cols * rows; i++) {
         const cell = document.createElement('div');
         cell.style.cssText = `border:1px solid ${color};border-radius:${radius}`;
-        layer.appendChild(cell);
+        inner.appendChild(cell);
       }
       scan();
     }
@@ -445,6 +474,7 @@ function initGridReveal() {
       `radial-gradient(circle ${r}px at ${x.toFixed(1)}px ${y.toFixed(1)}px, #000 0%, rgba(0,0,0,.4) 55%, transparent 80%)`;
 
     let rafId = null;
+    let cursorR = 0;
 
     function loop(now) {
       const t = reducedMotion ? 0 : now;
@@ -462,7 +492,16 @@ function initGridReveal() {
         tx = mx; ty = my; primed = true;   // snap on first frame, never sweep in
       }
 
-      const layers = [lay(tx, ty, baseR)];
+      // Only the section actually under the cursor lights up, so neighbours
+      // don't each render half a circle at a shared boundary. Eased so it
+      // shrinks away rather than popping.
+      const inside = hasPointer &&
+        pointerX >= b.left && pointerX <= b.right &&
+        pointerY >= b.top  && pointerY <= b.bottom;
+      cursorR += ((inside ? baseR : 0) - cursorR) * EASE;
+
+      const layers = [];
+      if (cursorR > 1) layers.push(lay(tx, ty, cursorR));
       ghosts.forEach(g => {
         const s = t * g.speed, p = g.seed, D = g.drift;
         layers.push(lay(
@@ -471,6 +510,9 @@ function initGridReveal() {
           g.r
         ));
       });
+
+      // An empty list would clear the mask and expose the whole grid
+      if (!layers.length) layers.push('linear-gradient(transparent, transparent)');
 
       const mask = layers.join(',');
       layer.style.webkitMaskImage = mask;
@@ -513,7 +555,8 @@ function initGridReveal() {
 // Put data-grid-mask on the image's container. The image shows only inside the
 // cell shapes; the page background shows through the gaps.
 //   data-grid-match=".grid-image-item" — mirror a live element, if one exists
-//   data-grid-mask-align="left|center" — how partial columns are distributed
+//   data-grid-mask-align="grid|left|center" — grid (default) phases onto the
+//     shared lattice set by [data-grid-origin]; left starts at this box's edge
 //   data-grid-rows="3"                 — exact row count, sets container height
 //   data-grid-rows-fit                 — with rows, keep the height, stretch cells
 // Standalone (no element to mirror), all optional:
@@ -539,7 +582,7 @@ function initGridMask() {
 
   document.querySelectorAll('[data-grid-mask]').forEach(box => {
     const matchSel = box.getAttribute('data-grid-match') || GRID_MATCH;
-    const align    = (box.getAttribute('data-grid-mask-align') || 'left').trim();
+    const align    = (box.getAttribute('data-grid-mask-align') || 'grid').trim();
     const colsAttr = parseFloat(box.getAttribute('data-grid-cols'));
     const rowsAttr = parseFloat(box.getAttribute('data-grid-rows'));
     const fitRows  = box.hasAttribute('data-grid-rows-fit');
@@ -589,19 +632,28 @@ function initGridMask() {
       const stepX = m.w + m.colGap;
       const stepY = m.h + m.rowGap;
 
-      const cols = Math.max(1, Math.ceil((w + m.colGap) / stepX));
+      // "grid" (default) phases the tiling onto the shared lattice so cells line
+      // up with the reveal grid. "left" starts at this box's own edge.
+      // "center" splits the leftover width evenly across both sides.
+      const phase = align === 'grid' ? gridPhase(box, stepX, stepY) : { x: 0, y: 0 };
+
+      // A pinned row count owns the vertical rhythm — don't phase-shift it
+      const offsetY = rowsAttr ? 0 : phase.y;
+
+      const cols = Math.max(1, Math.ceil((w - phase.x + m.colGap) / stepX));
       const rows = rowsAttr
         ? Math.max(1, Math.round(rowsAttr))
-        : Math.max(1, Math.ceil((h + m.rowGap) / stepY));
+        : Math.max(1, Math.ceil((h - offsetY + m.rowGap) / stepY));
 
-      // Centring splits the leftover width evenly instead of clipping the last column
-      const offsetX = align === 'center' ? -((cols * stepX - m.colGap) - w) / 2 : 0;
+      const offsetX = align === 'center'
+        ? -((cols * stepX - m.colGap) - w) / 2
+        : phase.x;
 
       let rects = '';
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
           const x = offsetX + c * stepX;
-          const y = r * stepY;
+          const y = offsetY + r * stepY;
           rects += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" ` +
                    `width="${m.w.toFixed(1)}" height="${m.h.toFixed(1)}" ` +
                    `rx="${m.radius.toFixed(1)}" fill="#fff"/>`;
