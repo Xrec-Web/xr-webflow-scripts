@@ -74,9 +74,12 @@ function initReveal() {
 // FADE IN //
 // Text:     data-fade-text="char" | "word" | "line"   (defaults to "line")
 // Elements: data-fade                                  (images, buttons, cards…)
+// Add data-load to either to animate on page load instead of on scroll.
 function initFadeIn() {
   const DURATION = 0.8;
   const STAGGER  = 0.05;   // tight overlap — next starts just after previous
+  const EL_STAGGER = 0.08; // gap between consecutive data-load elements
+  const LOAD_DELAY = 0.1;  // beat before the load sequence starts
   const EASE     = 'osmo';
   const BLUR     = 6;
 
@@ -96,18 +99,40 @@ function initFadeIn() {
   gsap.set(textEls, { opacity: 0 });
   gsap.set(otherEls, FROM);
 
-  // ── Text ──
+  // Load elements run as one sequence in DOM order, text and elements together
+  const loadDelay = new Map();
+  gsap.utils
+    .toArray('[data-fade][data-load], [data-fade-text][data-load]')
+    .forEach((el, i) => loadDelay.set(el, LOAD_DELAY + i * EL_STAGGER));
+
+  const played = new Set();   // guards against autoSplit replaying a load animation
+
   document.fonts.ready.then(() => {
+    // ── Text ──
     textEls.forEach(el => {
       const value = (el.getAttribute('data-fade-text') || 'line').trim().toLowerCase();
       const cfg   = SPLIT_MAP[value] || SPLIT_MAP.line;
+      const onLoad = el.hasAttribute('data-load');
 
       SplitText.create(el, {
         type: cfg.type,
         autoSplit: true,          // re-splits on resize/font swap; reverts the returned tween
         onSplit(self) {
           gsap.set(el, { opacity: 1 });
-          return gsap.fromTo(self[cfg.key], FROM, {
+          const targets = self[cfg.key];
+
+          if (onLoad) {
+            // A re-split after the intro has run should land at the end state
+            if (played.has(el)) return gsap.set(targets, { ...TO, ease: 'none' });
+            played.add(el);
+            return gsap.fromTo(targets, FROM, {
+              ...TO,
+              stagger: STAGGER,
+              delay: loadDelay.get(el)
+            });
+          }
+
+          return gsap.fromTo(targets, FROM, {
             ...TO,
             stagger: STAGGER,
             scrollTrigger: {
@@ -119,14 +144,18 @@ function initFadeIn() {
         }
       });
     });
-  });
 
-  // ── Everything else ──
-  // Batched so elements entering the viewport together stagger as one sequence.
-  ScrollTrigger.batch(otherEls, {
-    start: 'top 85%',
-    once: true,
-    onEnter: batch => gsap.to(batch, { ...TO, stagger: STAGGER })
+    // ── Everything else ──
+    otherEls
+      .filter(el => el.hasAttribute('data-load'))
+      .forEach(el => gsap.to(el, { ...TO, delay: loadDelay.get(el) }));
+
+    // Batched so elements entering the viewport together stagger as one sequence
+    ScrollTrigger.batch(otherEls.filter(el => !el.hasAttribute('data-load')), {
+      start: 'top 85%',
+      once: true,
+      onEnter: batch => gsap.to(batch, { ...TO, stagger: STAGGER })
+    });
   });
 }
 
