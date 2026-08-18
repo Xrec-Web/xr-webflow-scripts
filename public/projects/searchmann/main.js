@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-grid-mask]')) initGridMask();
   if (document.querySelector('[data-form-validate]')) initBasicFormValidation();
   if (document.querySelector('[data-twostep-nav]')) initTwostepScalingNavigation();
+  if (document.querySelector('[data-css-marquee]')) initCSSMarquee();
 });
 
 
@@ -780,5 +781,38 @@ function initTwostepScalingNavigation() {
 
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && isActive()) closeNav();
+  });
+}
+
+// CSS MARQUEE //
+// Container: data-css-marquee
+// Track:     data-css-marquee-list (duplicated automatically, CSS handles the animation)
+function initCSSMarquee() {
+  const pixelsPerSecond = 75; // marquee speed
+  const marquees = document.querySelectorAll('[data-css-marquee]');
+
+  // Duplicate each list inside its container
+  marquees.forEach(marquee => {
+    marquee.querySelectorAll('[data-css-marquee-list]').forEach(list => {
+      marquee.appendChild(list.cloneNode(true));
+    });
+  });
+
+  // Pause the animation while the container is out of view
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      entry.target.querySelectorAll('[data-css-marquee-list]').forEach(list => {
+        list.style.animationPlayState = entry.isIntersecting ? 'running' : 'paused';
+      });
+    });
+  }, { threshold: 0 });
+
+  // Set duration from track width, then observe
+  marquees.forEach(marquee => {
+    marquee.querySelectorAll('[data-css-marquee-list]').forEach(list => {
+      list.style.animationDuration = (list.offsetWidth / pixelsPerSecond) + 's';
+      list.style.animationPlayState = 'paused';
+    });
+    observer.observe(marquee);
   });
 }
