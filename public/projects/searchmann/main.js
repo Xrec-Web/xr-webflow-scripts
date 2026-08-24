@@ -372,6 +372,8 @@ function initGridReveal() {
   // Ghost defaults: wider pools of light, roaming further and faster than the cursor
   const GHOST_SCALE = 1.8, GHOST_DRIFT = 280, GHOST_SPEED = 0.0007;
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Hover-driven effect — desktop only. Tablet and below get no grid at all.
+  const DESKTOP = window.matchMedia('(min-width: 992px)');
 
   // One pointer, tracked in viewport space. Each section converts to its own
   // local coords every frame, so the light stays continuous across boundaries
@@ -411,6 +413,14 @@ function initGridReveal() {
     let ghosts = [];
 
     function build() {
+      if (!DESKTOP.matches) {
+        layer.style.display = 'none';
+        inner.replaceChildren();
+        ghosts = [];
+        return;
+      }
+      layer.style.display = '';
+
       const w = layer.clientWidth, h = layer.clientHeight;
       if (!w || !h) return;
 
@@ -515,6 +525,8 @@ function initGridReveal() {
     let cursorR = 0;
 
     function loop(now) {
+      if (!DESKTOP.matches) { rafId = null; return; }
+
       const t = reducedMotion ? 0 : now;
 
       // Pointer in this section's local space — valid (and off-canvas) even
@@ -565,6 +577,7 @@ function initGridReveal() {
     }
 
     function start() {
+      if (!DESKTOP.matches) return;
       if (rafId === null) rafId = requestAnimationFrame(loop);
     }
 
@@ -587,8 +600,17 @@ function initGridReveal() {
     build();
 
     // Only burn frames while the section is on screen
-    new IntersectionObserver(([entry]) => entry.isIntersecting ? start() : stop())
-      .observe(sec);
+    let visible = false;
+    new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      visible ? start() : stop();
+    }).observe(sec);
+
+    // Crossing the breakpoint tears the grid down or rebuilds it
+    DESKTOP.addEventListener('change', () => {
+      build();
+      if (DESKTOP.matches && visible) start(); else stop();
+    });
   });
 }
 
