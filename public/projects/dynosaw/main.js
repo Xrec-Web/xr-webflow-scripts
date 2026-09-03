@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.querySelector('[data-accordion-css-init]')) initAccordionCSS();
   if (document.querySelector('[data-swiper-group]')) initSwiperSlider();
   if (document.querySelector('[data-logo-wall-cycle-init]')) initLogoWallCycle();
+  if (document.querySelector('[data-fade]')) initFadeUp();
 });
 
 
@@ -345,4 +346,95 @@ function initLogoWallCycle() {
       if (document.hidden || !inView) tl.pause(); else tl.play();
     });
   });
+}
+
+// FADE UP //
+// Element: data-fade
+//          data-fade="text"    force line-splitting even if the heuristic says otherwise
+//          data-fade="element" force a whole-element fade (no splitting)
+//          data-fade-delay="0.2" extra delay in seconds on top of the group offset
+// Text elements fade up line by line; everything else fades as one block.
+// Elements entering the viewport together get a small offset from each other.
+function initFadeUp() {
+  const distance = 10;        // px travelled — negative starts above, positive starts below
+  const blurAmount = 5;       // px
+  const duration = 1;
+  const lineStagger = 0.08;   // between lines inside one text element
+  const groupStagger = 0.06;  // between elements entering together
+
+  const fadeElements = gsap.utils.toArray('[data-fade]');
+  if (!fadeElements.length) return;
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reducedMotion) {
+    gsap.set(fadeElements, { autoAlpha: 1 });
+    return;
+  }
+
+  function isTextElement(el) {
+    const mode = el.getAttribute('data-fade');
+    if (mode === 'text') return true;
+    if (mode === 'element') return false;
+    if (!el.textContent.trim()) return false;
+    // treat as text only while every child stays on the same line flow
+    return Array.from(el.children).every(child =>
+      window.getComputedStyle(child).display.startsWith('inline')
+    );
+  }
+
+  // hide everything up front so nothing flashes before the split runs
+  gsap.set(fadeElements, { autoAlpha: 0 });
+
+  function build() {
+    fadeElements.forEach(el => {
+      if (isTextElement(el)) {
+        const split = new SplitText(el, { type: 'lines', linesClass: 'fade-line' });
+        el._fadeTargets = split.lines;
+        el._fadeSplit = split;
+      } else {
+        el._fadeTargets = [el];
+      }
+
+      gsap.set(el._fadeTargets, {
+        y: distance,
+        autoAlpha: 0,
+        filter: `blur(${blurAmount}px)`
+      });
+
+      if (el._fadeSplit) gsap.set(el, { autoAlpha: 1 });   // wrapper visible, lines still hidden
+    });
+
+    ScrollTrigger.batch(fadeElements, {
+      start: 'top 90%',
+      once: true,
+      onEnter: batch => {
+        batch.forEach((el, index) => {
+          const extraDelay = parseFloat(el.getAttribute('data-fade-delay')) || 0;
+
+          gsap.to(el._fadeTargets, {
+            y: 0,
+            autoAlpha: 1,
+            filter: 'blur(0px)',
+            duration,
+            ease: 'reveal',
+            stagger: lineStagger,
+            delay: index * groupStagger + extraDelay,
+            onComplete: () => {
+              // blur is expensive to keep on the compositor once the reveal is done
+              gsap.set(el._fadeTargets, { clearProps: 'filter,transform' });
+            }
+          });
+        });
+      }
+    });
+
+    ScrollTrigger.refresh();
+  }
+
+  // wait for webfonts so SplitText measures the final line breaks
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(build);
+  } else {
+    build();
+  }
 }
