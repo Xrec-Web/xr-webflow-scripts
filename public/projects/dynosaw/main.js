@@ -361,6 +361,7 @@ function initFadeUp() {
   const duration = 1;
   const lineStagger = 0.08;   // between lines inside one text element
   const groupStagger = 0.06;  // between elements entering together
+  const startDelay = 0.15;    // beat before anything moves once it enters the viewport
 
   const fadeElements = gsap.utils.toArray('[data-fade]');
   if (!fadeElements.length) return;
@@ -418,7 +419,7 @@ function initFadeUp() {
             duration,
             ease: 'reveal',
             stagger: lineStagger,
-            delay: index * groupStagger + extraDelay,
+            delay: startDelay + index * groupStagger + extraDelay,
             onComplete: () => {
               // blur is expensive to keep on the compositor once the reveal is done
               gsap.set(el._fadeTargets, { clearProps: 'filter,transform' });
